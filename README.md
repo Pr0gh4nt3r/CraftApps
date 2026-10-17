@@ -54,8 +54,7 @@ Verwaltung ─> GitHub: neue Apps und Releases ─> lädt <app>-web-*.zip ins Vo
 - `nginx.conf` kommt per Bind-Mount direkt aus dem Repo. Das geht nur mit
   „Enable relative path volumes“ der Portainer Business Edition
   ([Portainer-Doku](https://docs.portainer.io/advanced/relative-paths)).
-- nginx bleibt das offizielle Image `nginx:alpine` und wird wie bisher von Watchtower
-  aktuell gehalten.
+- nginx ist das offizielle Image `nginx:alpine`, Watchtower hält es aktuell.
 
 ## Was die Verwaltung kann
 
@@ -110,23 +109,7 @@ Die Tabellen legt die Verwaltung beim ersten Start selbst an. MySQL muss aus dem
 `custom` erreichbar sein; Name oder IP gehört in `DB_HOST` in [compose.yaml](compose.yaml).
 Prüf dort auch die beiden IPs und committe die Änderungen.
 
-### 3. Umstieg vom bisherigen Stack (einmalig)
-
-Läuft noch der alte Stack `craftapps` (Web-Editor, nginx und Python-Updater):
-
-1. In Portainer den alten Stack löschen. Das Volume `craftapps_data` mit den installierten
-   Apps bleibt erhalten – falls Portainer fragt, Volumes **nicht** mitlöschen.
-2. Die Verwaltung läuft als Benutzer 1000, der Python-Updater hat als root geschrieben.
-   Einmal die Besitzrechte umstellen, z.B. per SSH auf dem Pi:
-
-   ```bash
-   sudo chown -R 1000:1000 /var/lib/docker/volumes/craftapps_data/_data
-   ```
-
-Die vom Python-Updater installierten Apps übernimmt die Verwaltung beim ersten Start.
-Bei einer frischen Einrichtung entfällt dieser Schritt.
-
-### 4. Stack in Portainer anlegen
+### 3. Stack in Portainer anlegen
 
 1. **Nur wenn die Pakete in Gitea privat sind:** unter **Registries → Add registry →
    Custom registry** den Gitea-Host mit Benutzer und einem Token mit
@@ -149,7 +132,7 @@ Bei einer frischen Einrichtung entfällt dieser Schritt.
 
 3. **Deploy the stack.**
 
-### 5. Zoraxy
+### 4. Zoraxy
 
 | Domain (Beispiel)              | Ziel               | Zweck      |
 | ------------------------------ | ------------------ | ---------- |
@@ -158,27 +141,15 @@ Bei einer frischen Einrichtung entfällt dieser Schritt.
 
 Beide mit Zertifikat: WebGPU und Zwischenablage gibt es in den Apps nur über HTTPS.
 
-### 6. Erste Anmeldung
+### 5. Erste Anmeldung
 
-Mit `admin` und dem Passwort aus Schritt 4 anmelden. Unter **Einstellungen** eintragen:
+Mit `admin` und dem Passwort aus Schritt 3 anmelden. Unter **Einstellungen** eintragen:
 
 - **Öffentliche Adresse der Apps**, z.B. `https://craft.example.com` – für die
   „Öffnen“-Knöpfe
 - **Adresse dieser Verwaltung** – öffnet sich beim Antippen einer Benachrichtigung
 - **Gotify-Server** und **App-Token** (in Gotify unter **Apps → Create Application**),
   dann **Testnachricht senden**
-
-### 7. Aufräumen nach dem Umstieg (optional)
-
-Wenn die Verwaltung die übernommenen Apps als installiert anzeigt:
-
-```bash
-# Altes Config-Volume (nginx.conf und updater.py) wird nicht mehr gebraucht
-docker volume rm craftapps_config
-
-# Stand des Python-Updaters, aus dem die Verwaltung die Apps übernommen hat
-sudo rm -rf /var/lib/docker/volumes/craftapps_data/_data/.state
-```
 
 ## Im Betrieb
 
@@ -217,7 +188,9 @@ Verwaltung.
   [Craft Launcher](https://github.com/storytold/craft-launcher). Ist der nicht erreichbar,
   gilt der zuletzt bekannte Stand.
 - Der Container der Verwaltung läuft als Benutzer 1000 mit schreibgeschütztem
-  Dateisystem und ohne Linux-Capabilities.
+  Dateisystem und ohne Linux-Capabilities. Ein neues Volume `craftapps_data` gehört
+  automatisch diesem Benutzer. Meldet die Verwaltung trotzdem fehlende Schreibrechte, auf
+  dem Pi `sudo chown -R 1000:1000 /var/lib/docker/volumes/craftapps_data/_data` ausführen.
 
 ## Entwicklung
 

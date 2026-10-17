@@ -84,7 +84,6 @@ export class Manager {
         `Keine Schreibrechte auf ${this.cfg.dataDir} – das Daten-Volume muss dem Benutzer 1000 gehören (siehe README).`,
       );
     }
-    await this.importLegacyState();
     await this.refreshOverview();
     const lastCheck = await this.settings.getInternal<string>('lastCheckAt');
     if (lastCheck) this.lastCheckAt = new Date(lastCheck);
@@ -510,47 +509,6 @@ export class Manager {
       );
     } catch (err) {
       this.log.warn(`Übersichtsseite nicht geschrieben: ${errorText(err)}`);
-    }
-  }
-
-  /** Übernimmt Apps, die der frühere Python-Updater installiert hat (/data/.state/<app>.json). */
-  private async importLegacyState(): Promise<void> {
-    const dir = path.join(this.cfg.dataDir, '.state');
-    const files = await fs.readdir(dir).catch(() => [] as string[]);
-    for (const file of files) {
-      const id = file.replace(/\.json$/, '');
-      if (!file.endsWith('.json') || !APP_ID.test(id) || !existsSync(path.join(this.cfg.dataDir, id, 'index.html'))) continue;
-      if ((await this.app(id))?.installed_tag) continue;
-      try {
-        const legacy = JSON.parse(await fs.readFile(path.join(dir, file), 'utf8')) as {
-          tag?: string;
-          files?: string[];
-          installed_at?: string;
-          published_at?: string;
-        };
-        if (!legacy.tag) continue;
-        await this.db.query(
-          `INSERT INTO apps (id, repo, name, installed_tag, installed_files, installed_at, installed_published_at, notified_tag, auto_update)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
-           ON DUPLICATE KEY UPDATE installed_tag = VALUES(installed_tag), installed_files = VALUES(installed_files),
-             installed_at = VALUES(installed_at), installed_published_at = VALUES(installed_published_at),
-             notified_tag = VALUES(notified_tag)`,
-          [
-            id,
-            id,
-            id,
-            legacy.tag,
-            JSON.stringify(legacy.files ?? []),
-            legacy.installed_at ? new Date(legacy.installed_at) : new Date(),
-            legacy.published_at ? new Date(legacy.published_at) : null,
-            legacy.tag,
-          ],
-        );
-        await this.event('installed', `Vom bisherigen Updater übernommen: ${version(legacy.tag)}`, id);
-        this.log.info(`${id} ${legacy.tag} vom Python-Updater übernommen`);
-      } catch (err) {
-        this.log.warn(`${file} nicht übernommen: ${errorText(err)}`);
-      }
     }
   }
 }
