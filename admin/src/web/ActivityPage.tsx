@@ -18,14 +18,17 @@ export function ActivityPage() {
   const [events, setEvents] = useState<EventView[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setEvents(await api<EventView[]>('GET', '/api/events?limit=300'));
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, []);
+  const load = useCallback(
+    () =>
+      api<EventView[]>('GET', '/api/events?limit=300').then(
+        (data) => {
+          setEvents(data);
+          setError(null);
+        },
+        (err: Error) => setError(err.message),
+      ),
+    [],
+  );
   useEffect(() => void load(), [load]);
 
   return (

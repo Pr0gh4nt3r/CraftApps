@@ -18,13 +18,10 @@ export function UsersPage({ me }: { me: MeView }) {
   const [newName, setNewName] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
-  const load = useCallback(async () => {
-    try {
-      setUsers(await api<UserView[]>('GET', '/api/users'));
-    } catch (err) {
-      setListMessage({ tone: 'error', text: (err as Error).message });
-    }
-  }, []);
+  const load = useCallback(
+    () => api<UserView[]>('GET', '/api/users').then(setUsers, (err: Error) => setListMessage({ tone: 'error', text: err.message })),
+    [],
+  );
   useEffect(() => void load(), [load]);
 
   async function changePassword(e: FormEvent) {

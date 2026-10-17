@@ -222,6 +222,7 @@ Verwaltung.
 ```bash
 cd admin
 npm ci
+npm run lint       # ESLint; muss ohne Fehler und Warnungen durchlaufen
 npm run build
 DB_HOST=… DB_USER=… DB_PASSWORD=… DB_NAME=… DATA_DIR=./data npm start
 npm run dev:web    # Oberfläche mit Hot Reload; API-Aufrufe gehen an localhost:3000

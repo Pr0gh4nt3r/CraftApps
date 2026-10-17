@@ -8,13 +8,10 @@ export function AppsPage() {
   const [state, setState] = useState<StateView | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setState(await api<StateView>('GET', '/api/state'));
-    } catch (err) {
-      setNotice((err as Error).message);
-    }
-  }, []);
+  const load = useCallback(
+    () => api<StateView>('GET', '/api/state').then(setState, (err: Error) => setNotice(err.message)),
+    [],
+  );
 
   // Solange etwas läuft, jede Sekunde nachsehen, sonst alle 15 Sekunden
   const busy =
