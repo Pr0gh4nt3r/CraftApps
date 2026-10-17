@@ -33,6 +33,7 @@ CraftApps\
 ├── .vscode\                            Starten und Debuggen in VS Code, empfohlene Erweiterungen
 ├── admin\                              Verwaltung: Fastify-Server und React-Oberfläche
 │   ├── Dockerfile
+│   ├── public\                         Tab-Icons: Verwaltung, overview\ für die Startseite
 │   └── src\
 │       ├── server\                     API, Anmeldung, Installer, GitHub, Gotify
 │       ├── shared\                     Typen für Server und Oberfläche

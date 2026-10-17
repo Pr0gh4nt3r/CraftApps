@@ -26,6 +26,14 @@ and in the workflows for Gitea and GitHub explain how everything fits together �
 up to date with every change. Screenshots in `docs/images/` only show example values such
 as `gitea.example.com` and the account `user`, never real domains or accounts.
 
+## Icons
+
+`admin/public/icon.svg` (admin UI) and `admin/public/overview/icon.svg` (start page; the
+admin copies this set into the data volume) are the sources. `favicon.ico` (16, 32 and
+48 px) and `apple-touch-icon.png` (180 px, the same motif on a square background) next to
+them are rendered from the SVGs, e.g. with `rsvg-convert` – always update all three
+together.
+
 ## Language
 
 Comments in code and configuration – including the code examples in the READMEs – always in

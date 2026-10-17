@@ -34,6 +34,7 @@ CraftApps\
 ├── .vscode\                            Launch and debug in VS Code, recommended extensions
 ├── admin\                              Admin UI: Fastify server and React frontend
 │   ├── Dockerfile
+│   ├── public\                         Tab icons: admin UI, overview\ for the start page
 │   └── src\
 │       ├── server\                     API, login, installer, GitHub, Gotify
 │       ├── shared\                     Types shared by server and frontend

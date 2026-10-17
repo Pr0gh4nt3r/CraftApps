@@ -506,6 +506,7 @@ export class Manager {
           version: version(a.installed_tag),
           publishedAt: a.installed_published_at,
         })),
+        path.join(this.cfg.webDir, 'overview'),
       );
     } catch (err) {
       this.log.warn(`Übersichtsseite nicht geschrieben: ${errorText(err)}`);

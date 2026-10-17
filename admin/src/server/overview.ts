@@ -13,10 +13,23 @@ export interface OverviewApp {
 
 const esc = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-async function writeAtomic(file: string, content: string): Promise<void> {
+async function writeAtomic(file: string, content: string | Buffer): Promise<void> {
   const tmp = path.join(path.dirname(file), `.${path.basename(file)}.tmp`);
   await fs.writeFile(tmp, content, 'utf8');
   await fs.rename(tmp, file);
+}
+
+const ICONS = ['icon.svg', 'favicon.ico', 'apple-touch-icon.png'];
+
+/** Copies the browser icons of the start page from the build (public/overview) next to index.html. */
+async function copyIcons(iconDir: string, dataDir: string): Promise<void> {
+  for (const name of ICONS) {
+    // Missing with "npm run dev:server": the icons only exist in the build
+    const icon = await fs.readFile(path.join(iconDir, name)).catch(() => null);
+    if (!icon) continue;
+    const current = await fs.readFile(path.join(dataDir, name)).catch(() => null);
+    if (!current?.equals(icon)) await writeAtomic(path.join(dataDir, name), icon);
+  }
 }
 
 function card(dataDir: string, app: OverviewApp): string {
@@ -34,8 +47,8 @@ function card(dataDir: string, app: OverviewApp): string {
     </a>`;
 }
 
-/** Public start page of nginx (/index.html) and /status.json with the installed apps. */
-export async function writeOverview(dataDir: string, apps: OverviewApp[]): Promise<void> {
+/** Public start page of nginx (/index.html), its icons and /status.json with the installed apps. */
+export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDir: string): Promise<void> {
   const cards = apps.length
     ? apps.map((app) => card(dataDir, app)).join('\n')
     : '    <p class="empty">Noch keine Apps installiert.</p>';
@@ -45,7 +58,9 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[]): Promi
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Craft Apps</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
   :root { color-scheme: dark; --bg: #0d0f13; --card: #14171d; --line: #262b34; --text: #e7e9ee; --muted: #8f96a3; }
   * { box-sizing: border-box; }
@@ -86,6 +101,7 @@ ${cards}
     generatedAt: new Date().toISOString(),
     apps: apps.map((a) => ({ app: a.id, name: a.name, version: a.version, publishedAt: a.publishedAt?.toISOString() ?? null })),
   };
+  await copyIcons(iconDir, dataDir);
   await writeAtomic(path.join(dataDir, 'index.html'), page);
   await writeAtomic(path.join(dataDir, 'status.json'), JSON.stringify(status, null, 2));
 }
