@@ -25,6 +25,7 @@ des Craft Launchers:
 ```text
 CraftApps\
 ├── .gitea\workflows\admin-image.yaml   Baut das Image der Verwaltung (ARM64), wenn sich admin\ ändert
+├── .vscode\                            Starten und Debuggen in VS Code, empfohlene Erweiterungen
 ├── admin\                              Verwaltung: Fastify-Server und React-Oberfläche
 │   ├── Dockerfile
 │   └── src\
@@ -234,6 +235,10 @@ npm run dev:web                            # zweites Terminal: Oberfläche unter
 ```
 
 Anmelden mit `admin` und dem Passwort aus `.env`. Installierte Apps landen in `admin/data`.
+
+**Debuggen in VS Code:** unter **Ausführen und Debuggen** „Server und Oberfläche“ starten.
+Das startet beides; Breakpoints gehen direkt im TypeScript des Servers. Die Oberfläche
+debuggst du mit den Entwicklertools des Browsers.
 
 **Prüfen** – muss vor jedem Commit fehlerfrei durchlaufen:
 

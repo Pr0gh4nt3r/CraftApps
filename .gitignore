@@ -3,3 +3,6 @@ dist/
 admin/data/
 *.log
 .env
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json

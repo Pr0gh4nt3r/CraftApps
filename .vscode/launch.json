@@ -1,0 +1,29 @@
+{
+  // "Server und Oberfläche" startet beides; vorher die Datenbank starten:
+  // docker compose -f compose.dev.yaml up -d (siehe README, Entwicklung)
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Server",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev:server",
+      "cwd": "${workspaceFolder}/admin",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      "name": "Oberfläche",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev:web",
+      "cwd": "${workspaceFolder}/admin"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Server und Oberfläche",
+      "configurations": ["Server", "Oberfläche"],
+      "stopAll": true
+    }
+  ]
+}
