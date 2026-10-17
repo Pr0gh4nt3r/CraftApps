@@ -76,6 +76,7 @@ export class Manager {
 
   async init(): Promise<void> {
     try {
+      await fs.mkdir(this.cfg.dataDir, { recursive: true }); // lokal (DATA_DIR=./data) fehlt der Ordner anfangs
       await fs.access(this.cfg.dataDir, fs.constants.W_OK);
       await fs.rm(path.join(this.cfg.dataDir, '.tmp'), { recursive: true, force: true }); // Reste abgebrochener Downloads
     } catch {

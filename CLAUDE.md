@@ -9,11 +9,16 @@ Für die geänderten Dateien, jeweils fehlerfrei:
 
 - **`admin/`:** dort `npm run lint` (ESLint) und `npm run build` (`tsc` für Oberfläche und
   Server, Vite-Build wie im CI). Vorher `npm ci`, falls `node_modules` fehlt.
-- **`compose.yaml`:** `docker compose config -q`, die Pflichtvariablen `CRAFTAPPS_*` dafür
-  mit Platzhaltern setzen.
+- **`compose.yaml`, `compose.dev.yaml`:** `docker compose -f <Datei> config -q`; für
+  `compose.yaml` die Pflichtvariablen `CRAFTAPPS_*` mit Platzhaltern setzen.
 - **`nginx.conf`:** `nginx -t` im Container `nginx:alpine`, die Datei eingebunden als
   `/etc/nginx/conf.d/default.conf`.
 - **`.gitea/workflows/*.yaml`:** gültiges YAML.
+
+## Lokal starten
+
+Siehe README, Abschnitt „Entwicklung“: MySQL aus `compose.dev.yaml`, dann in `admin/`
+`npm run dev:server` und `npm run dev:web`.
 
 ## Doku
 

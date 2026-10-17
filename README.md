@@ -31,6 +31,7 @@ CraftApps\
 │       ├── server\                     API, Anmeldung, Installer, GitHub, Gotify
 │       ├── shared\                     Typen für Server und Oberfläche
 │       └── web\                        Oberfläche
+├── compose.dev.yaml                    MySQL für die lokale Entwicklung
 ├── compose.yaml                        Stack für Portainer: nginx und Verwaltung
 └── nginx.conf                          Konfiguration des nginx
 ```
@@ -219,11 +220,24 @@ Verwaltung.
 
 ## Entwicklung
 
+Gedacht für Linux oder WSL mit Node.js 24 und Docker. Unter WSL gehört das Repo ins
+Linux-Dateisystem (nicht unter `/mnt/c`), sonst bemerkt Vite Änderungen nicht zuverlässig.
+In Docker Desktop muss die WSL-Integration für die Distribution eingeschaltet sein.
+
 ```bash
+docker compose -f compose.dev.yaml up -d   # MySQL für die Entwicklung
 cd admin
 npm ci
-npm run lint       # ESLint; muss ohne Fehler und Warnungen durchlaufen
-npm run build
-DB_HOST=… DB_USER=… DB_PASSWORD=… DB_NAME=… DATA_DIR=./data npm start
-npm run dev:web    # Oberfläche mit Hot Reload; API-Aufrufe gehen an localhost:3000
+cp .env.example .env                       # einmalig; passt zu compose.dev.yaml
+npm run dev:server                         # Server, startet bei Änderungen neu
+npm run dev:web                            # zweites Terminal: Oberfläche unter http://localhost:5173
+```
+
+Anmelden mit `admin` und dem Passwort aus `.env`. Installierte Apps landen in `admin/data`.
+
+**Prüfen** – muss vor jedem Commit fehlerfrei durchlaufen:
+
+```bash
+npm run lint    # ESLint, auch ohne Warnungen
+npm run build   # tsc für Oberfläche und Server, Vite-Build wie im CI
 ```
