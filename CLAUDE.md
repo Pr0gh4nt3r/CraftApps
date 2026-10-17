@@ -13,7 +13,7 @@ Für die geänderten Dateien, jeweils fehlerfrei:
   `compose.yaml` die Pflichtvariablen `CRAFTAPPS_*` mit Platzhaltern setzen.
 - **`nginx.conf`:** `nginx -t` im Container `nginx:alpine`, die Datei eingebunden als
   `/etc/nginx/conf.d/default.conf`.
-- **`.gitea/workflows/*.yaml`:** gültiges YAML.
+- **`.gitea/workflows/*.yaml`, `.github/workflows/*.yaml`:** gültiges YAML.
 
 ## Lokal starten
 
@@ -23,7 +23,8 @@ Siehe README, Abschnitt „Entwicklung“: MySQL aus `compose.dev.yaml`, dann in
 ## Doku
 
 Neben der README erklären die Kommentare in `compose.yaml`, `nginx.conf`, `admin/Dockerfile`
-und im Gitea-Workflow, wie alles zusammenspielt – bei Änderungen mitpflegen.
+und in den Workflows für Gitea und GitHub, wie alles zusammenspielt – bei Änderungen
+mitpflegen.
 
 ## Sprache
 

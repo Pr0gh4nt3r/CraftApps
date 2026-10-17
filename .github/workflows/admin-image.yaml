@@ -1,0 +1,57 @@
+# Builds the admin image (ARM64 for the Raspberry Pi) on GitHub and pushes it to the
+# GitHub Container Registry: ghcr.io/<account>/craftapps-admin. compose.yaml uses it as
+# the default, Watchtower pulls new versions from there.
+#
+# Runs natively on a GitHub ARM64 runner; the workflow's GITHUB_TOKEN is enough for the
+# upload. Gitea ignores this folder as long as .gitea/workflows exists – the Gitea build
+# there runs independently of this one.
+name: Verwaltung bauen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "admin/**"
+      - ".github/workflows/admin-image.yaml"
+  # Rebuild weekly so security updates for Node and Alpine get in.
+  # GitHub pauses scheduled runs if nothing happens in the repo for 60 days.
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Quellen holen
+        uses: actions/checkout@v7
+
+      - name: Image-Namen bestimmen
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/craftapps-admin" >> "$GITHUB_ENV"
+
+      - name: Buildx einrichten
+        uses: docker/setup-buildx-action@v4
+
+      - name: Bei der GitHub Container Registry anmelden
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bauen und hochladen
+        uses: docker/build-push-action@v7
+        with:
+          context: admin
+          platforms: linux/arm64
+          pull: true # always the latest node:24-alpine
+          push: true
+          # Links the package to this repo: it inherits the repo's visibility and permissions
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}

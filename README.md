@@ -25,6 +25,7 @@ des Craft Launchers:
 ```text
 CraftApps\
 ├── .gitea\workflows\admin-image.yaml   Baut das Image der Verwaltung (ARM64), wenn sich admin\ ändert
+├── .github\workflows\admin-image.yaml  Baut das Image zusätzlich auf GitHub (ghcr.io)
 ├── .vscode\                            Starten und Debuggen in VS Code, empfohlene Erweiterungen
 ├── admin\                              Verwaltung: Fastify-Server und React-Oberfläche
 │   ├── Dockerfile
