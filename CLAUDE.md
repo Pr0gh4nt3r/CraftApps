@@ -23,13 +23,15 @@ and `npm run dev:web` in `admin/`.
 
 Besides the READMEs, the comments in `compose.yaml`, `nginx.conf`, `admin/Dockerfile` and in
 the workflows for Gitea and GitHub explain how everything fits together – keep them up to
-date with every change.
+date with every change. Screenshots in `docs/images/` only show example values such as
+`gitea.example.com` and the account `user`, never real domains or accounts.
 
 ## Language
 
 Comments in code and configuration – including the code examples in the READMEs – always in
 English. The README exists in English (`README.md`, shown by default) and in German
-(`README.de.md`) – keep both in sync. UI and messages stay in German.
+(`README.de.md`) – keep both in sync. The labels in the READMEs' Mermaid diagrams follow the
+language of the respective README. UI and messages stay in German.
 
 ## Push
 

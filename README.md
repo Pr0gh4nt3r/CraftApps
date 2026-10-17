@@ -23,6 +23,7 @@ the Craft Launcher:
 - [Good to know](#good-to-know)
 - [Development](#development)
 - [Containers](#containers)
+- [Troubleshooting](#troubleshooting)
 
 ## Structure
 
@@ -39,28 +40,49 @@ CraftApps\
 │       └── web\                        Frontend
 ├── compose.dev.yaml                    MySQL for local development
 ├── compose.yaml                        Stack for Portainer: nginx and admin UI
+├── docs\images\                        Screenshots for this README
 └── nginx.conf                          nginx configuration
 ```
 
 ## How everything fits together
 
-```text
-Push to the repo
- ├─ admin\ changed  ─> GitHub Actions builds the image ─> ghcr.io ─> Watchtower updates CraftApps-Admin
- └─ compose.yaml or nginx.conf changed ─> Portainer pulls the repo (GitOps) and redeploys the stack
+From a push to the running containers:
 
-Admin UI ─> GitHub: new apps and releases ─> downloads <app>-web-*.zip into the volume craftapps_data ─> nginx serves it
-         └─> Gotify: push notification
+```mermaid
+flowchart LR
+  push(["Push to main"]) --> repo[("Git repo<br/>GitHub or Gitea")]
+  repo -->|"admin/ changed"| build["GitHub Actions<br/>builds the image"]
+  build -->|"uploads"| ghcr[("ghcr.io")]
+  repo -->|"compose.yaml<br/>nginx.conf"| portainer["Portainer<br/>stack craftapps"]
+  ghcr -->|"image"| portainer
+  portainer -->|"deploys"| pi["CraftApps<br/>CraftApps-Admin"]
+  build -.->|"webhook, optional"| portainer
+```
 
-Browser ─> <host>:8085  ─> nginx (CraftApps)
-        └─> <host>:8086 ─> admin UI (CraftApps-Admin)
+Portainer learns about changes in one of two ways:
+
+|                                          | Polling and Watchtower (default)          | Webhook ([step 6](#6-deploy-after-the-build-optional)) |
+| ---------------------------------------- | ----------------------------------------- | ------------------------------------------------------ |
+| Change in `compose.yaml` or `nginx.conf` | Portainer checks the repo every 5 minutes | The workflow calls Portainer right after the push      |
+| New admin image                          | Watchtower pulls it on its next run       | Portainer pulls it right after the build               |
+| Requires                                 | Watchtower                                | Portainer reachable from the workflow's runner         |
+
+At runtime:
+
+```mermaid
+flowchart LR
+  browser(["Browser"]) -->|"port 8085"| web["CraftApps<br/>nginx"]
+  browser -->|"port 8086"| admin["CraftApps-Admin<br/>admin UI"]
+  admin -->|"new apps and releases"| github["GitHub"]
+  admin -->|"installs apps"| data[("Volume<br/>craftapps_data")]
+  data -->|"read-only"| web
+  admin -->|"users, settings"| mysql[("MySQL")]
+  admin -->|"push notifications"| gotify["Gotify"]
 ```
 
 - By default, apps and admin UI are only reachable in the local network via the Pi's
   ports. A reverse proxy such as Zoraxy makes them public with your own domains and HTTPS,
   see [step 5](#5-https-via-reverse-proxy-optional).
-- Instead of Watchtower and polling, Portainer can deploy via webhook right after the build,
-  see [step 6](#6-deploy-after-the-build-optional).
 - Portainer can't build images from a Git repo itself
   ([Portainer FAQ](https://docs.portainer.io/2.39-lts/faqs/troubleshooting/stacks-deployments-and-updates/can-i-build-an-image-while-deploying-a-stack-application-from-git)).
   That's why GitHub Actions builds the image and the compose file only references it.
@@ -70,7 +92,39 @@ Browser ─> <host>:8085  ─> nginx (CraftApps)
 - `nginx.conf` is bind-mounted straight from the repo. That only works with
   "Enable relative path volumes" of Portainer Business Edition
   ([Portainer docs](https://docs.portainer.io/advanced/relative-paths)).
-- nginx is the official image `nginx:alpine`, Watchtower keeps it up to date.
+- nginx is the official image `nginx:alpine`. Watchtower or the deploy via webhook keeps it
+  up to date.
+
+### Portainer terms
+
+Portainer gets two things from two places: the blueprint from the Git repo and the
+finished images from registries. The stack combines both:
+
+```mermaid
+flowchart LR
+  subgraph registries ["Registries: image stores"]
+    nginx["nginx:alpine<br/>Docker Hub"]
+    image["craftapps-admin<br/>ghcr.io or Gitea"]
+  end
+  subgraph source ["Source: Git repo"]
+    files["compose.yaml<br/>nginx.conf"]
+  end
+  webhook(["Webhook"]) -.->|"deploy now"| stack
+  files -->|"blueprint"| stack["Stack craftapps"]
+  nginx -->|"image"| stack
+  image -->|"image"| stack
+  stack -->|"starts"| containers["Containers<br/>on the Pi"]
+```
+
+| Term                | What it is                                                                   | Where in Portainer                                             | Needed                                                |
+| ------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------- |
+| **Source**          | The Git repo with `compose.yaml` and `nginx.conf`, plus the token to read it | **Sources** in the left-hand menu                              | yes                                                   |
+| **Stack**           | Runs the containers as described in `compose.yaml`                           | **Stacks → Add stack**                                         | yes                                                   |
+| **Registry**        | Credentials for an image store that requires a login                         | **Registries**, depending on the version **Host → Registries** | only for an image that isn't public                   |
+| **Webhook**         | Address of the stack that makes Portainer deploy                             | in the stack under **GitOps updates**                          | only for [step 6](#6-deploy-after-the-build-optional) |
+| **GitOps Workflow** | Rolls out stacks to Edge groups                                              | **Workflows**                                                  | no, it's meant for Edge environments                  |
+
+Public images such as `nginx:alpine` or the ready-made admin image need no registry entry.
 
 ## What the admin UI can do
 
@@ -98,31 +152,64 @@ yourself.
 
 Addresses, commands and templates contain placeholders for your values:
 
-| Placeholder        | Meaning                                            | Example                                 |
-| ------------------ | -------------------------------------------------- | --------------------------------------- |
-| `<host>`           | Address of the Pi in the local network             | `192.168.1.10`                          |
-| `<repo-url>`       | Address of the repo for cloning                    | `https://github.com/user/CraftApps.git` |
-| `<apps-domain>`    | Domain for the apps                                | `craft.example.com`                     |
-| `<admin-domain>`   | Domain for the admin UI                            | `craft-admin.example.com`               |
-| `<github-account>` | Your GitHub account, in lowercase                  | `user`                                  |
-| `<gitea-host>`     | Address of your Gitea instance, without `https://` | `gitea.example.com`                     |
-| `<owner>`          | Gitea account that owns the repo                   | `user`                                  |
+| Placeholder          | Meaning                                            | Example                                 |
+| -------------------- | -------------------------------------------------- | --------------------------------------- |
+| `<host>`             | Address of the Pi in the local network             | `192.168.1.10`                          |
+| `<repo-url>`         | Address of the repo for cloning                    | `https://github.com/user/CraftApps.git` |
+| `<apps-domain>`      | Domain for the apps                                | `craft.example.com`                     |
+| `<admin-domain>`     | Domain for the admin UI                            | `craft-admin.example.com`               |
+| `<portainer-domain>` | Public domain of Portainer                         | `portainer.example.com`                 |
+| `<github-account>`   | Your GitHub account, in lowercase                  | `user`                                  |
+| `<gitea-host>`       | Address of your Gitea instance, without `https://` | `gitea.example.com`                     |
+| `<owner>`            | Gitea account that owns the repo                   | `user`                                  |
 
-You only need the domains for
-[HTTPS via reverse proxy](#5-https-via-reverse-proxy-optional), the last three only if you
+You only need the domains for [HTTPS via reverse proxy](#5-https-via-reverse-proxy-optional)
+and [step 6](#6-deploy-after-the-build-optional), the last three only if you
 [build the image yourself](#building-the-image-yourself).
+
+### Overview
+
+| Step                                     | What you do                                | Where                 | Required |
+| ---------------------------------------- | ------------------------------------------ | --------------------- | -------- |
+| [1](#1-create-the-database)              | Create the database and its user           | MySQL                 | yes      |
+| [2](#2-make-the-database-reachable)      | Decide how the admin UI reaches MySQL      | MySQL, `compose.yaml` | yes      |
+| [3](#3-create-the-stack-in-portainer)    | Add the repo as a source, create the stack | Portainer             | yes      |
+| [4](#4-first-login)                      | Log in, enter addresses and Gotify         | admin UI              | yes      |
+| [5](#5-https-via-reverse-proxy-optional) | Your own domains with HTTPS                | reverse proxy         | optional |
+| [6](#6-deploy-after-the-build-optional)  | Deploy right after the build               | Portainer, repo       | optional |
 
 ### Prerequisites
 
 - **Raspberry Pi** with a 64-bit OS and Docker. The admin image exists for ARM64 only.
 - **Portainer Business Edition.** Only it can mount `nginx.conf` straight from the repo
-  ("Enable relative path volumes").
+  ("Enable relative path volumes"). This README follows the current interface with
+  **Sources**; in older versions the repo fields are part of the stack form.
 - **A Git repo with this project** that Portainer pulls the stack from: the public one on
   GitHub or your own, e.g. a fork or a repo in Gitea.
 - **On the Pi** MySQL and Watchtower, optionally Zoraxy and Gotify. Watchtower isn't needed
   if Portainer deploys via webhook after the build (step 6). What CraftApps needs from
   them – and templates in case something is missing – is described under
   [Containers](#containers).
+
+### Tokens and secrets at a glance
+
+Which of them you need depends on your setup – with the public repo and the ready-made
+image, none at all. Give each token only the permissions listed here.
+
+| Token                  | What for                                                               | Permissions                                                  | Create it in                                                       | Enter it in                                                                          |
+| ---------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Repo token, Gitea      | Portainer reads the repo, if it isn't public                           | **repository: Read**, **user: Read**                         | Gitea: **Settings → Applications**                                 | [source](#craftapps-and-craftapps-admin): **Access Token**                           |
+| Repo token, GitHub     | the same for a private repo on GitHub                                  | fine-grained, **Contents: Read-only**                        | GitHub: **Settings → Developer settings → Personal access tokens** | [source](#craftapps-and-craftapps-admin): **Access Token**                           |
+| Registry token, Gitea  | Portainer and Watchtower pull the image from Gitea, if it isn't public | **package: Read**                                            | Gitea: **Settings → Applications**                                 | [registry](#registry-in-portainer-optional): **Password**, [Watchtower](#watchtower) |
+| Registry token, GitHub | Portainer pulls a private package from `ghcr.io`                       | classic, **read:packages**                                   | GitHub: **Settings → Developer settings → Personal access tokens** | [registry](#registry-in-portainer-optional): **Password**                            |
+| `REGISTRY_TOKEN`       | the Gitea workflow uploads the image                                   | **package: Read and Write**                                  | Gitea: **Settings → Applications**                                 | Gitea repo: **Settings → Actions → Secrets**                                         |
+| Mirror token           | Gitea mirrors the repo to GitHub                                       | fine-grained, **Contents** and **Workflows: Read and write** | GitHub: **Settings → Developer settings → Personal access tokens** | Gitea repo: **Settings → Mirror Settings**                                           |
+| `PORTAINER_WEBHOOK`    | the workflow triggers the deploy                                       | –                                                            | Portainer: stack → **GitOps updates → Copy link**                  | repo secret, see [step 6](#6-deploy-after-the-build-optional)                        |
+| Registration token     | the [Gitea runner](#gitea-runner) registers once                       | –                                                            | Gitea repo: **Settings → Actions → Runners**                       | stack `gitea-runner`, remove it afterwards                                           |
+| `GITHUB_TOKEN`         | the admin UI checks for updates more often than about every 20 minutes | fine-grained, **Public repositories (read-only)**            | GitHub: **Settings → Developer settings → Personal access tokens** | `compose.yaml`, see [Good to know](#good-to-know)                                    |
+
+The repo token and the registry token for Gitea can also be one token with
+**repository: Read**, **user: Read** and **package: Read**.
 
 ### 1. Create the database
 
@@ -135,42 +222,54 @@ CREATE USER 'craftapps'@'%' IDENTIFIED BY 'a-long-password';
 GRANT ALL PRIVILEGES ON craftapps.* TO 'craftapps'@'%';
 ```
 
+With phpMyAdmin instead: under **User accounts → Add user account**, enter the user name
+`craftapps`, choose **Any host** (`%`) as host name and **Caching sha2 authentication** as
+authentication plugin – the default of MySQL 8. Then tick
+**Create database with same name and grant all privileges**. The other two plugins are
+outdated: MySQL 8.4 disables **Native MySQL authentication** by default, and
+**SHA256 password authentication** is deprecated.
+
 You need the password in step 3 as `CRAFTAPPS_DB_PASSWORD`. The admin UI creates the tables
 itself on its first start.
 
 ### 2. Make the database reachable
 
 The stack gets its own Docker network. The admin UI therefore reaches MySQL via the address
-in `CRAFTAPPS_DB_HOST`, and there are two ways to do that:
+in `CRAFTAPPS_DB_HOST`, in one of two ways:
 
-- **Via the Pi:** MySQL publishes port `3306` on the Pi, `CRAFTAPPS_DB_HOST` is then
-  `<host>`. The [MySQL template](#mysql) does it this way.
-- **Via a shared network:** `CraftApps-Admin` additionally joins the MySQL network,
-  `CRAFTAPPS_DB_HOST` is then the name of the MySQL container. This needs an addition to
-  `compose.yaml`, see [Shared network](#shared-network-optional).
+| Way                      | `CRAFTAPPS_DB_HOST`                       | What it needs                                                                             |
+| ------------------------ | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Via the Pi**           | `<host>`                                  | MySQL publishes port `3306` on the Pi, like the [MySQL template](#mysql)                  |
+| **Via a shared network** | name of the MySQL container, e.g. `MySQL` | `CraftApps-Admin` joins the MySQL network, see [Shared network](#shared-network-optional) |
 
 ### 3. Create the stack in Portainer
 
-Create the stack `craftapps` as described under
-[CraftApps and CraftApps-Admin](#craftapps-and-craftapps-admin). Afterwards the containers
-`CraftApps` and `CraftApps-Admin` are running, and the admin UI's log says
-"Benutzer admin angelegt" (user admin created).
+In Portainer you set up to three things, in this order:
 
-If the image comes from a registry that requires a login, set up the
-[registry in Portainer](#registry-in-portainer-optional) first. The ready-made image doesn't
-need it.
+1. **Source:** the repo with `compose.yaml`, see
+   [CraftApps and CraftApps-Admin](#craftapps-and-craftapps-admin).
+2. **Registry:** only for an image that isn't public, see
+   [Registry in Portainer](#registry-in-portainer-optional). The ready-made image doesn't
+   need it.
+3. **Stack:** reads `compose.yaml` from the source and starts the containers, also under
+   [CraftApps and CraftApps-Admin](#craftapps-and-craftapps-admin).
+
+Afterwards the containers `CraftApps` and `CraftApps-Admin` are running, and the admin UI's
+log says "Benutzer admin angelegt" (user admin created). If not, see
+[Troubleshooting](#troubleshooting).
 
 ### 4. First login
 
 Open `http://<host>:8086` and log in with `admin` and the password from
 `CRAFTAPPS_ADMIN_PASSWORD`. Under **Einstellungen** (settings), enter:
 
-- **Öffentliche Adresse der Apps** (public address of the apps): `http://<host>:8085`,
-  with a reverse proxy `https://<apps-domain>` – for the "Öffnen" (open) buttons
-- **Adresse dieser Verwaltung** (address of this admin UI): `http://<host>:8086` or
-  `https://<admin-domain>` – opens when a notification is tapped
-- **Gotify-Server** and **App-Token**, see [Gotify](#gotify), then
-  **Testnachricht senden** (send test message)
+| Setting                                                       | Without reverse proxy | With reverse proxy       | Used for                            |
+| ------------------------------------------------------------- | --------------------- | ------------------------ | ----------------------------------- |
+| **Öffentliche Adresse der Apps** (public address of the apps) | `http://<host>:8085`  | `https://<apps-domain>`  | the "Öffnen" (open) buttons         |
+| **Adresse dieser Verwaltung** (address of this admin UI)      | `http://<host>:8086`  | `https://<admin-domain>` | opens when a notification is tapped |
+
+Then enter **Gotify-Server** and **App-Token** (see [Gotify](#gotify)) and click
+**Testnachricht senden** (send test message).
 
 About ten seconds after the start, the admin UI queries GitHub for the first time and then
 shows all available apps. Finally, install an app and open it at `http://<host>:8085`.
@@ -192,41 +291,89 @@ Then switch both addresses in the admin UI's settings to `https://`.
 ### 6. Deploy after the build (optional)
 
 Instead of polling and Watchtower, Portainer can deploy by itself as soon as the build has
-finished. The pipeline is then: push → build → deploy.
+finished. The pipeline is then push → build → deploy:
 
-1. In Portainer, in the stack `craftapps` under **GitOps updates**, choose the mechanism
-   **Webhook**, turn on **Re-pull image** and **Force redeployment** and copy the webhook
-   URL with **Copy link**. Without **Force redeployment**, Portainer only deploys if
-   something changed in the repo; a new image alone, e.g. from the weekly build, isn't
-   enough then. For an image from a registry that requires a login, **Re-pull image** needs
-   the [registry in Portainer](#registry-in-portainer-optional).
-2. In the repo whose build provides the stack's image, add the URL as the secret
-   `PORTAINER_WEBHOOK`: on GitHub under **Settings → Secrets and variables → Actions**, in
-   Gitea under **Settings → Actions → Secrets**.
-3. In the stack, set `CRAFTAPPS_WATCHTOWER` to `false` so Watchtower doesn't also update
-   the two containers.
+```mermaid
+sequenceDiagram
+  autonumber
+  actor you as You
+  participant repo as Git repo
+  participant ci as Workflow
+  participant registry as Registry
+  participant portainer as Portainer
+  you->>repo: git push
+  repo->>ci: starts the workflow
+  opt admin/ changed
+    ci->>registry: builds and uploads the image
+  end
+  ci->>portainer: calls the webhook
+  portainer->>repo: fetches compose.yaml and nginx.conf
+  portainer->>registry: pulls the images
+  portainer->>portainer: redeploys the stack
+```
+
+If the build fails, the workflow stops before the webhook and the running version stays.
+This needs a build in your own repo, see
+[Building the image yourself](#building-the-image-yourself): the ready-made image is built
+in this project's repo, which doesn't know your Portainer.
+
+1. **Set up the stack:** in Portainer, in the stack `craftapps` under **GitOps updates**:
+
+   | Setting                | Value                                                                                           |
+   | ---------------------- | ----------------------------------------------------------------------------------------------- |
+   | **Mechanism**          | **Webhook**                                                                                     |
+   | **Re-pull image**      | on – pulls the images again on every deploy                                                     |
+   | **Force redeployment** | on – otherwise Portainer only deploys after changes in the repo, a new image alone isn't enough |
+   | Webhook URL            | copy it with **Copy link**                                                                      |
+
+   For an image from a registry that requires a login, **Re-pull image** needs the
+   [registry in Portainer](#registry-in-portainer-optional).
+
+2. **Check the URL:** **Copy link** uses the address you opened Portainer with, e.g.
+   `https://<host>:9443/api/stacks/webhooks/<id>`. The runner has to reach it, and with
+   HTTPS the certificate has to be valid, because the workflow checks it:
+
+   | Runner                    | Suitable URL                                                                                                                      |
+   | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+   | GitHub, from the internet | `https://<portainer-domain>/api/stacks/webhooks/<id>` via the reverse proxy; ideally expose only the path `/api/stacks/webhooks/` |
+   | Gitea runner on the Pi    | also an address in the local network, as long as it has no self-signed certificate                                                |
+
+3. **Add the secret:** add the URL as the secret `PORTAINER_WEBHOOK` in the repo whose build
+   provides the stack's image – only there, otherwise Portainer deploys twice:
+
+   | The stack uses …                   | Secret in       | Menu                                                                   |
+   | ---------------------------------- | --------------- | ---------------------------------------------------------------------- |
+   | your image from `ghcr.io`          | the GitHub repo | **Settings → Secrets and variables → Actions → New repository secret** |
+   | your image from the Gitea registry | the Gitea repo  | **Settings → Actions → Secrets → Add secret**                          |
+
+4. **Turn off Watchtower for CraftApps:** in the stack, set `CRAFTAPPS_WATCHTOWER` to
+   `false`.
 
 The workflow calls the URL as its last step: after a successful build and after changes to
-`compose.yaml` or `nginx.conf`, which need no new image. If the build fails, Portainer
-doesn't deploy. Without the secret, the workflow only builds.
-
-The URL has to be reachable from the runner and have a valid certificate, e.g. via the
-reverse proxy. GitHub's runners can't reach your local network; ideally expose only the
-path `/api/stacks/webhooks/` publicly. Anyone who knows the URL can redeploy the stack, so
-it belongs in the secret only.
+`compose.yaml` or `nginx.conf`, which need no new image. Without the secret, the workflow
+only builds. Anyone who knows the URL can redeploy the stack, so it belongs in the secret
+only.
 
 ### Building the image yourself
 
-Only needed if you don't want to use the ready-made image. Both ways rebuild on every
-change in `admin\`, the GitHub workflow additionally early on Mondays for security updates.
-In the stack, `CRAFTAPPS_ADMIN_IMAGE` then points to your image.
+Only needed if you don't want to use the ready-made image, or for
+[step 6](#6-deploy-after-the-build-optional). In the stack, `CRAFTAPPS_ADMIN_IMAGE` then
+points to your image.
+
+|             | On GitHub                                                                           | In Gitea                                                               |
+| ----------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Workflow    | [.github/workflows/admin-image.yaml](.github/workflows/admin-image.yaml)            | [.gitea/workflows/admin-image.yaml](.gitea/workflows/admin-image.yaml) |
+| Image       | `ghcr.io/<github-account>/craftapps-admin`                                          | `<gitea-host>/<owner>/craftapps-admin`                                 |
+| Builds on   | GitHub's ARM64 runners                                                              | your own [runner](#gitea-runner), e.g. on the Pi                       |
+| Secrets     | none                                                                                | `REGISTRY_TOKEN`                                                       |
+| Builds when | `admin\` changes, on **Run workflow** and Mondays at 03:17 UTC for security updates | `admin\` changes and on **Run workflow**                               |
+
+Both call `PORTAINER_WEBHOOK` afterwards if the secret exists, see
+[step 6](#6-deploy-after-the-build-optional).
 
 #### On GitHub
 
-The workflow [.github/workflows/admin-image.yaml](.github/workflows/admin-image.yaml)
-builds in every GitHub repo with this project, such as a fork, to
-`ghcr.io/<github-account>/craftapps-admin`. It runs natively on a GitHub ARM64 runner and
-needs no secret.
+The workflow builds in every GitHub repo with this project, such as a fork.
 
 1. In a fork, allow the workflows once under **Actions**.
 2. Start the first build under **Actions → Verwaltung bauen → Run workflow**.
@@ -237,21 +384,20 @@ needs no secret.
 4. In the stack, set `CRAFTAPPS_ADMIN_IMAGE` to
    `ghcr.io/<github-account>/craftapps-admin:latest`.
 
-**Mirror from Gitea:** If the repo lives in Gitea, add a push mirror to the GitHub repo in
-the repo's **Settings** under the mirror settings and enable syncing on every push. The
-GitHub token for it needs **Contents** and **Workflows**, both with read and write access.
-Without **Workflows**, GitHub rejects every push that changes `.github/workflows/`.
+**Mirror from Gitea:** If the repo lives in Gitea, add a push mirror in the repo's
+**Settings** under **Mirror Settings**: the address of the GitHub repo, your GitHub account
+and the mirror token as password, **Sync when commits are pushed** on, then
+**Add Push Mirror**. The mirror token needs **Contents** and **Workflows**, both with read
+and write access. Without **Workflows**, GitHub rejects every push that changes
+`.github/workflows/`.
 
 #### In Gitea
-
-The workflow [.gitea/workflows/admin-image.yaml](.gitea/workflows/admin-image.yaml) builds
-to `<gitea-host>/<owner>/craftapps-admin`.
 
 1. **Enable Actions:** Actions and packages (the container registry) are enabled by
    default in current Gitea versions. Otherwise set `ENABLED = true` under `[actions]` and
    `[packages]` in `app.ini`, in a container via `GITEA__actions__ENABLED=true` and
    `GITEA__packages__ENABLED=true`, and restart Gitea. If the repo has no **Actions** tab,
-   enable it for the repo under **Settings**.
+   turn on **Enable Repository Actions** in the repo's **Settings**.
 2. **Set up a runner** as described under [Gitea runner](#gitea-runner), until it shows up
    as online in Gitea.
 3. **Token for the build:** in Gitea, with the account `<owner>`, create a token with
@@ -273,19 +419,16 @@ to `<gitea-host>/<owner>/craftapps-admin`.
 
 ## Operation
 
-| You change …     | What happens                                                                                                        |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Code in `admin\` | GitHub Actions builds a new image, Watchtower deploys it.                                                           |
-| `compose.yaml`   | Portainer redeploys the stack within the polling interval.                                                          |
-| `nginx.conf`     | Portainer pulls the new file. Then restart the `CraftApps` container – nginx only reads it at startup.              |
-| nothing          | Early on Mondays GitHub Actions rebuilds (security updates for Node and Alpine), Watchtower keeps nginx up to date. |
+| You change …     | Polling and Watchtower                                                                                               | Webhook ([step 6](#6-deploy-after-the-build-optional))                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Code in `admin\` | GitHub Actions builds a new image, Watchtower deploys it on its next run.                                            | The workflow builds a new image, then Portainer deploys it.                  |
+| `compose.yaml`   | Portainer redeploys the stack within the polling interval.                                                           | Portainer redeploys the stack right after the push.                          |
+| `nginx.conf`     | Portainer pulls the new file within the polling interval. Then restart `CraftApps` – nginx only reads it at startup. | Portainer pulls the new file right after the push. Then restart `CraftApps`. |
+| nothing          | Mondays GitHub Actions rebuilds (security updates for Node and Alpine), Watchtower keeps nginx up to date.           | After the Monday build on GitHub, Portainer redeploys with fresh images.     |
 
-- **Without Watchtower** or to avoid waiting: in Portainer **Containers → CraftApps-Admin →
-  Recreate** with **Re-pull image**.
+- **To avoid waiting:** in Portainer **Containers → CraftApps-Admin → Recreate** with
+  **Re-pull image**.
 - **A manual build:** on GitHub under **Actions → Verwaltung bauen → Run workflow**.
-- **With the webhook** ([step 6](#6-deploy-after-the-build-optional)) Portainer deploys
-  after every build and after changes to `compose.yaml` or `nginx.conf`. The polling
-  interval and Watchtower no longer matter then.
 - **Scheduled runs** are paused by GitHub if nothing happens in the repo for 60 days. They
   can be re-enabled under **Actions**.
 
@@ -363,35 +506,76 @@ one is missing.
 
 ### CraftApps and CraftApps-Admin
 
-Both are defined in [compose.yaml](compose.yaml) and run as the stack `craftapps`.
-Portainer pulls the file from the repo and redeploys on every change.
+Both are defined in [compose.yaml](compose.yaml) and run as the stack `craftapps`. In
+Portainer, first add the repo as a source, then create the stack from it.
 
-**Create the stack:** in Portainer under **Stacks → Add stack**:
+**1. Add the repo as a source:** in Portainer, select **Sources** in the left-hand menu,
+then **Add new**:
 
-- **Name:** `craftapps`
-- **Build method:** **Repository**
-- **Repository URL:** `<repo-url>`
-- **Authentication**, if the repo isn't public: user and a token with read access to the
-  repo – in Gitea with **repository: Read**, on GitHub a fine-grained token with
-  **Contents: Read**
-- **Repository reference:** `refs/heads/main`
-- **Compose path:** `compose.yaml`
-- **GitOps updates** on, mechanism **Polling**, interval `5m` – or **Webhook**, see
-  [step 6](#6-deploy-after-the-build-optional)
-- **Enable relative path volumes** on, **Local filesystem path** e.g. `/opt/stacks`.
-  Portainer clones the repo there, nginx gets `nginx.conf` from there.
-- **Environment variables:**
+![Portainer: Create Source for a repo in Gitea](docs/images/portainer-create-source.png)
 
-  | Variable                   | Value                                                                                   |
-  | -------------------------- | --------------------------------------------------------------------------------------- |
-  | `CRAFTAPPS_DB_HOST`        | Address of the database, see [step 2](#2-make-the-database-reachable)                   |
-  | `CRAFTAPPS_DB_PASSWORD`    | Password from [step 1](#1-create-the-database)                                          |
-  | `CRAFTAPPS_ADMIN_PASSWORD` | Password for the first account `admin`, at least 10 characters                          |
-  | `CRAFTAPPS_WEB_PORT`       | only for a different apps port than `8085`                                              |
-  | `CRAFTAPPS_ADMIN_PORT`     | only for a different admin UI port than `8086`                                          |
-  | `CRAFTAPPS_DB_PORT`        | only if MySQL doesn't listen on port `3306`                                             |
-  | `CRAFTAPPS_ADMIN_IMAGE`    | only for your [own image](#building-the-image-yourself)                                 |
-  | `CRAFTAPPS_WATCHTOWER`     | `false` if Portainer deploys via webhook ([step 6](#6-deploy-after-the-build-optional)) |
+| Field                       | Value                                                     |
+| --------------------------- | --------------------------------------------------------- |
+| **Source Name**             | any name, e.g. `Gitea`                                    |
+| **Repository URL**          | `<repo-url>`, the address for cloning – not `localhost`   |
+| **Skip TLS Verification**   | off                                                       |
+| **Authentication**          | on if the repo isn't public, then the next four fields    |
+| **Use a shared credential** | off – or on to use credentials already saved in Portainer |
+| **Git Provider**            | your Git server, e.g. **Gitea / Forgejo**                 |
+| **Username**                | your account there                                        |
+| **Access Token**            | the [repo token](#tokens-and-secrets-at-a-glance)         |
+| **Enable polling**          | off – the stack decides when to deploy                    |
+
+Once the connection test succeeds, continue to **Access control**, choose who may use the
+source – **Administrators** is enough – and click **Create**. The source then shows up as
+**Healthy**, i.e. Portainer can read the repo:
+
+![Portainer: GitOps Sources with a healthy source](docs/images/portainer-gitops-sources.png)
+
+`0` under **Workflows** and **Environments** is fine, CraftApps doesn't use GitOps
+workflows.
+
+**2. Create the stack:** open the Pi's environment, then **Stacks → Add stack**:
+
+| Field                            | Value                                                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Name**                         | `craftapps`                                                                                                                                |
+| Build method                     | **Git Repository**                                                                                                                         |
+| **Source**                       | the source from step 1                                                                                                                     |
+| **Repository reference**         | `refs/heads/main`                                                                                                                          |
+| **Compose path**                 | `compose.yaml`                                                                                                                             |
+| **Additional paths**             | none                                                                                                                                       |
+| **GitOps updates**               | on, see the next table                                                                                                                     |
+| **Enable relative path volumes** | on                                                                                                                                         |
+| **Local filesystem path**        | e.g. `/opt/stacks` – the folder must exist on the Pi and be writable. Portainer clones the repo there, nginx gets `nginx.conf` from there. |
+| **Environment variables**        | see below                                                                                                                                  |
+
+In older versions, the build method is called **Repository**, and instead of a source the
+form asks for **Repository URL** and **Authentication** – with the same values as the
+source.
+
+**GitOps updates**, depending on how Portainer should deploy:
+
+| Setting                                     | Polling (default)                                   | Webhook ([step 6](#6-deploy-after-the-build-optional)) |
+| ------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------ |
+| **Mechanism**                               | **Polling**                                         | **Webhook**                                            |
+| **Fetch interval**                          | `5m`                                                | –                                                      |
+| **Re-pull image**                           | on                                                  | on                                                     |
+| **Force redeployment**                      | off – otherwise Portainer redeploys every 5 minutes | on – otherwise a new image alone doesn't deploy        |
+| Environment variable `CRAFTAPPS_WATCHTOWER` | not set, i.e. `true`                                | `false`                                                |
+
+**Environment variables:**
+
+| Variable                   | Value                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------- |
+| `CRAFTAPPS_DB_HOST`        | Address of the database, see [step 2](#2-make-the-database-reachable)                   |
+| `CRAFTAPPS_DB_PASSWORD`    | Password from [step 1](#1-create-the-database)                                          |
+| `CRAFTAPPS_ADMIN_PASSWORD` | Password for the first account `admin`, at least 10 characters                          |
+| `CRAFTAPPS_WEB_PORT`       | only for a different apps port than `8085`                                              |
+| `CRAFTAPPS_ADMIN_PORT`     | only for a different admin UI port than `8086`                                          |
+| `CRAFTAPPS_DB_PORT`        | only if MySQL doesn't listen on port `3306`                                             |
+| `CRAFTAPPS_ADMIN_IMAGE`    | only for your [own image](#building-the-image-yourself)                                 |
+| `CRAFTAPPS_WATCHTOWER`     | `false` if Portainer deploys via webhook ([step 6](#6-deploy-after-the-build-optional)) |
 
 Then **Deploy the stack**.
 
@@ -447,10 +631,28 @@ doesn't accept fine-grained tokens. You don't need the provider **GitHub** that 
 also offers: it asks for a token with far more permissions (`repo`, `write:packages`,
 `delete:packages`), while a **Custom registry** with `read:packages` is enough for pulling.
 
-Portainer uses the credentials automatically for images that start with the registry URL:
-when deploying the stack and with **Re-pull image**
+**Registry URL, image name and package page** are easily mixed up:
+
+|                                                                                           | Gitea                                                                      | GitHub                                                                                 |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Registry URL** in Portainer: host only, without `https://` and path                     | `<gitea-host>`                                                             | `ghcr.io`                                                                              |
+| **Image name** in the stack (`CRAFTAPPS_ADMIN_IMAGE`): owner lowercase, tag after a colon | `<gitea-host>/<owner>/craftapps-admin:latest`                              | `ghcr.io/<github-account>/craftapps-admin:latest`                                      |
+| **Package page** in the browser: not usable in Portainer                                  | `https://<gitea-host>/<owner>/-/packages/container/craftapps-admin/latest` | `https://github.com/users/<github-account>/packages/container/package/craftapps-admin` |
+
+The package page shows the matching `docker pull` command; the image name is what follows
+`docker pull`.
+
+Portainer uses the credentials automatically for images whose name starts with the registry
+URL: when deploying the stack and with **Re-pull image**
 ([step 6](#6-deploy-after-the-build-optional)). Nothing changes in `compose.yaml`.
 Watchtower needs the credentials separately, see [Watchtower](#watchtower).
+
+- **Not `localhost`:** Portainer runs in its own container, so `localhost` would be
+  Portainer itself. Besides, Gitea's registry always sends Docker to its public address
+  to log in.
+- **You don't need Browse:** it only lists the images in the registry. Docker pulls them
+  itself, always via HTTPS. If **Browse** fails with `dial tcp <IP>:80: i/o timeout`, see
+  [Troubleshooting](#in-portainer).
 
 ### Gitea runner
 
@@ -663,3 +865,42 @@ volumes:
 The address for the admin UI is then `http://<host>:8080`. For the phone app to reach Gotify
 on the go as well, add a proxy rule in Zoraxy for a domain of your own with the target
 `<host>:8080`.
+
+## Troubleshooting
+
+Sorted by where the problem shows up. The admin UI's messages are in German.
+
+### In Portainer
+
+| Symptom                                                                                       | Cause                                                                                                    | Fix                                                                                                                 |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Create Source:** `Connection failed` with `authorization failed: Forbidden`                 | Gitea accepts the token, but it lacks a permission – e.g. the registry token with only **package: Read** | token with **repository: Read** and **user: Read**, see [Tokens and secrets](#tokens-and-secrets-at-a-glance)       |
+| `localhost` as **Repository URL** or **Registry URL** doesn't work                            | in Portainer's container, `localhost` is Portainer itself                                                | the public address, e.g. `https://<gitea-host>/<owner>/CraftApps.git` or `<gitea-host>`                             |
+| **Registries → Browse:** `dial tcp <IP>:80: i/o timeout`                                      | Portainer tries port 80, but the router only forwards port 443                                           | not needed for deploying, Docker pulls via HTTPS. For Browse, forward port 80 to the reverse proxy                  |
+| Deploy: `required variable CRAFTAPPS_DB_HOST is missing a value`                              | a required environment variable is missing                                                               | add it under **Environment variables** in the stack, see [the table](#craftapps-and-craftapps-admin)                |
+| Deploy: `unauthorized` or `pull access denied` for the admin image                            | the image isn't public and Portainer has no credentials for it, or the image name is wrong               | [Registry in Portainer](#registry-in-portainer-optional); image name with the registry URL as host, owner lowercase |
+| `CraftApps` doesn't start: `Are you trying to mount a directory onto a file (or vice-versa)?` | **Enable relative path volumes** is off, so Docker can't find `./nginx.conf`                             | create the stack with **Enable relative path volumes** and a **Local filesystem path**                              |
+
+### Build and deploy
+
+| Symptom                                                                                                   | Cause                                                                                      | Fix                                                                                           |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Gitea: the job stays at **Waiting**, `No runner is online to pick up this job.`                           | no runner online, or none with the label `ubuntu-latest`                                   | [Gitea runner](#gitea-runner)                                                                 |
+| Gitea workflow: **Bei der Gitea-Registry anmelden** or **Bauen und hochladen** fails                      | `REGISTRY_TOKEN` is missing or lacks **package: Read and Write**                           | [In Gitea](#in-gitea), step 3                                                                 |
+| The push mirror to GitHub fails: `refusing to allow a Personal Access Token to create or update workflow` | the mirror token lacks **Workflows**                                                       | mirror token with **Contents** and **Workflows: Read and write**, see [On GitHub](#on-github) |
+| Step **In Portainer deployen** fails with `curl: (6)`, `(7)` or `(28)`                                    | the runner can't reach the webhook URL                                                     | a public address via the reverse proxy, see [step 6](#6-deploy-after-the-build-optional)      |
+| Step **In Portainer deployen** fails with `curl: (60) SSL certificate problem`                            | self-signed certificate, e.g. Portainer's own on port 9443                                 | an address with a valid certificate, e.g. via the reverse proxy                               |
+| Step **In Portainer deployen** fails with `curl: (22) The requested URL returned error`                   | the URL is wrong or outdated – a newly created stack gets a new one                        | copy the URL again and update the secret `PORTAINER_WEBHOOK`                                  |
+| A new image doesn't arrive                                                                                | Webhook: **Force redeployment** is off. Polling: Watchtower hasn't run yet or only reports | [step 6](#6-deploy-after-the-build-optional) or [Watchtower](#watchtower)                     |
+
+### Admin UI
+
+| Symptom                                                                                                                                                  | Cause                                                                                          | Fix                                                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Log: `MySQL noch nicht erreichbar (connect ECONNREFUSED …)`, `(getaddrinfo ENOTFOUND …)` or `(connect ETIMEDOUT)`; after a minute the container restarts | `CRAFTAPPS_DB_HOST` is wrong, or MySQL isn't reachable from the container                      | [step 2](#2-make-the-database-reachable)                                                                                                                                              |
+| Log: `MySQL noch nicht erreichbar (Access denied for user 'craftapps'@…)`                                                                                | wrong password, or the user doesn't exist                                                      | [step 1](#1-create-the-database), `CRAFTAPPS_DB_PASSWORD`                                                                                                                             |
+| Login with the password from `CRAFTAPPS_ADMIN_PASSWORD`: `Benutzername oder Passwort falsch`                                                             | `admin` was created with an earlier password; the variable only applies while there is no user | the earlier password, or another user creates a new account under **Benutzer**. Without other users: `DELETE FROM users;` in the database `craftapps`, then restart `CraftApps-Admin` |
+| `Zu viele Versuche – bitte in ein paar Minuten noch einmal`                                                                                              | 10 failed logins within 15 minutes from this IP address                                        | wait 15 minutes                                                                                                                                                                       |
+| `Keine Schreibrechte auf /data – …`                                                                                                                      | the volume `craftapps_data` doesn't belong to user 1000                                        | `chown`, see [Good to know](#good-to-know)                                                                                                                                            |
+| `GitHub-API-Limit erreicht, wieder frei ab … Uhr`                                                                                                        | more than 60 requests per hour to GitHub                                                       | a longer check interval or `GITHUB_TOKEN`, see [Good to know](#good-to-know)                                                                                                          |
+| Apps run, but without WebGPU or clipboard                                                                                                                | no secure context via `http://`                                                                | HTTPS, see [step 5](#5-https-via-reverse-proxy-optional)                                                                                                                              |
