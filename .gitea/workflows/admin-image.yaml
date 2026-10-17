@@ -1,9 +1,10 @@
-# Builds the admin image (ARM64 for the Raspberry Pi) and pushes it to this Gitea's
-# container registry: <gitea-host>/<owner>/craftapps-admin.
-# Watchtower or Portainer pull it from there.
+# Additionally builds the admin image (ARM64 for the Raspberry Pi) in Gitea and pushes it
+# to this Gitea's container registry: <gitea-host>/<owner>/craftapps-admin.
+# The default is the image from GitHub (.github/workflows/admin-image.yaml); the stack only
+# uses this one if CRAFTAPPS_ADMIN_IMAGE points to it.
 #
-# Requires the repo secret REGISTRY_TOKEN – a token of the repo owner with the
-# permission "package: Read and Write" (see README.md).
+# Requires a runner and the repo secret REGISTRY_TOKEN – a token of the repo owner
+# with the permission "package: Read and Write" (see README.md).
 name: Verwaltung bauen
 
 on:
@@ -12,9 +13,8 @@ on:
     paths:
       - "admin/**"
       - ".gitea/workflows/admin-image.yaml"
-  # Rebuild weekly so security updates for Node and Alpine get in
-  schedule:
-    - cron: "17 3 * * 1"
+  # No weekly rebuild: this image is only a fallback, the GitHub workflow picks up the
+  # security updates for Node and Alpine every Monday
   workflow_dispatch:
 
 jobs:

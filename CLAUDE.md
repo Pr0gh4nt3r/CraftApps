@@ -33,6 +33,7 @@ Englisch. README, Oberfläche und Meldungen bleiben deutsch.
 
 ## Push
 
-Ein Push nach `main` geht direkt in Betrieb: Bei Änderungen in `admin/` baut Gitea Actions
-das Image der Verwaltung, und Watchtower spielt es ein; Änderungen an `compose.yaml` oder
+Ein Push nach `main` geht direkt in Betrieb: Bei Änderungen in `admin/` bauen GitHub Actions
+(über den Spiegel von Gitea nach GitHub) und Gitea Actions das Image der Verwaltung, und
+Watchtower spielt das Image von `ghcr.io` ein. Änderungen an `compose.yaml` oder
 `nginx.conf` deployt Portainer neu.

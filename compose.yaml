@@ -9,13 +9,15 @@
 #  Deploy: Portainer BE, stack from the Git repo with
 #  "Enable relative path volumes" – setup see README.md
 #
-#  Zoraxy: craft.example.com       -> 172.18.0.22:80   (apps)
-#          craft-admin.example.com -> 172.18.0.23:3000 (admin UI)
+#  Runs locally by default: apps on port 8085, admin UI on port 8086.
+#  For public access put a reverse proxy with HTTPS in front, e.g. Zoraxy:
+#    craft.example.com       -> <host>:8085 (apps)
+#    craft-admin.example.com -> <host>:8086 (admin UI)
 #  (HTTPS matters: browsers only allow WebGPU and the clipboard in a secure context)
 # ------------------------------------------------------------
 services:
   # --------------------------------------------------------
-  #  nginx – serves static files (TLS is done by Zoraxy)
+  #  nginx – serves static files (TLS is up to a reverse proxy)
   # --------------------------------------------------------
   craftapps-web:
     image: nginx:alpine
@@ -24,32 +26,33 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.monitor-only=false"
     ports:
-      - 8085:80 # optional, only needed if Zoraxy goes via the host port
+      - ${CRAFTAPPS_WEB_PORT:-8085}:80
     volumes:
       - data:/srv/craftapps:ro
       # Straight from the repo – needs "Enable relative path volumes" in Portainer.
       # nginx reads the file only at startup: restart it after a change.
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    networks:
-      custom:
-        ipv4_address: 172.18.0.22 # <-- adjust: free IP in the custom network
 
   # --------------------------------------------------------
   #  Admin UI and automatic updates
   # --------------------------------------------------------
   craftapps-admin:
-    # Built by Gitea Actions on every change in admin/ (.gitea/workflows/admin-image.yaml),
-    # e.g. gitea.example.com/user/craftapps-admin:latest
-    image: ${CRAFTAPPS_ADMIN_IMAGE:?in Portainer unter Environment variables setzen}
+    # Built by GitHub Actions on every change in admin/ (.github/workflows/admin-image.yaml).
+    # For another image, e.g. from the Gitea registry, set CRAFTAPPS_ADMIN_IMAGE in Portainer
+    image: ${CRAFTAPPS_ADMIN_IMAGE:-ghcr.io/pr0gh4nt3r/craftapps-admin:latest}
     container_name: CraftApps-Admin
     restart: unless-stopped
     labels:
-      # Watchtower pulls new admin images from the Gitea registry
+      # Watchtower pulls new admin images from the registry
       - "com.centurylinklabs.watchtower.monitor-only=false"
+    ports:
+      - ${CRAFTAPPS_ADMIN_PORT:-8086}:3000
     environment:
       - TZ=Europe/Berlin
-      - DB_HOST=MySQL # <-- adjust: name or IP of your MySQL container
-      - DB_PORT=3306
+      # The database must be reachable from this container: via the host's address or,
+      # in a shared network, via the container name – see README.md
+      - DB_HOST=${CRAFTAPPS_DB_HOST:?in Portainer unter Environment variables setzen}
+      - DB_PORT=${CRAFTAPPS_DB_PORT:-3306}
       - DB_NAME=craftapps
       - DB_USER=craftapps
       - DB_PASSWORD=${CRAFTAPPS_DB_PASSWORD:?in Portainer unter Environment variables setzen}
@@ -58,11 +61,9 @@ services:
       - INITIAL_ADMIN_PASSWORD=${CRAFTAPPS_ADMIN_PASSWORD:?in Portainer unter Environment variables setzen}
       # Optional: GitHub token, only needed for check intervals below ~20 minutes
       # - GITHUB_TOKEN=github_pat_...
-    # ports:
-    #   - 8086:3000 # optional, only needed if Zoraxy goes via the host port
     volumes:
       - data:/data
-    # Reachable from the internet and downloads files – as few privileges as possible
+    # May be reachable from the internet and downloads files – as few privileges as possible
     read_only: true
     tmpfs:
       - /tmp
@@ -70,14 +71,7 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-    networks:
-      custom:
-        ipv4_address: 172.18.0.23 # <-- adjust: free IP in the custom network
 
 volumes:
   data:
     name: craftapps_data # apps and overview, managed by craftapps-admin
-
-networks:
-  custom:
-    external: true
