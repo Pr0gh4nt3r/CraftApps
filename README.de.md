@@ -540,18 +540,18 @@ Workflows.
 
 **2. Stack anlegen:** die Umgebung des Pi öffnen, dann **Stacks → Add stack**:
 
-| Feld                             | Wert                                                                                                                                                     |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Name**                         | `craftapps`                                                                                                                                              |
-| Build method                     | **Git Repository**                                                                                                                                       |
-| **Source**                       | die Source aus Schritt 1                                                                                                                                 |
-| **Repository reference**         | `refs/heads/main`                                                                                                                                        |
-| **Compose path**                 | `compose.yaml`                                                                                                                                           |
-| **Additional paths**             | keine                                                                                                                                                    |
-| **GitOps updates**               | an, siehe nächste Tabelle                                                                                                                                |
-| **Enable relative path volumes** | an                                                                                                                                                       |
-| **Local filesystem path**        | z.B. `/opt/stacks` – der Ordner muss auf dem Pi existieren und beschreibbar sein. Portainer klont das Repo dorthin, nginx bekommt `nginx.conf` von dort. |
-| **Environment variables**        | siehe unten                                                                                                                                              |
+| Feld                             | Wert                                                                                                                                                                                                                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**                         | `craftapps`                                                                                                                                                                                                                                                                               |
+| Build method                     | **Git Repository**                                                                                                                                                                                                                                                                        |
+| **Source**                       | die Source aus Schritt 1                                                                                                                                                                                                                                                                  |
+| **Repository reference**         | `refs/heads/main`                                                                                                                                                                                                                                                                         |
+| **Compose path**                 | `compose.yaml`                                                                                                                                                                                                                                                                            |
+| **Additional paths**             | keine                                                                                                                                                                                                                                                                                     |
+| **GitOps updates**               | an, siehe nächste Tabelle                                                                                                                                                                                                                                                                 |
+| **Enable relative path volumes** | an                                                                                                                                                                                                                                                                                        |
+| **Local filesystem path**        | ein neutraler Ordner wie `/opt/stacks` – er muss auf dem Pi existieren und beschreibbar sein. Portainer klont das ganze Repo darunter, nach `portainer-compose-unpacker/stacks/craftapps/`, und nginx bekommt `nginx.conf` aus diesem Klon. Andere Stacks können denselben Ordner nutzen. |
+| **Environment variables**        | siehe unten                                                                                                                                                                                                                                                                               |
 
 In älteren Versionen heißt die Build method **Repository**, und statt einer Source fragt
 das Formular nach **Repository URL** und **Authentication** – mit denselben Werten wie bei
@@ -559,13 +559,14 @@ der Source.
 
 **GitOps updates**, je nachdem, wie Portainer deployen soll:
 
-| Einstellung                              | Polling (Standard)                               | Webhook ([Schritt 6](#6-deploy-nach-dem-build-optional)) |
-| ---------------------------------------- | ------------------------------------------------ | -------------------------------------------------------- |
-| **Mechanism**                            | **Polling**                                      | **Webhook**                                              |
-| **Fetch interval**                       | `5m`                                             | –                                                        |
-| **Re-pull image**                        | an                                               | an                                                       |
-| **Force redeployment**                   | aus – sonst deployt Portainer alle 5 Minuten neu | an – sonst deployt ein neues Image allein nicht          |
-| Umgebungsvariable `CRAFTAPPS_WATCHTOWER` | nicht gesetzt, also `true`                       | `false`                                                  |
+| Einstellung                              | Polling (Standard)                                                                             | Webhook ([Schritt 6](#6-deploy-nach-dem-build-optional)) |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **Mechanism**                            | **Polling**                                                                                    | **Webhook**                                              |
+| **Fetch interval**                       | `5m`                                                                                           | –                                                        |
+| **Re-pull image**                        | an                                                                                             | an                                                       |
+| **Force redeployment**                   | aus – sonst deployt Portainer alle 5 Minuten neu                                               | an – sonst deployt ein neues Image allein nicht          |
+| **Prune services**, falls angeboten      | an – entfernt Container von Diensten, die nicht mehr in `compose.yaml` stehen, Volumes bleiben | an                                                       |
+| Umgebungsvariable `CRAFTAPPS_WATCHTOWER` | nicht gesetzt, also `true`                                                                     | `false`                                                  |
 
 **Environment variables:**
 

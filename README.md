@@ -537,18 +537,18 @@ workflows.
 
 **2. Create the stack:** open the Pi's environment, then **Stacks → Add stack**:
 
-| Field                            | Value                                                                                                                                      |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Name**                         | `craftapps`                                                                                                                                |
-| Build method                     | **Git Repository**                                                                                                                         |
-| **Source**                       | the source from step 1                                                                                                                     |
-| **Repository reference**         | `refs/heads/main`                                                                                                                          |
-| **Compose path**                 | `compose.yaml`                                                                                                                             |
-| **Additional paths**             | none                                                                                                                                       |
-| **GitOps updates**               | on, see the next table                                                                                                                     |
-| **Enable relative path volumes** | on                                                                                                                                         |
-| **Local filesystem path**        | e.g. `/opt/stacks` – the folder must exist on the Pi and be writable. Portainer clones the repo there, nginx gets `nginx.conf` from there. |
-| **Environment variables**        | see below                                                                                                                                  |
+| Field                            | Value                                                                                                                                                                                                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**                         | `craftapps`                                                                                                                                                                                                                                                         |
+| Build method                     | **Git Repository**                                                                                                                                                                                                                                                  |
+| **Source**                       | the source from step 1                                                                                                                                                                                                                                              |
+| **Repository reference**         | `refs/heads/main`                                                                                                                                                                                                                                                   |
+| **Compose path**                 | `compose.yaml`                                                                                                                                                                                                                                                      |
+| **Additional paths**             | none                                                                                                                                                                                                                                                                |
+| **GitOps updates**               | on, see the next table                                                                                                                                                                                                                                              |
+| **Enable relative path volumes** | on                                                                                                                                                                                                                                                                  |
+| **Local filesystem path**        | a neutral folder such as `/opt/stacks` – it must exist on the Pi and be writable. Portainer clones the whole repo below it, into `portainer-compose-unpacker/stacks/craftapps/`, and nginx gets `nginx.conf` from that clone. Other stacks can use the same folder. |
+| **Environment variables**        | see below                                                                                                                                                                                                                                                           |
 
 In older versions, the build method is called **Repository**, and instead of a source the
 form asks for **Repository URL** and **Authentication** – with the same values as the
@@ -556,13 +556,14 @@ source.
 
 **GitOps updates**, depending on how Portainer should deploy:
 
-| Setting                                     | Polling (default)                                   | Webhook ([step 6](#6-deploy-after-the-build-optional)) |
-| ------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------ |
-| **Mechanism**                               | **Polling**                                         | **Webhook**                                            |
-| **Fetch interval**                          | `5m`                                                | –                                                      |
-| **Re-pull image**                           | on                                                  | on                                                     |
-| **Force redeployment**                      | off – otherwise Portainer redeploys every 5 minutes | on – otherwise a new image alone doesn't deploy        |
-| Environment variable `CRAFTAPPS_WATCHTOWER` | not set, i.e. `true`                                | `false`                                                |
+| Setting                                     | Polling (default)                                                                      | Webhook ([step 6](#6-deploy-after-the-build-optional)) |
+| ------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| **Mechanism**                               | **Polling**                                                                            | **Webhook**                                            |
+| **Fetch interval**                          | `5m`                                                                                   | –                                                      |
+| **Re-pull image**                           | on                                                                                     | on                                                     |
+| **Force redeployment**                      | off – otherwise Portainer redeploys every 5 minutes                                    | on – otherwise a new image alone doesn't deploy        |
+| **Prune services**, if offered              | on – removes containers of services that are no longer in `compose.yaml`, volumes stay | on                                                     |
+| Environment variable `CRAFTAPPS_WATCHTOWER` | not set, i.e. `true`                                                                   | `false`                                                |
 
 **Environment variables:**
 
