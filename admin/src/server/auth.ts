@@ -13,7 +13,7 @@ declare module 'fastify' {
 const SESSION_COOKIE = 'craftapps_session';
 const SESSION_DAYS = 30;
 const MIN_PASSWORD = 10;
-// scrypt nach OWASP-Empfehlung (N=2^15, r=8, p=3): ~32 MiB Speicher pro Anmeldung
+// scrypt as recommended by OWASP (N=2^15, r=8, p=3): ~32 MiB of memory per login
 const SCRYPT = { N: 2 ** 15, r: 8, p: 3 };
 const SCRYPT_MAXMEM = 64 * 1024 * 1024;
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -40,7 +40,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return timingSafeEqual(actual, expected);
 }
 
-// Für unbekannte Benutzernamen trotzdem rechnen, damit die Antwortzeit nichts verrät
+// Hash anyway for unknown usernames so the response time gives nothing away
 let dummyHash: Promise<string> | undefined;
 
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -50,7 +50,7 @@ function cookieOptions(req: FastifyRequest) {
     path: '/',
     httpOnly: true,
     sameSite: 'strict' as const,
-    // Hinter Zoraxy kommt https über X-Forwarded-Proto an; im LAN geht auch http
+    // Behind a reverse proxy https arrives via X-Forwarded-Proto; locally plain http works too
     secure: req.protocol === 'https',
     maxAge: SESSION_DAYS * 24 * 60 * 60,
   };
@@ -75,8 +75,8 @@ export async function ensureInitialAdmin(db: Pool, initial: Config['initialAdmin
 }
 
 /**
- * Für alle /api-Routen: Ändernde Anfragen müssen diesen Header tragen. Fremde Seiten können
- * ihn ohne CORS-Freigabe nicht mitschicken (Schutz gegen CSRF).
+ * For all /api routes: modifying requests must carry this header. Other sites can't send it
+ * without a CORS grant (protection against CSRF).
  */
 export async function csrfGuard(req: FastifyRequest, reply: FastifyReply) {
   if (!SAFE_METHODS.has(req.method) && req.headers['x-requested-with'] !== 'craftapps') {
@@ -84,7 +84,7 @@ export async function csrfGuard(req: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-/** Hook für alle geschützten Routen. Hängt an den Routen selbst, nicht an der URL. */
+/** Hook for all protected routes. Attached to the routes themselves, not to the URL. */
 export function sessionGuard(db: Pool) {
   return async (req: FastifyRequest, reply: FastifyReply) => {
     const token = req.cookies[SESSION_COOKIE];
@@ -100,7 +100,7 @@ export function sessionGuard(db: Pool) {
   };
 }
 
-/** Anmeldung – die einzige /api-Route ohne Sitzung. */
+/** Login – the only /api route without a session. */
 export function registerLogin(app: FastifyInstance, db: Pool): void {
   app.post<{ Body: { username: string; password: string } }>(
     '/api/auth/login',
@@ -141,7 +141,7 @@ export function registerLogin(app: FastifyInstance, db: Pool): void {
   );
 }
 
-/** Konto- und Benutzerverwaltung (nur angemeldet). */
+/** Account and user management (logged in only). */
 export function registerAccount(app: FastifyInstance, db: Pool): void {
   app.post('/api/auth/logout', async (req, reply) => {
     const token = req.cookies[SESSION_COOKIE];
@@ -172,7 +172,7 @@ export function registerAccount(app: FastifyInstance, db: Pool): void {
         return reply.code(400).send({ error: 'Das aktuelle Passwort stimmt nicht' });
       }
       await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [await hashPassword(req.body.next), user.id]);
-      // Alle anderen Sitzungen dieses Benutzers beenden
+      // End all other sessions of this user
       await db.query('DELETE FROM sessions WHERE user_id = ? AND id <> ?', [
         user.id,
         sha256(req.cookies[SESSION_COOKIE] ?? ''),

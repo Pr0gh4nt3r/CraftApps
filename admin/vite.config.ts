@@ -4,6 +4,6 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react()],
   build: { outDir: 'dist/web', emptyOutDir: true },
-  // Für "npm run dev:web": API-Aufrufe an den lokal laufenden Server weiterreichen
+  // For "npm run dev:web": forward API calls to the locally running server
   server: { proxy: { '/api': 'http://localhost:3000' } },
 });

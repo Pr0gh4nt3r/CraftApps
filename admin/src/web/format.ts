@@ -13,7 +13,7 @@ export const formatDateTime = (iso: string | null) => (iso ? dateTime.format(new
 export const formatSize = (bytes: number | null) =>
   bytes === null ? '' : `${Math.max(1, Math.round(bytes / 1e6)).toLocaleString('de-DE')} MB`;
 
-/** "in 5 Stunden", "vor 3 Minuten" */
+/** German relative time, e.g. "in 5 Stunden", "vor 3 Minuten" */
 export function formatRelative(iso: string | null): string {
   if (!iso) return '–';
   const minutes = Math.round((new Date(iso).getTime() - Date.now()) / 60_000);

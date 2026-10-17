@@ -22,13 +22,13 @@ const settings = new SettingsStore(db);
 const manager = new Manager(db, cfg, settings, new GitHub(cfg.githubToken), app.log);
 
 await app.register(helmet, {
-  hsts: false, // übernimmt der Reverse Proxy
+  hsts: false, // left to the reverse proxy
   crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: {
     directives: {
       'img-src': ["'self'", 'data:'],
       'style-src': ["'self'", "'unsafe-inline'"],
-      'upgrade-insecure-requests': null, // im LAN ist die Verwaltung auch per http erreichbar
+      'upgrade-insecure-requests': null, // the admin is also reachable via plain http locally
     },
   },
 });
@@ -64,8 +64,8 @@ app.setNotFoundHandler((req, reply) =>
 
 app.get('/healthz', { logLevel: 'warn' }, async () => ({ ok: true }));
 app.decorateRequest('user', null);
-// Die Hooks gelten nur für die Routen in diesen gekapselten Plugins – unabhängig davon, wie die
-// URL geschrieben oder kodiert ist
+// The hooks only apply to the routes in these encapsulated plugins – no matter how the
+// URL is spelled or encoded
 await app.register(async (api) => {
   api.addHook('onRequest', csrfGuard);
   registerLogin(api, db);

@@ -34,7 +34,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     webDir: path.resolve(import.meta.dirname, '../web'),
     owner: env.GITHUB_OWNER?.trim() || 'storytold',
     githubToken: env.GITHUB_TOKEN?.trim() || undefined,
-    // Reverse Proxys im Docker- bzw. Heimnetz (Zoraxy) dürfen X-Forwarded-* setzen
+    // Reverse proxies in the Docker or home network (e.g. Zoraxy) may set X-Forwarded-*
     trustProxy: env.TRUST_PROXY?.trim() || 'loopback,linklocal,uniquelocal',
     db: {
       host: required(env, 'DB_HOST'),

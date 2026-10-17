@@ -199,12 +199,12 @@ Linux-Dateisystem (nicht unter `/mnt/c`), sonst bemerkt Vite Änderungen nicht z
 In Docker Desktop muss die WSL-Integration für die Distribution eingeschaltet sein.
 
 ```bash
-docker compose -f compose.dev.yaml up -d   # MySQL für die Entwicklung
+docker compose -f compose.dev.yaml up -d   # MySQL for development
 cd admin
 npm ci
-cp .env.example .env                       # einmalig; passt zu compose.dev.yaml
-npm run dev:server                         # Server, startet bei Änderungen neu
-npm run dev:web                            # zweites Terminal: Oberfläche unter http://localhost:5173
+cp .env.example .env                       # once; matches compose.dev.yaml
+npm run dev:server                         # server, restarts on changes
+npm run dev:web                            # second terminal: UI at http://localhost:5173
 ```
 
 Anmelden mit `admin` und dem Passwort aus `.env`. Installierte Apps landen in `admin/data`.
@@ -216,6 +216,6 @@ debuggst du mit den Entwicklertools des Browsers.
 **Prüfen** – muss vor jedem Commit fehlerfrei durchlaufen:
 
 ```bash
-npm run lint    # ESLint, auch ohne Warnungen
-npm run build   # tsc für Oberfläche und Server, Vite-Build wie im CI
+npm run lint    # ESLint, warnings count as errors
+npm run build   # tsc for UI and server, Vite build as in CI
 ```

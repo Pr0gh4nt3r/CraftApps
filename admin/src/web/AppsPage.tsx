@@ -13,7 +13,7 @@ export function AppsPage() {
     [],
   );
 
-  // Solange etwas läuft, jede Sekunde nachsehen, sonst alle 15 Sekunden
+  // Poll every second while something is running, otherwise every 15 seconds
   const busy =
     !!state && (state.checking || state.apps.some((a) => a.job?.state === 'queued' || a.job?.state === 'running'));
   useEffect(() => void load(), [load]);

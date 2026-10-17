@@ -1,9 +1,9 @@
 # ------------------------------------------------------------
-#  Lokale Entwicklung: MySQL für die Verwaltung
+#  Local development: MySQL for the admin
 #    docker compose -f compose.dev.yaml up -d
 #
-#  Die Verwaltung selbst läuft mit npm, siehe README (Entwicklung).
-#  Die Zugangsdaten passen zu admin/.env.example – nur für lokal.
+#  The admin itself runs with npm, see README (Entwicklung).
+#  The credentials match admin/.env.example – for local use only.
 # ------------------------------------------------------------
 name: craftapps-dev
 
@@ -16,7 +16,7 @@ services:
       - MYSQL_PASSWORD=craftapps-dev
       - MYSQL_RANDOM_ROOT_PASSWORD=yes
     ports:
-      - 127.0.0.1:3306:3306 # nur von diesem Rechner aus erreichbar
+      - 127.0.0.1:3306:3306 # reachable from this machine only
     volumes:
       - mysql:/var/lib/mysql
 

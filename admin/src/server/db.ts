@@ -5,7 +5,7 @@ import type { DbConfig } from './config.js';
 
 const TABLE = 'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
 
-// Jede Migration ist eine Liste von SQL-Anweisungen. Bestehende nie ändern, nur neue anhängen.
+// Each migration is a list of SQL statements. Never change existing ones, only append new ones.
 const MIGRATIONS: string[][] = [
   [
     `CREATE TABLE IF NOT EXISTS users (
@@ -64,9 +64,9 @@ const MIGRATIONS: string[][] = [
 
 export async function connectDb(cfg: DbConfig, log: FastifyBaseLogger): Promise<Pool> {
   const pool = mysql.createPool({ ...cfg, connectionLimit: 5, timezone: 'Z', charset: 'UTF8MB4_UNICODE_CI' });
-  // Alle Zeitstempel in UTC – auch die, die MySQL selbst setzt (CURRENT_TIMESTAMP)
+  // All timestamps in UTC – including those MySQL sets itself (CURRENT_TIMESTAMP)
   pool.on('connection', (conn) => void conn.query("SET time_zone = '+00:00'"));
-  // Beim gemeinsamen Hochfahren ist MySQL oft noch nicht bereit
+  // When everything starts at once, MySQL often isn't ready yet
   for (let attempt = 1; ; attempt++) {
     try {
       await pool.query('SELECT 1');

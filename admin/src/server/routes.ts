@@ -19,7 +19,7 @@ export function registerRoutes(
   app: FastifyInstance,
   { manager, settings, db, cfg }: { manager: Manager; settings: SettingsStore; db: Pool; cfg: Config },
 ): void {
-  // Die Oberfläche fragt den Zustand alle paar Sekunden ab – nicht jedes Mal ins Log schreiben
+  // The UI polls the state every few seconds – don't write each request to the log
   app.get('/api/state', { logLevel: 'warn' }, () => manager.state());
 
   app.post('/api/check', async (req, reply) => {
@@ -95,7 +95,7 @@ export function registerRoutes(
     async (req) => {
       const before = await settings.get();
       const patch: Partial<Settings> = { ...req.body };
-      if (!patch.gotifyToken) delete patch.gotifyToken; // leer = gespeichertes Token behalten
+      if (!patch.gotifyToken) delete patch.gotifyToken; // empty = keep the stored token
       for (const key of ['appsBaseUrl', 'adminBaseUrl', 'gotifyUrl'] as const) {
         if (patch[key] !== undefined) patch[key] = patch[key].trim().replace(/\/+$/, '');
       }
@@ -106,7 +106,7 @@ export function registerRoutes(
     },
   );
 
-  // Testnachricht – auf Wunsch mit den noch nicht gespeicherten Werten aus dem Formular
+  // Test message – optionally with the not yet saved values from the form
   app.post<{ Body: { gotifyUrl?: string; gotifyToken?: string } | undefined }>(
     '/api/settings/test-notification',
     async (req, reply) => {

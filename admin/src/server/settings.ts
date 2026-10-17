@@ -4,9 +4,9 @@ export interface Settings {
   checkIntervalMinutes: number;
   autoInstallNew: boolean;
   defaultAutoUpdate: boolean;
-  /** Öffentliche Adresse des nginx mit den Apps, z.B. https://craft.example.com */
+  /** Public address of the nginx serving the apps, e.g. https://craft.example.com */
   appsBaseUrl: string;
-  /** Adresse dieser Verwaltung – Ziel beim Antippen einer Benachrichtigung */
+  /** Address of this admin UI – opened when a notification is tapped */
   adminBaseUrl: string;
   gotifyUrl: string;
   gotifyToken: string;
@@ -32,7 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const UPSERT = 'INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)';
 
-/** Einstellungen aus der Oberfläche plus interne Werte (Name mit "_" davor), als JSON in MySQL. */
+/** Settings from the UI plus internal values (name prefixed with "_"), as JSON in MySQL. */
 export class SettingsStore {
   private cache: Settings | null = null;
 

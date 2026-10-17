@@ -1,22 +1,21 @@
 # ------------------------------------------------------------
-#  Craft-Apps (github.com/storytold) – Web-Versionen selbst hosten
+#  Craft apps (github.com/storytold) – self-hosted web versions
 #
-#  craftapps-web    nginx, liefert die installierten Apps unter /<app>/
-#                   aus (z.B. /photocraft/) plus eine Übersicht unter /
-#  craftapps-admin  Verwaltung: Apps installieren und entfernen,
-#                   automatische Updates je App, Push-Nachrichten
-#                   über Gotify
+#  craftapps-web    nginx, serves the installed apps under /<app>/
+#                   (e.g. /photocraft/) plus an overview at /
+#  craftapps-admin  admin UI: installs and removes apps, automatic
+#                   updates per app, push notifications via Gotify
 #
-#  Deploy: Portainer BE, Stack aus dem Git-Repo mit
-#  "Enable relative path volumes" – Einrichtung siehe README.md
+#  Deploy: Portainer BE, stack from the Git repo with
+#  "Enable relative path volumes" – setup see README.md
 #
-#  Zoraxy: craft.example.com       -> 172.18.0.22:80   (Apps)
-#          craft-admin.example.com -> 172.18.0.23:3000 (Verwaltung)
-#  (HTTPS ist wichtig: WebGPU und Zwischenablage gibt es nur damit)
+#  Zoraxy: craft.example.com       -> 172.18.0.22:80   (apps)
+#          craft-admin.example.com -> 172.18.0.23:3000 (admin UI)
+#  (HTTPS matters: browsers only allow WebGPU and the clipboard in a secure context)
 # ------------------------------------------------------------
 services:
   # --------------------------------------------------------
-  #  nginx – statische Auslieferung (TLS macht Zoraxy)
+  #  nginx – serves static files (TLS is done by Zoraxy)
   # --------------------------------------------------------
   craftapps-web:
     image: nginx:alpine
@@ -25,45 +24,45 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.monitor-only=false"
     ports:
-      - 8085:80 # optional, nur nötig wenn Zoraxy über den Host-Port geht
+      - 8085:80 # optional, only needed if Zoraxy goes via the host port
     volumes:
       - data:/srv/craftapps:ro
-      # Direkt aus dem Repo – braucht in Portainer "Enable relative path volumes".
-      # nginx liest die Datei nur beim Start: nach einer Änderung neu starten.
+      # Straight from the repo – needs "Enable relative path volumes" in Portainer.
+      # nginx reads the file only at startup: restart it after a change.
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       custom:
-        ipv4_address: 172.18.0.22 # <-- USER-ANPASSUNG: freie IP im custom-Netz
+        ipv4_address: 172.18.0.22 # <-- adjust: free IP in the custom network
 
   # --------------------------------------------------------
-  #  Verwaltung – Weboberfläche und automatische Updates
+  #  Admin UI and automatic updates
   # --------------------------------------------------------
   craftapps-admin:
-    # Baut Gitea Actions bei jeder Änderung in admin/ (.gitea/workflows/admin-image.yaml),
-    # z.B. gitea.example.com/benutzer/craftapps-admin:latest
+    # Built by Gitea Actions on every change in admin/ (.gitea/workflows/admin-image.yaml),
+    # e.g. gitea.example.com/user/craftapps-admin:latest
     image: ${CRAFTAPPS_ADMIN_IMAGE:?in Portainer unter Environment variables setzen}
     container_name: CraftApps-Admin
     restart: unless-stopped
     labels:
-      # Watchtower holt neue Images der Verwaltung aus der Gitea-Registry
+      # Watchtower pulls new admin images from the Gitea registry
       - "com.centurylinklabs.watchtower.monitor-only=false"
     environment:
       - TZ=Europe/Berlin
-      - DB_HOST=MySQL # <-- USER-ANPASSUNG: Name oder IP deines MySQL-Containers
+      - DB_HOST=MySQL # <-- adjust: name or IP of your MySQL container
       - DB_PORT=3306
       - DB_NAME=craftapps
       - DB_USER=craftapps
       - DB_PASSWORD=${CRAFTAPPS_DB_PASSWORD:?in Portainer unter Environment variables setzen}
-      # Erstes Konto – wird nur angelegt, solange es noch keinen Benutzer gibt
+      # First account – only created while there is no user yet
       - INITIAL_ADMIN_USER=admin
       - INITIAL_ADMIN_PASSWORD=${CRAFTAPPS_ADMIN_PASSWORD:?in Portainer unter Environment variables setzen}
-      # Optional: GitHub-Token, nur nötig bei Prüfintervallen unter ~20 Minuten
+      # Optional: GitHub token, only needed for check intervals below ~20 minutes
       # - GITHUB_TOKEN=github_pat_...
     # ports:
-    #   - 8086:3000 # optional, nur nötig wenn Zoraxy über den Host-Port geht
+    #   - 8086:3000 # optional, only needed if Zoraxy goes via the host port
     volumes:
       - data:/data
-    # Ist aus dem Internet erreichbar und lädt Dateien – so wenig Rechte wie möglich
+    # Reachable from the internet and downloads files – as few privileges as possible
     read_only: true
     tmpfs:
       - /tmp
@@ -73,11 +72,11 @@ services:
       - no-new-privileges:true
     networks:
       custom:
-        ipv4_address: 172.18.0.23 # <-- USER-ANPASSUNG: freie IP im custom-Netz
+        ipv4_address: 172.18.0.23 # <-- adjust: free IP in the custom network
 
 volumes:
   data:
-    name: craftapps_data # Apps und Übersicht, verwaltet von craftapps-admin
+    name: craftapps_data # apps and overview, managed by craftapps-admin
 
 networks:
   custom:

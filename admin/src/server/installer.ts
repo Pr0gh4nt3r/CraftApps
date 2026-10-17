@@ -18,7 +18,7 @@ export interface Asset {
 
 export type OnProgress = (phase: string, fraction: number | null) => void;
 
-/** Lädt ein Release-Asset und prüft Größe und SHA-256 (GitHub liefert den Digest mit). */
+/** Downloads a release asset and checks size and SHA-256 (GitHub provides the digest). */
 export async function download(asset: Asset, dest: string, onProgress: OnProgress): Promise<void> {
   const res = await fetch(asset.url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(30 * 60_000) });
   if (!res.ok || !res.body) throw new Error(`Download von ${asset.name} fehlgeschlagen (HTTP ${res.status})`);
@@ -69,13 +69,13 @@ function openEntry(zip: yauzl.ZipFile, entry: yauzl.Entry): Promise<Readable> {
   );
 }
 
-/** Versteckter Temp-Name im selben Ordner – nginx liefert Dateien mit "." vorne nie aus. */
+/** Hidden temp name in the same folder – nginx never serves files starting with ".". */
 const hidden = (file: string) => path.join(path.dirname(file), `.${path.basename(file)}.tmp`);
 
 async function gzipFile(src: string, dest: string): Promise<void> {
   await pipeline(createReadStream(src), createGzip({ level: 9 }), createWriteStream(dest));
   const stat = await fs.stat(src);
-  await fs.utimes(dest, stat.atime, stat.mtime); // gzip_static mag gleiche Zeitstempel
+  await fs.utimes(dest, stat.atime, stat.mtime); // gzip_static wants matching timestamps
 }
 
 export function appDir(dataDir: string, id: string): string {
@@ -84,19 +84,19 @@ export function appDir(dataDir: string, id: string): string {
 }
 
 /**
- * Packt das Web-Zip nach appDir aus und gibt die Liste der geschriebenen Dateien zurück.
+ * Extracts the web zip into appDir and returns the list of written files.
  *
- * Zwei Phasen: Erst landet alles (plus .gz für .wasm/.js) als versteckte Temp-Datei neben der
- * laufenden Version, dann wird in einem Rutsch umbenannt, index.html zuletzt. Apps mit
- * Content-Hash im Dateinamen wechseln so unterbrechungsfrei, Apps mit festen Dateinamen
- * (LightCraft, EffectCraft, FilmCraft) innerhalb von Millisekunden.
+ * Two phases: first everything (plus .gz for .wasm/.js) lands as a hidden temp file next to the
+ * running version, then everything is renamed in one go, index.html last. Apps with a content
+ * hash in their file names thus switch without interruption, apps with fixed file names
+ * (LightCraft, EffectCraft, FilmCraft) within milliseconds.
  */
 export async function deploy(dir: string, zipPath: string, onProgress: OnProgress): Promise<string[]> {
   const zip = await openZip(zipPath);
   const staged: { rel: string; tmp: string; target: string }[] = [];
   try {
     const entries = (await listEntries(zip)).filter((e) => !e.fileName.endsWith('/'));
-    // Alles liegt in einem Ordner wie photocraft-web-0.9.0/ – den abschneiden
+    // Everything sits in a folder like photocraft-web-0.9.0/ – strip it
     const tops = new Set(entries.map((e) => e.fileName.split('/')[0]));
     const prefix = tops.size === 1 && entries.every((e) => e.fileName.includes('/')) ? `${[...tops][0]}/` : '';
     const files = new Map<string, yauzl.Entry>();
@@ -117,7 +117,7 @@ export async function deploy(dir: string, zipPath: string, onProgress: OnProgres
       const tmp = hidden(target);
       staged.push({ rel, tmp, target });
       await pipeline(await openEntry(zip, entry), createWriteStream(tmp));
-      // .gz für nginx' gzip_static – sofern das Zip nicht selbst eins mitbringt
+      // .gz for nginx's gzip_static – unless the zip already contains one
       if (/\.(wasm|js)$/.test(rel) && !files.has(`${rel}.gz`)) {
         const gzTarget = `${target}.gz`;
         staged.push({ rel: `${rel}.gz`, tmp: hidden(gzTarget), target: gzTarget });
@@ -125,7 +125,7 @@ export async function deploy(dir: string, zipPath: string, onProgress: OnProgres
       }
     }
     onProgress('Schaltet um', null);
-    // index.html (und ggf. index.html.gz/.br) als Letztes – ab da ist die neue Version live
+    // index.html (and index.html.gz/.br, if any) last – from then on the new version is live
     const isIndex = (rel: string) => rel.startsWith('index.html');
     staged.sort((a, b) => Number(isIndex(a.rel)) - Number(isIndex(b.rel)));
     for (const { tmp, target } of staged) await fs.rename(tmp, target);
@@ -136,7 +136,7 @@ export async function deploy(dir: string, zipPath: string, onProgress: OnProgres
   }
 }
 
-/** Löscht alles in dir, was nicht in keep (relative Pfade) steht, und leere Ordner. */
+/** Deletes everything in dir that isn't in keep (relative paths), and empty folders. */
 export async function prune(dir: string, keep: Set<string>): Promise<void> {
   async function walk(current: string): Promise<boolean> {
     let empty = true;

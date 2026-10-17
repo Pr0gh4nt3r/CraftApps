@@ -1,4 +1,4 @@
-// Gemeinsame Typen für Server und Oberfläche (nur Typen, kein Laufzeitcode)
+// Shared types for server and UI (types only, no runtime code)
 
 export type AppStatus = 'not-installed' | 'installed' | 'update-available';
 export type JobKind = 'install' | 'update' | 'uninstall';
@@ -10,7 +10,7 @@ export interface JobView {
   kind: JobKind;
   state: JobState;
   phase: string;
-  /** 0..1, null = Fortschritt unbekannt */
+  /** 0..1, null = progress unknown */
   progress: number | null;
   error: string | null;
 }
@@ -30,11 +30,11 @@ export interface AppView {
   latestPublishedAt: string | null;
   latestSize: number | null;
   autoUpdate: boolean;
-  /** Fehler bei der letzten Prüfung */
+  /** Error during the last check */
   error: string | null;
-  /** Öffentliche Adresse der App, sofern in den Einstellungen hinterlegt */
+  /** Public address of the app, if set in the settings */
   openUrl: string | null;
-  /** Laufende oder kürzlich fehlgeschlagene Aktion */
+  /** Running or recently failed action */
   job: JobView | null;
 }
 
@@ -73,7 +73,7 @@ export interface SettingsView {
   notifyErrors: boolean;
 }
 
-/** Leeres gotifyToken = unverändert lassen */
+/** Empty gotifyToken = leave unchanged */
 export type SettingsUpdate = Partial<Omit<SettingsView, 'gotifyTokenSet'>> & { gotifyToken?: string };
 
 export interface MeView {

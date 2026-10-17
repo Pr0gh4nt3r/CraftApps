@@ -1,4 +1,4 @@
-/* Dunkles Design im Stil des Craft Launchers */
+/* Dark design in the style of the Craft Launcher */
 :root {
   color-scheme: dark;
   --bg: #0d0f13;
@@ -68,7 +68,7 @@ select {
   text-align: right;
 }
 
-/* ---------------------------------------------------------- Kopfzeile */
+/* ---------------------------------------------------------- Header */
 
 .topbar {
   position: sticky;
@@ -139,7 +139,7 @@ main {
   padding: 28px 24px 64px;
 }
 
-/* ---------------------------------------------------------- Knöpfe */
+/* ---------------------------------------------------------- Buttons */
 
 .btn {
   display: inline-flex;
@@ -199,7 +199,7 @@ main {
   color: var(--danger);
 }
 
-/* ---------------------------------------------------------- Kopfbereich & Hinweise */
+/* ---------------------------------------------------------- Page header & notices */
 
 .toolbar {
   display: flex;
@@ -240,9 +240,9 @@ main {
   color: var(--danger);
 }
 
-/* ---------------------------------------------------------- App-Raster wie im Launcher */
+/* ---------------------------------------------------------- App grid like in the launcher */
 
-/* Haarlinien über Ränder statt Hintergrund, damit leere Rasterzellen leer bleiben */
+/* Hairlines via borders instead of background so empty grid cells stay empty */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
@@ -376,7 +376,7 @@ main {
   margin: 2px 0 0;
 }
 
-/* Fortschritt einer laufenden Aktion */
+/* Progress of a running action */
 .progress {
   position: relative;
   flex: 1;
@@ -403,7 +403,7 @@ main {
   text-transform: uppercase;
 }
 
-/* "…"-Menü */
+/* "…" menu */
 .menu-wrap {
   position: relative;
 }
@@ -442,7 +442,7 @@ main {
   color: var(--danger);
 }
 
-/* ---------------------------------------------------------- Schalter */
+/* ---------------------------------------------------------- Toggles */
 
 .toggle {
   display: flex;
@@ -498,7 +498,7 @@ main {
   outline-offset: 2px;
 }
 
-/* ---------------------------------------------------------- Formulare */
+/* ---------------------------------------------------------- Forms */
 
 .panel {
   max-width: 760px;
@@ -585,7 +585,7 @@ main {
   height: 38px;
 }
 
-/* ---------------------------------------------------------- Tabellen */
+/* ---------------------------------------------------------- Tables */
 
 .table-wrap {
   overflow-x: auto;
@@ -649,7 +649,7 @@ main {
   color: var(--muted);
 }
 
-/* ---------------------------------------------------------- Anmeldung */
+/* ---------------------------------------------------------- Login */
 
 .login {
   display: grid;
@@ -689,7 +689,7 @@ main {
   margin-bottom: 4px;
 }
 
-/* ---------------------------------------------------------- Schmale Bildschirme */
+/* ---------------------------------------------------------- Narrow screens */
 
 @media (max-width: 720px) {
   .topbar {

@@ -19,7 +19,7 @@ type TabId = (typeof TABS)[number]['id'];
 const tabFromHash = (): TabId => TABS.find((t) => `#${t.id}` === location.hash)?.id ?? 'apps';
 
 export function App() {
-  // undefined = wird noch geprüft, null = nicht angemeldet
+  // undefined = still checking, null = not logged in
   const [me, setMe] = useState<MeView | null | undefined>(undefined);
   const [tab, setTab] = useState<TabId>(tabFromHash);
 

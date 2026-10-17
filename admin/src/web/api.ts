@@ -1,6 +1,6 @@
 const unauthorizedListeners = new Set<() => void>();
 
-/** Wird aufgerufen, sobald der Server "nicht angemeldet" meldet (z.B. Sitzung abgelaufen). */
+/** Called as soon as the server reports "not logged in" (e.g. session expired). */
 export function onUnauthorized(listener: () => void): () => void {
   unauthorizedListeners.add(listener);
   return () => unauthorizedListeners.delete(listener);
@@ -9,7 +9,7 @@ export function onUnauthorized(listener: () => void): () => void {
 export async function api<T = unknown>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
     method,
-    // Der Server verlangt diesen Header bei allen ändernden Anfragen (Schutz gegen CSRF)
+    // The server requires this header on all modifying requests (protection against CSRF)
     headers: { 'X-Requested-With': 'craftapps', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });

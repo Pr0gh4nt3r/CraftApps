@@ -4,11 +4,11 @@ export interface Notification {
   title: string;
   /** Markdown */
   message: string;
-  /** Gotify-Priorität: 0–3 leise, 4–7 normal, 8–10 dringend */
+  /** Gotify priority: 0–3 quiet, 4–7 normal, 8–10 urgent */
   priority: number;
 }
 
-/** Schickt eine Push-Nachricht über Gotify; clickUrl öffnet sich beim Antippen. */
+/** Sends a push notification via Gotify; clickUrl opens when it is tapped. */
 export async function sendGotify(baseUrl: string, token: string, note: Notification, clickUrl: string): Promise<void> {
   const extras: Record<string, unknown> = { 'client::display': { contentType: 'text/markdown' } };
   if (clickUrl) extras['client::notification'] = { click: { url: clickUrl } };

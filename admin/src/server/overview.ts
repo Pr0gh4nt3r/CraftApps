@@ -34,7 +34,7 @@ function card(dataDir: string, app: OverviewApp): string {
     </a>`;
 }
 
-/** Öffentliche Startseite des nginx (/index.html) und /status.json mit den installierten Apps. */
+/** Public start page of nginx (/index.html) and /status.json with the installed apps. */
 export async function writeOverview(dataDir: string, apps: OverviewApp[]): Promise<void> {
   const cards = apps.length
     ? apps.map((app) => card(dataDir, app)).join('\n')

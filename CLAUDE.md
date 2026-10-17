@@ -25,6 +25,11 @@ Siehe README, Abschnitt „Entwicklung“: MySQL aus `compose.dev.yaml`, dann in
 Neben der README erklären die Kommentare in `compose.yaml`, `nginx.conf`, `admin/Dockerfile`
 und im Gitea-Workflow, wie alles zusammenspielt – bei Änderungen mitpflegen.
 
+## Sprache
+
+Kommentare in Code und Konfiguration – auch in den Code-Beispielen der README – immer auf
+Englisch. README, Oberfläche und Meldungen bleiben deutsch.
+
 ## Push
 
 Ein Push nach `main` geht direkt in Betrieb: Bei Änderungen in `admin/` baut Gitea Actions

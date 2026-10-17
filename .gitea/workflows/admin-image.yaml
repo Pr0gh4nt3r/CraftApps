@@ -1,9 +1,9 @@
-# Baut das Image der Verwaltung (ARM64 für den Raspberry Pi) und legt es in die
-# Container-Registry dieses Gitea: <gitea-host>/<besitzer>/craftapps-admin.
-# Watchtower bzw. Portainer holen es von dort.
+# Builds the admin image (ARM64 for the Raspberry Pi) and pushes it to this Gitea's
+# container registry: <gitea-host>/<owner>/craftapps-admin.
+# Watchtower or Portainer pull it from there.
 #
-# Voraussetzung: Secret REGISTRY_TOKEN im Repo – ein Token des Repo-Besitzers mit
-# der Berechtigung "package: Lesen und Schreiben" (siehe README.md).
+# Requires the repo secret REGISTRY_TOKEN – a token of the repo owner with the
+# permission "package: Read and Write" (see README.md).
 name: Verwaltung bauen
 
 on:
@@ -12,7 +12,7 @@ on:
     paths:
       - "admin/**"
       - ".gitea/workflows/admin-image.yaml"
-  # Wöchentlich neu bauen, damit Sicherheitsupdates von Node und Alpine ankommen
+  # Rebuild weekly so security updates for Node and Alpine get in
   schedule:
     - cron: "17 3 * * 1"
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
           echo "REGISTRY=${registry}" >> "$GITHUB_ENV"
           echo "IMAGE=${registry}/${owner}/craftapps-admin" >> "$GITHUB_ENV"
 
-      # Nur nötig, wenn der Runner selbst kein ARM64 ist – auf dem Pi schadet es nicht
+      # Only needed if the runner itself isn't ARM64 – harmless on the Pi
       - name: QEMU einrichten
         uses: docker/setup-qemu-action@v3
 
@@ -51,7 +51,7 @@ jobs:
         with:
           context: admin
           platforms: linux/arm64
-          pull: true # immer das aktuelle node:24-alpine
+          pull: true # always the latest node:24-alpine
           push: true
           tags: |
             ${{ env.IMAGE }}:latest

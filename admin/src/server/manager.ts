@@ -51,7 +51,7 @@ const KIND_LABEL: Record<JobKind, string> = { install: 'Installation', update: '
 const parseAsset = (json: string | null): Asset | null => (json ? (JSON.parse(json) as Asset) : null);
 const parseFiles = (json: string | null): string[] => (json ? (JSON.parse(json) as string[]) : []);
 
-/** Sucht Apps, prüft Releases, installiert/aktualisiert/entfernt sie der Reihe nach und benachrichtigt. */
+/** Finds apps, checks releases, installs/updates/removes them one at a time and notifies. */
 export class Manager {
   private checking = false;
   private lastCheckAt: Date | null = null;
@@ -72,13 +72,13 @@ export class Manager {
     private readonly log: FastifyBaseLogger,
   ) {}
 
-  // ------------------------------------------------------------ Start und Zeitplan
+  // ------------------------------------------------------------ Startup and schedule
 
   async init(): Promise<void> {
     try {
-      await fs.mkdir(this.cfg.dataDir, { recursive: true }); // lokal (DATA_DIR=./data) fehlt der Ordner anfangs
+      await fs.mkdir(this.cfg.dataDir, { recursive: true }); // locally (DATA_DIR=./data) the folder doesn't exist at first
       await fs.access(this.cfg.dataDir, fs.constants.W_OK);
-      await fs.rm(path.join(this.cfg.dataDir, '.tmp'), { recursive: true, force: true }); // Reste abgebrochener Downloads
+      await fs.rm(path.join(this.cfg.dataDir, '.tmp'), { recursive: true, force: true }); // leftovers of aborted downloads
     } catch {
       this.warnings.push(
         `Keine Schreibrechte auf ${this.cfg.dataDir} – das Daten-Volume muss dem Benutzer 1000 gehören (siehe README).`,
@@ -90,7 +90,7 @@ export class Manager {
   }
 
   start(): void {
-    this.schedule(10_000); // erste Prüfung kurz nach dem Start
+    this.schedule(10_000); // first check shortly after startup
     this.housekeeping = setInterval(() => void this.cleanup(), 60 * MINUTE);
   }
 
@@ -121,9 +121,9 @@ export class Manager {
     }
   }
 
-  // ------------------------------------------------------------ Prüfen
+  // ------------------------------------------------------------ Checks
 
-  /** Sucht neue Apps und Releases, spielt automatische Updates ein und benachrichtigt. */
+  /** Looks for new apps and releases, applies automatic updates and notifies. */
   async check(username: string | null = null): Promise<void> {
     if (this.checking) return;
     this.checking = true;
@@ -149,7 +149,7 @@ export class Manager {
           await this.refreshRelease(app);
         } catch (err) {
           await this.failure(app, `Prüfung fehlgeschlagen: ${errorText(err)}`);
-          if (err instanceof GitHubLimitError) break; // die restlichen würden genauso scheitern
+          if (err instanceof GitHubLimitError) break; // the remaining ones would fail the same way
           continue;
         }
         const installed = this.isInstalled(app);
@@ -183,7 +183,7 @@ export class Manager {
     }
   }
 
-  /** Legt neue Repos an und übernimmt Namen, Farben und Reihenfolge aus dem Launcher. */
+  /** Adds new repos and takes names, colors and order from the launcher. */
   private async syncCatalog(repos: Repo[], launcher: LauncherInfo, settings: Settings): Promise<void> {
     const order = Object.keys(launcher);
     const found = repos.filter((r) => !r.fork && APP_ID.test(r.name.toLowerCase()));
@@ -199,7 +199,7 @@ export class Manager {
         [id, repo.name, meta.name, meta.description, meta.color, rank === -1 ? 1000 : rank, Number(settings.defaultAutoUpdate)],
       );
     }
-    // Umbenannte oder gelöschte Repos nicht mehr prüfen; installierte bleiben verwaltbar
+    // Stop checking renamed or deleted repos; installed ones remain manageable
     const ids = found.map((r) => r.name.toLowerCase());
     if (ids.length) await this.db.query('UPDATE apps SET in_catalog = 0 WHERE id NOT IN (?)', [ids]);
   }
@@ -216,7 +216,7 @@ export class Manager {
         latest_asset: asset
           ? JSON.stringify({ name: asset.name, size: asset.size, digest: asset.digest ?? null, url: asset.browser_download_url } satisfies Asset)
           : null,
-        // Ohne Web-Zip den ETag nicht merken – die Release-Pipeline lädt es evtl. gerade noch hoch
+        // Without a web zip, don't remember the ETag – the release pipeline may still be uploading it
         latest_etag: asset ? res.etag : null,
       });
     }
@@ -231,7 +231,7 @@ export class Manager {
   private async announce(apps: AppRow[], firstRun: boolean, autoInstall: boolean): Promise<void> {
     for (const app of apps) await this.event('available', `Neu verfügbar: ${version(app.latest_tag)}`, app.id);
     const action = autoInstall ? 'wird automatisch installiert' : 'kann installiert werden';
-    // Beim allerersten Durchlauf (oder vielen auf einmal) eine Sammelnachricht statt einer Flut
+    // On the very first run (or with many at once) one summary message instead of a flood
     if (firstRun || apps.length > 3) {
       const list = apps.map((a) => `- **${a.name}** ${version(a.latest_tag)}`).join('\n');
       const all = autoInstall ? 'Alle werden automatisch installiert.' : 'Alle können installiert werden.';
@@ -244,9 +244,9 @@ export class Manager {
     }
   }
 
-  // ------------------------------------------------------------ Aktionen
+  // ------------------------------------------------------------ Actions
 
-  /** Aktion aus der Oberfläche anstoßen. */
+  /** Triggers an action from the UI. */
   async request(kind: JobKind, appId: string, username: string): Promise<JobView> {
     const app = await this.app(appId);
     if (!app) throw new NotFoundError('Unbekannte App');
@@ -263,7 +263,7 @@ export class Manager {
     const job: Job = { id: this.nextJobId++, appId, kind, state: 'queued', phase: 'Wartet', progress: null, error: null, username, finishedAt: null };
     const cutoff = Date.now() - 15 * MINUTE;
     this.jobs = [...this.jobs.filter((j) => j.finishedAt === null || j.finishedAt > cutoff), job];
-    // Alles, was Dateien anfasst, läuft nacheinander
+    // Everything that touches files runs one after another
     this.queue = this.queue.then(() => this.run(job)).catch((err) => this.log.error(err));
     return this.jobView(job);
   }
@@ -302,14 +302,14 @@ export class Manager {
     }
   }
 
-  /** Installiert die neueste Version (bei "install" auch erneut, bei "update" nur wenn neuer). */
+  /** Installs the latest version ("install" also reinstalls, "update" only if newer). */
   private async install(app: AppRow, job: Job, progress: OnProgress): Promise<void> {
     const fromTag = this.isInstalled(app) ? app.installed_tag : null;
     progress('Prüft Version', null);
     await this.refreshRelease(app);
     const asset = parseAsset(app.latest_asset);
     if (!asset || !app.latest_tag) throw new Error('Keine Web-Version verfügbar');
-    if (job.kind === 'update' && fromTag === app.latest_tag) return; // inzwischen schon aktuell
+    if (job.kind === 'update' && fromTag === app.latest_tag) return; // already up to date by now
 
     const dir = appDir(this.cfg.dataDir, app.id);
     const tmpDir = path.join(this.cfg.dataDir, '.tmp');
@@ -322,8 +322,8 @@ export class Manager {
     } finally {
       await fs.rm(zipPath, { force: true });
     }
-    // Die Dateien der bisherigen Version bleiben bis zum nächsten Update liegen, damit Browser,
-    // die gerade noch die alte index.html geladen haben, ihre .wasm trotzdem bekommen
+    // The files of the previous version stay until the next update so that browsers which
+    // just loaded the old index.html still get their .wasm
     await prune(dir, new Set([...files, ...(fromTag ? parseFiles(app.installed_files) : [])]));
     const autoUpdate = fromTag ? app.auto_update : Number((await this.settings.get()).defaultAutoUpdate);
     await this.db.query(
@@ -356,13 +356,13 @@ export class Manager {
     if (!app) throw new NotFoundError('Unbekannte App');
     await this.db.query('UPDATE apps SET auto_update = ? WHERE id = ?', [Number(enabled), appId]);
     await this.event('setting', `Automatische Updates ${enabled ? 'eingeschaltet' : 'ausgeschaltet'}`, appId, username);
-    // Steht schon ein Update an, gleich einspielen
+    // If an update is already pending, apply it right away
     if (enabled && this.isInstalled(app) && parseAsset(app.latest_asset) && app.latest_tag !== app.installed_tag) {
       this.queueQuietly('update', appId);
     }
   }
 
-  // ------------------------------------------------------------ Zustand für die Oberfläche
+  // ------------------------------------------------------------ State for the UI
 
   async state(): Promise<StateView> {
     const settings = await this.settings.get();
@@ -389,7 +389,7 @@ export class Manager {
   private view(app: AppRow, settings: Settings): AppView | null {
     const installed = this.isInstalled(app);
     const asset = parseAsset(app.latest_asset);
-    // Repos ohne Web-Version (z.B. artcraft) oder verschwundene nur zeigen, wenn installiert
+    // Show repos without a web version (e.g. artcraft) or vanished ones only if installed
     if (!installed && (!asset || !app.in_catalog)) return null;
     const recent = Date.now() - 15 * MINUTE;
     const job =
@@ -417,7 +417,7 @@ export class Manager {
     };
   }
 
-  // ------------------------------------------------------------ Hilfen
+  // ------------------------------------------------------------ Helpers
 
   async app(id: string): Promise<AppRow | undefined> {
     const [rows] = await this.db.query<AppRow[]>('SELECT * FROM apps WHERE id = ?', [id]);
@@ -475,7 +475,7 @@ export class Manager {
     }
   }
 
-  /** Fehler protokollieren und melden – jeden Fehler nur einmal, nicht bei jeder Prüfung erneut. */
+  /** Logs and reports errors – each error only once, not again on every check. */
   private async failure(app: AppRow | null, message: string): Promise<void> {
     this.log.warn(app ? `${app.id}: ${message}` : message);
     if (app) {
