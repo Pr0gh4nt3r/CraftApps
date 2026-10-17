@@ -37,8 +37,8 @@ CraftApps\
 │       ├── server\                     API, Anmeldung, Installer, GitHub, Gotify
 │       ├── shared\                     Typen für Server und Oberfläche
 │       └── web\                        Oberfläche
-├── compose.dev.yaml                    MySQL für die lokale Entwicklung
-├── compose.yaml                        Stack für Portainer: nginx und Verwaltung
+├── docker-compose.dev.yml              MySQL für die lokale Entwicklung
+├── docker-compose.yml                  Stack für Portainer: nginx und Verwaltung
 ├── docs\images\                        Screenshots für diese README
 └── nginx.conf                          Konfiguration des nginx
 ```
@@ -52,7 +52,7 @@ flowchart LR
   push(["Push auf main"]) --> repo[("Git-Repo<br/>GitHub oder Gitea")]
   repo -->|"admin/ geändert"| build["GitHub Actions<br/>baut das Image"]
   build -->|"lädt hoch"| ghcr[("ghcr.io")]
-  repo -->|"compose.yaml<br/>nginx.conf"| portainer["Portainer<br/>Stack craftapps"]
+  repo -->|"docker-compose.yml<br/>nginx.conf"| portainer["Portainer<br/>Stack craftapps"]
   ghcr -->|"Image"| portainer
   portainer -->|"deployt"| pi["CraftApps<br/>CraftApps-Admin"]
   build -.->|"Webhook, optional"| portainer
@@ -60,11 +60,11 @@ flowchart LR
 
 Von Änderungen erfährt Portainer auf einem von zwei Wegen:
 
-|                                              | Polling und Watchtower (Standard)           | Webhook ([Schritt 6](#6-deploy-nach-dem-build-optional)) |
-| -------------------------------------------- | ------------------------------------------- | -------------------------------------------------------- |
-| Änderung an `compose.yaml` oder `nginx.conf` | Portainer prüft das Repo alle 5 Minuten     | Der Workflow ruft Portainer direkt nach dem Push auf     |
-| Neues Image der Verwaltung                   | Watchtower holt es bei seinem nächsten Lauf | Portainer holt es direkt nach dem Build                  |
-| Voraussetzung                                | Watchtower                                  | Portainer ist vom Runner des Workflows aus erreichbar    |
+|                                                    | Polling und Watchtower (Standard)           | Webhook ([Schritt 6](#6-deploy-nach-dem-build-optional)) |
+| -------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------- |
+| Änderung an `docker-compose.yml` oder `nginx.conf` | Portainer prüft das Repo alle 5 Minuten     | Der Workflow ruft Portainer direkt nach dem Push auf     |
+| Neues Image der Verwaltung                         | Watchtower holt es bei seinem nächsten Lauf | Portainer holt es direkt nach dem Build                  |
+| Voraussetzung                                      | Watchtower                                  | Portainer ist vom Runner des Workflows aus erreichbar    |
 
 Zur Laufzeit:
 
@@ -105,7 +105,7 @@ flowchart LR
     image["craftapps-admin<br/>ghcr.io oder Gitea"]
   end
   subgraph source ["Source: Git-Repo"]
-    files["compose.yaml<br/>nginx.conf"]
+    files["docker-compose.yml<br/>nginx.conf"]
   end
   webhook(["Webhook"]) -.->|"jetzt deployen"| stack
   files -->|"Bauplan"| stack["Stack craftapps"]
@@ -114,13 +114,13 @@ flowchart LR
   stack -->|"startet"| containers["Container<br/>auf dem Pi"]
 ```
 
-| Begriff             | Was es ist                                                             | Wo in Portainer                                       | Nötig                                                  |
-| ------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------ |
-| **Source**          | Das Git-Repo mit `compose.yaml` und `nginx.conf`, samt Token zum Lesen | **Sources** im linken Menü                            | ja                                                     |
-| **Stack**           | Startet die Container so, wie es `compose.yaml` beschreibt             | **Stacks → Add stack**                                | ja                                                     |
-| **Registry**        | Zugangsdaten für ein Lager mit Images, das eine Anmeldung verlangt     | **Registries**, je nach Version **Host → Registries** | nur für ein Image, das nicht öffentlich ist            |
-| **Webhook**         | Adresse des Stacks, die Portainer deployen lässt                       | im Stack bei **GitOps updates**                       | nur für [Schritt 6](#6-deploy-nach-dem-build-optional) |
-| **GitOps Workflow** | Verteilt Stacks auf Edge-Gruppen                                       | **Workflows**                                         | nein, ist für Edge-Umgebungen gedacht                  |
+| Begriff             | Was es ist                                                                   | Wo in Portainer                                       | Nötig                                                  |
+| ------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------ |
+| **Source**          | Das Git-Repo mit `docker-compose.yml` und `nginx.conf`, samt Token zum Lesen | **Sources** im linken Menü                            | ja                                                     |
+| **Stack**           | Startet die Container so, wie es `docker-compose.yml` beschreibt             | **Stacks → Add stack**                                | ja                                                     |
+| **Registry**        | Zugangsdaten für ein Lager mit Images, das eine Anmeldung verlangt           | **Registries**, je nach Version **Host → Registries** | nur für ein Image, das nicht öffentlich ist            |
+| **Webhook**         | Adresse des Stacks, die Portainer deployen lässt                             | im Stack bei **GitOps updates**                       | nur für [Schritt 6](#6-deploy-nach-dem-build-optional) |
+| **GitOps Workflow** | Verteilt Stacks auf Edge-Gruppen                                             | **Workflows**                                         | nein, ist für Edge-Umgebungen gedacht                  |
 
 Öffentliche Images wie `nginx:alpine` oder das fertige Image der Verwaltung brauchen keinen
 Registry-Eintrag.
@@ -170,14 +170,14 @@ Die Domains brauchst du nur für
 
 ### Überblick
 
-| Schritt                                  | Was du tust                                  | Wo                    | Nötig    |
-| ---------------------------------------- | -------------------------------------------- | --------------------- | -------- |
-| [1](#1-datenbank-anlegen)                | Datenbank und Benutzer anlegen               | MySQL                 | ja       |
-| [2](#2-datenbank-erreichbar-machen)      | Festlegen, wie die Verwaltung MySQL erreicht | MySQL, `compose.yaml` | ja       |
-| [3](#3-stack-in-portainer-anlegen)       | Repo als Source anlegen, Stack anlegen       | Portainer             | ja       |
-| [4](#4-erste-anmeldung)                  | Anmelden, Adressen und Gotify eintragen      | Verwaltung            | ja       |
-| [5](#5-https-mit-reverse-proxy-optional) | Eigene Domains mit HTTPS                     | Reverse Proxy         | optional |
-| [6](#6-deploy-nach-dem-build-optional)   | Direkt nach dem Build deployen               | Portainer, Repo       | optional |
+| Schritt                                  | Was du tust                                  | Wo                          | Nötig    |
+| ---------------------------------------- | -------------------------------------------- | --------------------------- | -------- |
+| [1](#1-datenbank-anlegen)                | Datenbank und Benutzer anlegen               | MySQL                       | ja       |
+| [2](#2-datenbank-erreichbar-machen)      | Festlegen, wie die Verwaltung MySQL erreicht | MySQL, `docker-compose.yml` | ja       |
+| [3](#3-stack-in-portainer-anlegen)       | Repo als Source anlegen, Stack anlegen       | Portainer                   | ja       |
+| [4](#4-erste-anmeldung)                  | Anmelden, Adressen und Gotify eintragen      | Verwaltung                  | ja       |
+| [5](#5-https-mit-reverse-proxy-optional) | Eigene Domains mit HTTPS                     | Reverse Proxy               | optional |
+| [6](#6-deploy-nach-dem-build-optional)   | Direkt nach dem Build deployen               | Portainer, Repo             | optional |
 
 ### Voraussetzungen
 
@@ -208,7 +208,7 @@ fertigen Image gar keine. Gib jedem Token nur die Rechte aus dieser Tabelle.
 | Mirror-Token           | Gitea spiegelt das Repo nach GitHub                                               | Fine-grained, **Contents** und **Workflows: Read and write** | GitHub: **Settings → Developer settings → Personal access tokens** | Gitea-Repo: **Einstellungen → Mirror-Einstellungen**                                 |
 | `PORTAINER_WEBHOOK`    | der Workflow stößt den Deploy an                                                  | –                                                            | Portainer: Stack → **GitOps updates → Copy link**                  | Secret im Repo, siehe [Schritt 6](#6-deploy-nach-dem-build-optional)                 |
 | Registrierungstoken    | der [Gitea-Runner](#gitea-runner) registriert sich einmalig                       | –                                                            | Gitea-Repo: **Einstellungen → Actions → Runner**                   | Stack `gitea-runner`, danach wieder entfernen                                        |
-| `GITHUB_TOKEN`         | die Verwaltung prüft öfter als etwa alle 20 Minuten auf Updates                   | Fine-grained, **Public repositories (read-only)**            | GitHub: **Settings → Developer settings → Personal access tokens** | `compose.yaml`, siehe [Gut zu wissen](#gut-zu-wissen)                                |
+| `GITHUB_TOKEN`         | die Verwaltung prüft öfter als etwa alle 20 Minuten auf Updates                   | Fine-grained, **Public repositories (read-only)**            | GitHub: **Settings → Developer settings → Personal access tokens** | `docker-compose.yml`, siehe [Gut zu wissen](#gut-zu-wissen)                          |
 
 Repo-Token und Registry-Token für Gitea können auch ein einziger Token mit
 **repository: Lesen**, **user: Lesen** und **package: Lesen** sein.
@@ -249,13 +249,13 @@ deshalb über die Adresse in `CRAFTAPPS_DB_HOST`, und dafür gibt es zwei Wege:
 
 In Portainer richtest du bis zu drei Dinge ein, in dieser Reihenfolge:
 
-1. **Source:** das Repo mit `compose.yaml`, siehe
+1. **Source:** das Repo mit `docker-compose.yml`, siehe
    [CraftApps und CraftApps-Admin](#craftapps-und-craftapps-admin).
 2. **Registry:** nur für ein Image, das nicht öffentlich ist, siehe
    [Registry in Portainer](#registry-in-portainer-optional). Das fertige Image braucht sie
    nicht.
-3. **Stack:** liest `compose.yaml` aus der Source und startet die Container, ebenfalls unter
-   [CraftApps und CraftApps-Admin](#craftapps-und-craftapps-admin).
+3. **Stack:** liest `docker-compose.yml` aus der Source und startet die Container,
+   ebenfalls unter [CraftApps und CraftApps-Admin](#craftapps-und-craftapps-admin).
 
 Danach laufen die Container `CraftApps` und `CraftApps-Admin`, und im Log der Verwaltung
 steht „Benutzer admin angelegt“. Falls nicht, siehe [Fehlersuche](#fehlersuche).
@@ -310,7 +310,7 @@ sequenceDiagram
     ci->>registry: baut das Image und lädt es hoch
   end
   ci->>portainer: ruft den Webhook auf
-  portainer->>repo: holt compose.yaml und nginx.conf
+  portainer->>repo: holt docker-compose.yml und nginx.conf
   portainer->>registry: holt die Images
   portainer->>portainer: deployt den Stack neu
 ```
@@ -353,9 +353,9 @@ dieses Projekts, und der weiß nichts von deinem Portainer.
    setzen.
 
 Der Workflow ruft die URL als letzten Schritt auf: nach einem erfolgreichen Build und nach
-Änderungen an `compose.yaml` oder `nginx.conf`, die kein neues Image brauchen. Ohne das
-Secret baut der Workflow nur. Wer die URL kennt, kann den Stack neu deployen – sie gehört
-deshalb nur in das Secret.
+Änderungen an `docker-compose.yml` oder `nginx.conf`, die kein neues Image brauchen. Ohne
+das Secret baut der Workflow nur. Wer die URL kennt, kann den Stack neu deployen – sie
+gehört deshalb nur in das Secret.
 
 ### Image selbst bauen
 
@@ -422,12 +422,12 @@ Mirror-Token braucht **Contents** und **Workflows**, jeweils mit Lesen und Schre
 
 ## Im Betrieb
 
-| Du änderst …     | Polling und Watchtower                                                                                                           | Webhook ([Schritt 6](#6-deploy-nach-dem-build-optional))                            |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Code in `admin\` | GitHub Actions baut ein neues Image, Watchtower spielt es bei seinem nächsten Lauf ein.                                          | Der Workflow baut ein neues Image, danach deployt es Portainer.                     |
-| `compose.yaml`   | Portainer deployt den Stack innerhalb des Polling-Intervalls neu.                                                                | Portainer deployt den Stack direkt nach dem Push neu.                               |
-| `nginx.conf`     | Portainer holt die neue Datei innerhalb des Polling-Intervalls. Danach `CraftApps` neu starten – nginx liest sie nur beim Start. | Portainer holt die neue Datei direkt nach dem Push. Danach `CraftApps` neu starten. |
-| nichts           | Montags früh baut GitHub Actions neu (Sicherheitsupdates für Node und Alpine), nginx hält Watchtower aktuell.                    | Nach dem Build am Montag auf GitHub deployt Portainer mit frischen Images neu.      |
+| Du änderst …         | Polling und Watchtower                                                                                                           | Webhook ([Schritt 6](#6-deploy-nach-dem-build-optional))                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Code in `admin\`     | GitHub Actions baut ein neues Image, Watchtower spielt es bei seinem nächsten Lauf ein.                                          | Der Workflow baut ein neues Image, danach deployt es Portainer.                     |
+| `docker-compose.yml` | Portainer deployt den Stack innerhalb des Polling-Intervalls neu.                                                                | Portainer deployt den Stack direkt nach dem Push neu.                               |
+| `nginx.conf`         | Portainer holt die neue Datei innerhalb des Polling-Intervalls. Danach `CraftApps` neu starten – nginx liest sie nur beim Start. | Portainer holt die neue Datei direkt nach dem Push. Danach `CraftApps` neu starten. |
+| nichts               | Montags früh baut GitHub Actions neu (Sicherheitsupdates für Node und Alpine), nginx hält Watchtower aktuell.                    | Nach dem Build am Montag auf GitHub deployt Portainer mit frischen Images neu.      |
 
 - **Um nicht zu warten:** in Portainer **Containers → CraftApps-Admin → Recreate** mit
   **Re-pull image**.
@@ -450,7 +450,7 @@ Verwaltung.
 ## Gut zu wissen
 
 - Pro Prüfung braucht die Verwaltung etwa 16 Anfragen an die GitHub-API. Ohne Token erlaubt
-  GitHub 60 pro Stunde; für Prüfintervalle unter etwa 20 Minuten in `compose.yaml`
+  GitHub 60 pro Stunde; für Prüfintervalle unter etwa 20 Minuten in `docker-compose.yml`
   `GITHUB_TOKEN` setzen.
 - Anmeldung: höchstens 10 Versuche pro 15 Minuten und IP-Adresse.
 - Reihenfolge, Namen, Farben, deutsche Texte und Icons übernimmt die Verwaltung aus dem
@@ -469,10 +469,10 @@ Docker läuft dort entweder direkt in der Distribution oder über Docker Desktop
 eingeschalteter WSL-Integration für die Distribution, aber nicht beides.
 
 ```bash
-docker compose -f compose.dev.yaml up -d   # MySQL for development
+docker compose -f docker-compose.dev.yml up -d   # MySQL for development
 cd admin
 npm ci
-cp .env.example .env                       # once; matches compose.dev.yaml
+cp .env.example .env                       # once; matches docker-compose.dev.yml
 npm run dev:server                         # server, restarts on changes
 npm run dev:web                            # second terminal: UI at http://localhost:5173
 ```
@@ -509,8 +509,8 @@ Vorlage, falls einer davon fehlt.
 
 ### CraftApps und CraftApps-Admin
 
-Beide stehen in [compose.yaml](compose.yaml) und laufen als Stack `craftapps`. In Portainer
-legst du zuerst das Repo als Source an und dann daraus den Stack.
+Beide stehen in [docker-compose.yml](docker-compose.yml) und laufen als Stack `craftapps`.
+In Portainer legst du zuerst das Repo als Source an und dann daraus den Stack.
 
 **1. Repo als Source anlegen:** in Portainer im linken Menü **Sources** wählen, dann
 **Add new**:
@@ -546,7 +546,7 @@ Workflows.
 | Build method                     | **Git Repository**                                                                                                                                                                                                                                                                        |
 | **Source**                       | die Source aus Schritt 1                                                                                                                                                                                                                                                                  |
 | **Repository reference**         | `refs/heads/main`                                                                                                                                                                                                                                                                         |
-| **Compose path**                 | `compose.yaml`                                                                                                                                                                                                                                                                            |
+| **Compose path**                 | `docker-compose.yml`, die Vorgabe von Portainer                                                                                                                                                                                                                                           |
 | **Additional paths**             | keine                                                                                                                                                                                                                                                                                     |
 | **GitOps updates**               | an, siehe nächste Tabelle                                                                                                                                                                                                                                                                 |
 | **Enable relative path volumes** | an                                                                                                                                                                                                                                                                                        |
@@ -559,14 +559,14 @@ der Source.
 
 **GitOps updates**, je nachdem, wie Portainer deployen soll:
 
-| Einstellung                              | Polling (Standard)                                                                             | Webhook ([Schritt 6](#6-deploy-nach-dem-build-optional)) |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| **Mechanism**                            | **Polling**                                                                                    | **Webhook**                                              |
-| **Fetch interval**                       | `5m`                                                                                           | –                                                        |
-| **Re-pull image**                        | an                                                                                             | an                                                       |
-| **Force redeployment**                   | aus – sonst deployt Portainer alle 5 Minuten neu                                               | an – sonst deployt ein neues Image allein nicht          |
-| **Prune services**, falls angeboten      | an – entfernt Container von Diensten, die nicht mehr in `compose.yaml` stehen, Volumes bleiben | an                                                       |
-| Umgebungsvariable `CRAFTAPPS_WATCHTOWER` | nicht gesetzt, also `true`                                                                     | `false`                                                  |
+| Einstellung                              | Polling (Standard)                                                                                   | Webhook ([Schritt 6](#6-deploy-nach-dem-build-optional)) |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **Mechanism**                            | **Polling**                                                                                          | **Webhook**                                              |
+| **Fetch interval**                       | `5m`                                                                                                 | –                                                        |
+| **Re-pull image**                        | an                                                                                                   | an                                                       |
+| **Force redeployment**                   | aus – sonst deployt Portainer alle 5 Minuten neu                                                     | an – sonst deployt ein neues Image allein nicht          |
+| **Prune services**, falls angeboten      | an – entfernt Container von Diensten, die nicht mehr in `docker-compose.yml` stehen, Volumes bleiben | an                                                       |
+| Umgebungsvariable `CRAFTAPPS_WATCHTOWER` | nicht gesetzt, also `true`                                                                           | `false`                                                  |
 
 **Environment variables:**
 
@@ -587,7 +587,7 @@ der Source.
 
 Dann **Deploy the stack**.
 
-**Was in compose.yaml steht:**
+**Was in docker-compose.yml steht:**
 
 |                         | `CraftApps`                                    | `CraftApps-Admin`                                                        |
 | ----------------------- | ---------------------------------------------- | ------------------------------------------------------------------------ |
@@ -654,8 +654,8 @@ Die Paketseite zeigt den passenden `docker pull`-Befehl; der Image-Name ist das,
 
 Portainer nimmt die Zugangsdaten von selbst für Images, deren Name mit der Registry URL
 beginnt: beim Deploy des Stacks und bei **Re-pull image**
-([Schritt 6](#6-deploy-nach-dem-build-optional)). In der `compose.yaml` ändert sich nichts.
-Watchtower braucht die Zugangsdaten getrennt, siehe [Watchtower](#watchtower).
+([Schritt 6](#6-deploy-nach-dem-build-optional)). In der `docker-compose.yml` ändert sich
+nichts. Watchtower braucht die Zugangsdaten getrennt, siehe [Watchtower](#watchtower).
 
 - **Nicht `localhost`:** Portainer läuft in einem eigenen Container, `localhost` wäre
   Portainer selbst. Außerdem schickt die Registry von Gitea Docker zur Anmeldung immer an
@@ -719,7 +719,7 @@ per QEMU, das dauert deutlich länger.
 Ohne weitere Angaben bekommt der Stack sein eigenes Docker-Netz. Soll die Verwaltung MySQL
 über den Containernamen erreichen oder der Reverse Proxy die Container direkt, können beide
 Container stattdessen in ein bestehendes Netz – mit diesen Umgebungsvariablen im Stack,
-ohne Änderung an der `compose.yaml`:
+ohne Änderung an der `docker-compose.yml`:
 
 | Variable                     | Wert                                                                  | Beispiel      |
 | ---------------------------- | --------------------------------------------------------------------- | ------------- |

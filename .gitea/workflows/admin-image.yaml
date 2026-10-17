@@ -8,7 +8,7 @@
 #
 # Optional deploy: with the repo secret PORTAINER_WEBHOOK (the stack's webhook URL),
 # Portainer redeploys the stack once the build has succeeded – and after changes to
-# compose.yaml or nginx.conf, which need no new image (see README.md).
+# docker-compose.yml or nginx.conf, which need no new image (see README.md).
 name: Verwaltung bauen
 
 on:
@@ -16,7 +16,7 @@ on:
     branches: [main]
     paths:
       - "admin/**"
-      - "compose.yaml"
+      - "docker-compose.yml"
       - "nginx.conf"
       - ".gitea/workflows/admin-image.yaml"
   # No weekly rebuild: this image is only a fallback, the GitHub workflow picks up the
@@ -34,7 +34,7 @@ jobs:
         with:
           fetch-depth: 0 # the whole history, to compare with the previous push
 
-      # A push that only touches compose.yaml or nginx.conf needs no new image
+      # A push that only touches docker-compose.yml or nginx.conf needs no new image
       - name: Prüfen, ob gebaut werden muss
         id: changes
         env:

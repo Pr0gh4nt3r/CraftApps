@@ -1,6 +1,6 @@
 # Builds the admin image (ARM64 for the Raspberry Pi) on GitHub and pushes it to the
-# GitHub Container Registry: ghcr.io/<account>/craftapps-admin. compose.yaml uses it as
-# the default, Watchtower pulls new versions from there.
+# GitHub Container Registry: ghcr.io/<account>/craftapps-admin. docker-compose.yml uses it
+# as the default, Watchtower pulls new versions from there.
 #
 # Runs natively on a GitHub ARM64 runner; the workflow's GITHUB_TOKEN is enough for the
 # upload. Gitea ignores this folder as long as .gitea/workflows exists – the Gitea build
@@ -8,7 +8,7 @@
 #
 # Optional deploy: with the repo secret PORTAINER_WEBHOOK (the stack's webhook URL),
 # Portainer redeploys the stack once the build has succeeded – and after changes to
-# compose.yaml or nginx.conf, which need no new image (see README.md).
+# docker-compose.yml or nginx.conf, which need no new image (see README.md).
 name: Verwaltung bauen
 
 on:
@@ -16,7 +16,7 @@ on:
     branches: [main]
     paths:
       - "admin/**"
-      - "compose.yaml"
+      - "docker-compose.yml"
       - "nginx.conf"
       - ".github/workflows/admin-image.yaml"
   # Rebuild weekly so security updates for Node and Alpine get in.
@@ -40,7 +40,7 @@ jobs:
         with:
           fetch-depth: 0 # the whole history, to compare with the previous push
 
-      # A push that only touches compose.yaml or nginx.conf needs no new image
+      # A push that only touches docker-compose.yml or nginx.conf needs no new image
       - name: Prüfen, ob gebaut werden muss
         id: changes
         env:

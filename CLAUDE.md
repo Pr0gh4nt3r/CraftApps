@@ -8,23 +8,23 @@ For the changed files, each without errors:
 
 - **`admin/`:** run `npm run lint` (ESLint) and `npm run build` (`tsc` for UI and server,
   Vite build as in CI) there. Run `npm ci` first if `node_modules` is missing.
-- **`compose.yaml`, `compose.dev.yaml`:** `docker compose -f <file> config -q`; for
-  `compose.yaml`, set the required variables `CRAFTAPPS_*` to placeholders.
+- **`docker-compose.yml`, `docker-compose.dev.yml`:** `docker compose -f <file> config -q`;
+  for `docker-compose.yml`, set the required variables `CRAFTAPPS_*` to placeholders.
 - **`nginx.conf`:** `nginx -t` in the container `nginx:alpine`, with the file mounted as
   `/etc/nginx/conf.d/default.conf`.
 - **`.gitea/workflows/*.yaml`, `.github/workflows/*.yaml`:** valid YAML.
 
 ## Running locally
 
-See README, section "Development": MySQL from `compose.dev.yaml`, then `npm run dev:server`
-and `npm run dev:web` in `admin/`.
+See README, section "Development": MySQL from `docker-compose.dev.yml`, then
+`npm run dev:server` and `npm run dev:web` in `admin/`.
 
 ## Documentation
 
-Besides the READMEs, the comments in `compose.yaml`, `nginx.conf`, `admin/Dockerfile` and in
-the workflows for Gitea and GitHub explain how everything fits together – keep them up to
-date with every change. Screenshots in `docs/images/` only show example values such as
-`gitea.example.com` and the account `user`, never real domains or accounts.
+Besides the READMEs, the comments in `docker-compose.yml`, `nginx.conf`, `admin/Dockerfile`
+and in the workflows for Gitea and GitHub explain how everything fits together – keep them
+up to date with every change. Screenshots in `docs/images/` only show example values such
+as `gitea.example.com` and the account `user`, never real domains or accounts.
 
 ## Language
 
@@ -37,6 +37,6 @@ language of the respective README. UI and messages stay in German.
 
 A push to `main` goes straight into production: on changes in `admin/`, GitHub Actions (via
 the mirror from Gitea to GitHub) and Gitea Actions build the admin image. Watchtower deploys
-the image from `ghcr.io` and Portainer redeploys changes to `compose.yaml` or `nginx.conf` –
-or, with the repo secret `PORTAINER_WEBHOOK`, Portainer deploys everything right after the
-workflow.
+the image from `ghcr.io` and Portainer redeploys changes to `docker-compose.yml` or
+`nginx.conf` – or, with the repo secret `PORTAINER_WEBHOOK`, Portainer deploys everything
+right after the workflow.
