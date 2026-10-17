@@ -9,10 +9,10 @@
 #  Deploy: Portainer BE, stack from the Git repo with
 #  "Enable relative path volumes" – setup see README.md
 #
-#  Runs locally by default: apps on port 8085, admin UI on port 8086.
+#  Runs locally by default: apps on port 8080, admin UI on port 8081.
 #  For public access put a reverse proxy with HTTPS in front, e.g. Zoraxy:
-#    craft.example.com       -> <host>:8085 (apps)
-#    craft-admin.example.com -> <host>:8086 (admin UI)
+#    craft.example.com       -> <host>:8080 (apps)
+#    craft-admin.example.com -> <host>:8081 (admin UI)
 #  (HTTPS matters: browsers only allow WebGPU and the clipboard in a secure context)
 # ------------------------------------------------------------
 services:
@@ -29,7 +29,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=${CRAFTAPPS_WATCHTOWER:-true}"
       - "com.centurylinklabs.watchtower.monitor-only=false"
     ports:
-      - ${CRAFTAPPS_WEB_PORT:-8085}:80
+      - ${CRAFTAPPS_WEB_PORT:-8080}:80
     volumes:
       - data:/srv/craftapps:ro
       # Straight from the repo – needs "Enable relative path volumes" in Portainer.
@@ -54,7 +54,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=${CRAFTAPPS_WATCHTOWER:-true}"
       - "com.centurylinklabs.watchtower.monitor-only=false"
     ports:
-      - ${CRAFTAPPS_ADMIN_PORT:-8086}:3000
+      - ${CRAFTAPPS_ADMIN_PORT:-8081}:3000
     environment:
       - TZ=Europe/Berlin
       # The database must be reachable from this container: via the host's address or,

@@ -71,8 +71,8 @@ At runtime:
 
 ```mermaid
 flowchart LR
-  browser(["Browser"]) -->|"port 8085"| web["CraftApps<br/>nginx"]
-  browser -->|"port 8086"| admin["CraftApps-Admin<br/>admin UI"]
+  browser(["Browser"]) -->|"port 8080"| web["CraftApps<br/>nginx"]
+  browser -->|"port 8081"| admin["CraftApps-Admin<br/>admin UI"]
   admin -->|"new apps and releases"| github["GitHub"]
   admin -->|"installs apps"| data[("Volume<br/>craftapps_data")]
   data -->|"read-only"| web
@@ -260,31 +260,31 @@ log says "Benutzer admin angelegt" (user admin created). If not, see
 
 ### 4. First login
 
-Open `http://<host>:8086` and log in with `admin` and the password from
+Open `http://<host>:8081` and log in with `admin` and the password from
 `CRAFTAPPS_ADMIN_PASSWORD`. Under **Einstellungen** (settings), enter:
 
 | Setting                                                       | Without reverse proxy | With reverse proxy       | Used for                            |
 | ------------------------------------------------------------- | --------------------- | ------------------------ | ----------------------------------- |
-| **Öffentliche Adresse der Apps** (public address of the apps) | `http://<host>:8085`  | `https://<apps-domain>`  | the "Öffnen" (open) buttons         |
-| **Adresse dieser Verwaltung** (address of this admin UI)      | `http://<host>:8086`  | `https://<admin-domain>` | opens when a notification is tapped |
+| **Öffentliche Adresse der Apps** (public address of the apps) | `http://<host>:8080`  | `https://<apps-domain>`  | the "Öffnen" (open) buttons         |
+| **Adresse dieser Verwaltung** (address of this admin UI)      | `http://<host>:8081`  | `https://<admin-domain>` | opens when a notification is tapped |
 
 Then enter **Gotify-Server** and **App-Token** (see [Gotify](#gotify)) and click
 **Testnachricht senden** (send test message).
 
 About ten seconds after the start, the admin UI queries GitHub for the first time and then
-shows all available apps. Finally, install an app and open it at `http://<host>:8085`.
+shows all available apps. Finally, install an app and open it at `http://<host>:8080`.
 
 ### 5. HTTPS via reverse proxy (optional)
 
 Browsers only allow WebGPU and the clipboard in a secure context, i.e. via HTTPS or
-directly on `localhost`. Via `http://<host>:8085` the apps run, just without these
+directly on `localhost`. Via `http://<host>:8080` the apps run, just without these
 features. A reverse proxy in front adds HTTPS and your own domains, e.g. [Zoraxy](#zoraxy)
 with certificates from Let's Encrypt:
 
 | Domain           | Target        | Purpose  |
 | ---------------- | ------------- | -------- |
-| `<apps-domain>`  | `<host>:8085` | Apps     |
-| `<admin-domain>` | `<host>:8086` | Admin UI |
+| `<apps-domain>`  | `<host>:8080` | Apps     |
+| `<admin-domain>` | `<host>:8081` | Admin UI |
 
 Then switch both addresses in the admin UI's settings to `https://`.
 
@@ -572,8 +572,8 @@ source.
 | `CRAFTAPPS_DB_HOST`          | Address of the database, see [step 2](#2-make-the-database-reachable)                                   |
 | `CRAFTAPPS_DB_PASSWORD`      | Password from [step 1](#1-create-the-database)                                                          |
 | `CRAFTAPPS_ADMIN_PASSWORD`   | Password for the first account `admin`, at least 10 characters                                          |
-| `CRAFTAPPS_WEB_PORT`         | only for a different apps port than `8085`                                                              |
-| `CRAFTAPPS_ADMIN_PORT`       | only for a different admin UI port than `8086`                                                          |
+| `CRAFTAPPS_WEB_PORT`         | only for a different apps port than `8080`                                                              |
+| `CRAFTAPPS_ADMIN_PORT`       | only for a different admin UI port than `8081`                                                          |
 | `CRAFTAPPS_DB_PORT`          | only if MySQL doesn't listen on port `3306`                                                             |
 | `CRAFTAPPS_ADMIN_IMAGE`      | only for your [own image](#building-the-image-yourself)                                                 |
 | `CRAFTAPPS_WATCHTOWER`       | `false` if Portainer deploys via webhook ([step 6](#6-deploy-after-the-build-optional))                 |
@@ -589,7 +589,7 @@ Then **Deploy the stack**.
 |                         | `CraftApps`                            | `CraftApps-Admin`                                                      |
 | ----------------------- | -------------------------------------- | ---------------------------------------------------------------------- |
 | Image                   | `nginx:alpine`                         | `ghcr.io/pr0gh4nt3r/craftapps-admin:latest` or `CRAFTAPPS_ADMIN_IMAGE` |
-| Port on the Pi          | `8085`                                 | `8086`                                                                 |
+| Port on the Pi          | `8080`                                 | `8081`                                                                 |
 | Network                 | the stack's own or `CRAFTAPPS_NETWORK` | the stack's own or `CRAFTAPPS_NETWORK`                                 |
 | Volume `craftapps_data` | at `/srv/craftapps`, read-only         | at `/data`                                                             |
 | Updates                 | Watchtower or Portainer via webhook    | Watchtower or Portainer via webhook, after every build                 |
@@ -808,7 +808,7 @@ services:
 
 **What CraftApps needs:** nothing, Zoraxy is optional and adds HTTPS and your own domains,
 see [step 5](#5-https-via-reverse-proxy-optional). The targets are the Pi's ports,
-`<host>:8085` and `<host>:8086`; in a [shared network](#shared-network-optional) also the
+`<host>:8080` and `<host>:8081`; in a [shared network](#shared-network-optional) also the
 containers directly.
 
 **If it's missing:** stack `zoraxy` with the **Web editor**. The router has to forward ports
@@ -859,7 +859,7 @@ services:
       TZ: Europe/Berlin
       GOTIFY_DEFAULTUSER_PASS: ${GOTIFY_ADMIN_PASSWORD}
     ports:
-      - 8080:80
+      - 8070:80
     volumes:
       - gotify-data:/app/data
 
@@ -867,9 +867,9 @@ volumes:
   gotify-data:
 ```
 
-The address for the admin UI is then `http://<host>:8080`. For the phone app to reach Gotify
+The address for the admin UI is then `http://<host>:8070`. For the phone app to reach Gotify
 on the go as well, add a proxy rule in Zoraxy for a domain of your own with the target
-`<host>:8080`.
+`<host>:8070`.
 
 ## Troubleshooting
 
@@ -877,17 +877,18 @@ Sorted by where the problem shows up. The admin UI's messages are in German.
 
 ### In Portainer
 
-| Symptom                                                                                       | Cause                                                                                                    | Fix                                                                                                                 |
-| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Create Source:** `Connection failed` with `authorization failed: Forbidden`                 | Gitea accepts the token, but it lacks a permission – e.g. the registry token with only **package: Read** | token with **repository: Read** and **user: Read**, see [Tokens and secrets](#tokens-and-secrets-at-a-glance)       |
-| `localhost` as **Repository URL** or **Registry URL** doesn't work                            | in Portainer's container, `localhost` is Portainer itself                                                | the public address, e.g. `https://<gitea-host>/<owner>/CraftApps.git` or `<gitea-host>`                             |
-| **Registries → Browse:** `dial tcp <IP>:80: i/o timeout`                                      | Portainer tries port 80, but the router only forwards port 443                                           | not needed for deploying, Docker pulls via HTTPS. For Browse, forward port 80 to the reverse proxy                  |
-| Deploy: `required variable CRAFTAPPS_DB_HOST is missing a value`                              | a required environment variable is missing                                                               | add it under **Environment variables** in the stack, see [the table](#craftapps-and-craftapps-admin)                |
-| Deploy: `unauthorized` or `pull access denied` for the admin image                            | the image isn't public and Portainer has no credentials for it, or the image name is wrong               | [Registry in Portainer](#registry-in-portainer-optional); image name with the registry URL as host, owner lowercase |
-| `CraftApps` doesn't start: `Are you trying to mount a directory onto a file (or vice-versa)?` | **Enable relative path volumes** is off, so Docker can't find `./nginx.conf`                             | create the stack with **Enable relative path volumes** and a **Local filesystem path**                              |
-| Deploy: `network … declared as external, but could not be found`                              | `CRAFTAPPS_NETWORK` is missing or misspelled, or the network doesn't exist                               | check the name under **Networks**, see [Shared network](#shared-network-optional)                                   |
-| Deploy: `no configured subnet contains IP address …`                                          | the fixed IP isn't in the network's subnet, or `CRAFTAPPS_NETWORK` is missing                            | an IP from the network's subnet, see [Shared network](#shared-network-optional)                                     |
-| Deploy: `Address already in use`                                                              | another container already has the fixed IP                                                               | a free IP                                                                                                           |
+| Symptom                                                                                       | Cause                                                                                                        | Fix                                                                                                                 |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| **Create Source:** `Connection failed` with `authorization failed: Forbidden`                 | Gitea accepts the token, but it lacks a permission – e.g. the registry token with only **package: Read**     | token with **repository: Read** and **user: Read**, see [Tokens and secrets](#tokens-and-secrets-at-a-glance)       |
+| `localhost` as **Repository URL** or **Registry URL** doesn't work                            | in Portainer's container, `localhost` is Portainer itself                                                    | the public address, e.g. `https://<gitea-host>/<owner>/CraftApps.git` or `<gitea-host>`                             |
+| **Registries → Browse:** `dial tcp <IP>:80: i/o timeout`                                      | Portainer tries port 80, but the router only forwards port 443                                               | not needed for deploying, Docker pulls via HTTPS. For Browse, forward port 80 to the reverse proxy                  |
+| Deploy: `required variable CRAFTAPPS_DB_HOST is missing a value`                              | a required environment variable is missing                                                                   | add it under **Environment variables** in the stack, see [the table](#craftapps-and-craftapps-admin)                |
+| Deploy: `unauthorized` or `pull access denied` for the admin image                            | the image isn't public and Portainer has no credentials for it, or the image name is wrong                   | [Registry in Portainer](#registry-in-portainer-optional); image name with the registry URL as host, owner lowercase |
+| Deploy: `Bind for 0.0.0.0:8081 failed: port is already allocated`                             | another container on the Pi already uses the port; `docker ps --format '{{.Names}}: {{.Ports}}'` shows which | set `CRAFTAPPS_WEB_PORT` or `CRAFTAPPS_ADMIN_PORT` to a free port                                                   |
+| `CraftApps` doesn't start: `Are you trying to mount a directory onto a file (or vice-versa)?` | **Enable relative path volumes** is off, so Docker can't find `./nginx.conf`                                 | create the stack with **Enable relative path volumes** and a **Local filesystem path**                              |
+| Deploy: `network … declared as external, but could not be found`                              | `CRAFTAPPS_NETWORK` is missing or misspelled, or the network doesn't exist                                   | check the name under **Networks**, see [Shared network](#shared-network-optional)                                   |
+| Deploy: `no configured subnet contains IP address …`                                          | the fixed IP isn't in the network's subnet, or `CRAFTAPPS_NETWORK` is missing                                | an IP from the network's subnet, see [Shared network](#shared-network-optional)                                     |
+| Deploy: `Address already in use`                                                              | another container already has the fixed IP                                                                   | a free IP                                                                                                           |
 
 ### Build and deploy
 
