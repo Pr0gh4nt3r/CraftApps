@@ -1,0 +1,84 @@
+# ------------------------------------------------------------
+#  Craft-Apps (github.com/storytold) – Web-Versionen selbst hosten
+#
+#  craftapps-web    nginx, liefert die installierten Apps unter /<app>/
+#                   aus (z.B. /photocraft/) plus eine Übersicht unter /
+#  craftapps-admin  Verwaltung: Apps installieren und entfernen,
+#                   automatische Updates je App, Push-Nachrichten
+#                   über Gotify
+#
+#  Deploy: Portainer BE, Stack aus dem Git-Repo mit
+#  "Enable relative path volumes" – Einrichtung siehe README.md
+#
+#  Zoraxy: craft.example.com       -> 172.18.0.22:80   (Apps)
+#          craft-admin.example.com -> 172.18.0.23:3000 (Verwaltung)
+#  (HTTPS ist wichtig: WebGPU und Zwischenablage gibt es nur damit)
+# ------------------------------------------------------------
+services:
+  # --------------------------------------------------------
+  #  nginx – statische Auslieferung (TLS macht Zoraxy)
+  # --------------------------------------------------------
+  craftapps-web:
+    image: nginx:alpine
+    container_name: CraftApps
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.monitor-only=false"
+    ports:
+      - 8085:80 # optional, nur nötig wenn Zoraxy über den Host-Port geht
+    volumes:
+      - data:/srv/craftapps:ro
+      # Direkt aus dem Repo – braucht in Portainer "Enable relative path volumes".
+      # nginx liest die Datei nur beim Start: nach einer Änderung neu starten.
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      custom:
+        ipv4_address: 172.18.0.22 # <-- USER-ANPASSUNG: freie IP im custom-Netz
+
+  # --------------------------------------------------------
+  #  Verwaltung – Weboberfläche und automatische Updates
+  # --------------------------------------------------------
+  craftapps-admin:
+    # Baut Gitea Actions bei jeder Änderung in admin/ (.gitea/workflows/admin-image.yaml),
+    # z.B. gitea.example.com/benutzer/craftapps-admin:latest
+    image: ${CRAFTAPPS_ADMIN_IMAGE:?in Portainer unter Environment variables setzen}
+    container_name: CraftApps-Admin
+    restart: unless-stopped
+    labels:
+      # Watchtower holt neue Images der Verwaltung aus der Gitea-Registry
+      - "com.centurylinklabs.watchtower.monitor-only=false"
+    environment:
+      - TZ=Europe/Berlin
+      - DB_HOST=MySQL # <-- USER-ANPASSUNG: Name oder IP deines MySQL-Containers
+      - DB_PORT=3306
+      - DB_NAME=craftapps
+      - DB_USER=craftapps
+      - DB_PASSWORD=${CRAFTAPPS_DB_PASSWORD:?in Portainer unter Environment variables setzen}
+      # Erstes Konto – wird nur angelegt, solange es noch keinen Benutzer gibt
+      - INITIAL_ADMIN_USER=admin
+      - INITIAL_ADMIN_PASSWORD=${CRAFTAPPS_ADMIN_PASSWORD:?in Portainer unter Environment variables setzen}
+      # Optional: GitHub-Token, nur nötig bei Prüfintervallen unter ~20 Minuten
+      # - GITHUB_TOKEN=github_pat_...
+    # ports:
+    #   - 8086:3000 # optional, nur nötig wenn Zoraxy über den Host-Port geht
+    volumes:
+      - data:/data
+    # Ist aus dem Internet erreichbar und lädt Dateien – so wenig Rechte wie möglich
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      custom:
+        ipv4_address: 172.18.0.23 # <-- USER-ANPASSUNG: freie IP im custom-Netz
+
+volumes:
+  data:
+    name: craftapps_data # Apps und Übersicht, verwaltet von craftapps-admin
+
+networks:
+  custom:
+    external: true

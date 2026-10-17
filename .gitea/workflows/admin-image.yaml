@@ -1,0 +1,58 @@
+# Baut das Image der Verwaltung (ARM64 für den Raspberry Pi) und legt es in die
+# Container-Registry dieses Gitea: <gitea-host>/<besitzer>/craftapps-admin.
+# Watchtower bzw. Portainer holen es von dort.
+#
+# Voraussetzung: Secret REGISTRY_TOKEN im Repo – ein Token des Repo-Besitzers mit
+# der Berechtigung "package: Lesen und Schreiben" (siehe README.md).
+name: Verwaltung bauen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "admin/**"
+      - ".gitea/workflows/admin-image.yaml"
+  # Wöchentlich neu bauen, damit Sicherheitsupdates von Node und Alpine ankommen
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quellen holen
+        uses: actions/checkout@v4
+
+      - name: Registry und Image-Namen bestimmen
+        run: |
+          registry="${GITHUB_SERVER_URL#*://}"
+          registry="${registry%/}"
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "REGISTRY=${registry}" >> "$GITHUB_ENV"
+          echo "IMAGE=${registry}/${owner}/craftapps-admin" >> "$GITHUB_ENV"
+
+      # Nur nötig, wenn der Runner selbst kein ARM64 ist – auf dem Pi schadet es nicht
+      - name: QEMU einrichten
+        uses: docker/setup-qemu-action@v3
+
+      - name: Buildx einrichten
+        uses: docker/setup-buildx-action@v3
+
+      - name: Bei der Gitea-Registry anmelden
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ gitea.repository_owner }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Bauen und hochladen
+        uses: docker/build-push-action@v6
+        with:
+          context: admin
+          platforms: linux/arm64
+          pull: true # immer das aktuelle node:24-alpine
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ gitea.sha }}
