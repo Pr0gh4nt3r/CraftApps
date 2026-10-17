@@ -156,6 +156,10 @@ Create the stack `craftapps` as described under
 `CraftApps` and `CraftApps-Admin` are running, and the admin UI's log says
 "Benutzer admin angelegt" (user admin created).
 
+If the image comes from a registry that requires a login, set up the
+[registry in Portainer](#registry-in-portainer-optional) first. The ready-made image doesn't
+need it.
+
 ### 4. First login
 
 Open `http://<host>:8086` and log in with `admin` and the password from
@@ -194,7 +198,8 @@ finished. The pipeline is then: push → build → deploy.
    **Webhook**, turn on **Re-pull image** and **Force redeployment** and copy the webhook
    URL with **Copy link**. Without **Force redeployment**, Portainer only deploys if
    something changed in the repo; a new image alone, e.g. from the weekly build, isn't
-   enough then.
+   enough then. For an image from a registry that requires a login, **Re-pull image** needs
+   the [registry in Portainer](#registry-in-portainer-optional).
 2. In the repo whose build provides the stack's image, add the URL as the secret
    `PORTAINER_WEBHOOK`: on GitHub under **Settings → Secrets and variables → Actions**, in
    Gitea under **Settings → Actions → Secrets**.
@@ -227,8 +232,8 @@ needs no secret.
 2. Start the first build under **Actions → Verwaltung bauen → Run workflow**.
 3. The package appears in your profile under **Packages** and inherits the repo's
    visibility. If it is private, set it to **Public** under
-   **Package settings → Change visibility**, otherwise Portainer and Watchtower need
-   credentials.
+   **Package settings → Change visibility**. Otherwise Portainer and Watchtower need
+   credentials, see [Registry in Portainer](#registry-in-portainer-optional).
 4. In the stack, set `CRAFTAPPS_ADMIN_IMAGE` to
    `ghcr.io/<github-account>/craftapps-admin:latest`.
 
@@ -260,10 +265,9 @@ to `<gitea-host>/<owner>/craftapps-admin`.
    names.
 5. **Read access for Portainer and Watchtower,** if the packages aren't public – e.g.
    because your Gitea instance requires a login: create a token with **package: Read**,
-   e.g. `pi-read`, and add it in Portainer under
-   **Registries → Add registry → Custom registry**: name `Gitea`, registry URL
-   `<gitea-host>`, **Authentication** on, user `<owner>`, the token as password.
-   Watchtower gets it as `config.json`, see [Watchtower](#watchtower).
+   e.g. `pi-read`. Portainer gets it as a registry, see
+   [Registry in Portainer](#registry-in-portainer-optional), Watchtower as `config.json`,
+   see [Watchtower](#watchtower).
 6. In the stack, set `CRAFTAPPS_ADMIN_IMAGE` to
    `<gitea-host>/<owner>/craftapps-admin:latest`.
 
@@ -408,6 +412,45 @@ Then **Deploy the stack**.
   `no-new-privileges`. Docker checks via `/healthz` whether it is running.
 - Optionally `GITHUB_TOKEN` for check intervals below about 20 minutes, see
   [Good to know](#good-to-know).
+
+### Registry in Portainer (optional)
+
+Portainer only needs a registry for an image that isn't public. The ready-made image
+`ghcr.io/pr0gh4nt3r/craftapps-admin` is public, so you can skip this.
+
+| Image                                        | Registry in Portainer                                                      |
+| -------------------------------------------- | -------------------------------------------------------------------------- |
+| `ghcr.io/pr0gh4nt3r/craftapps-admin`         | not needed                                                                 |
+| your own image on `ghcr.io`, public package  | not needed                                                                 |
+| your own image on `ghcr.io`, private package | GitHub                                                                     |
+| image from the Gitea registry                | Gitea, if the packages aren't public – e.g. because Gitea requires a login |
+
+How to add it:
+
+1. In Portainer under **Registries** – depending on the version **Host → Registries** –
+   click **Add registry** and choose **Custom registry**.
+2. Fill in the fields:
+
+   | Field              | Gitea                        | GitHub                                 |
+   | ------------------ | ---------------------------- | -------------------------------------- |
+   | **Name**           | `Gitea`                      | `GitHub`                               |
+   | **Registry URL**   | `<gitea-host>`               | `ghcr.io`                              |
+   | **Authentication** | on                           | on                                     |
+   | **Username**       | `<owner>`                    | `<github-account>`                     |
+   | **Password**       | token with **package: Read** | token (classic) with **read:packages** |
+
+3. Save with **Add registry**.
+
+Create the Gitea token there under **Settings → Applications**, the GitHub one under
+**Settings → Developer settings → Personal access tokens → Tokens (classic)**. `ghcr.io`
+doesn't accept fine-grained tokens. You don't need the provider **GitHub** that Portainer BE
+also offers: it asks for a token with far more permissions (`repo`, `write:packages`,
+`delete:packages`), while a **Custom registry** with `read:packages` is enough for pulling.
+
+Portainer uses the credentials automatically for images that start with the registry URL:
+when deploying the stack and with **Re-pull image**
+([step 6](#6-deploy-after-the-build-optional)). Nothing changes in `compose.yaml`.
+Watchtower needs the credentials separately, see [Watchtower](#watchtower).
 
 ### Gitea runner
 
