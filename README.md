@@ -234,13 +234,13 @@ itself on its first start.
 
 ### 2. Make the database reachable
 
-The stack gets its own Docker network. The admin UI therefore reaches MySQL via the address
-in `CRAFTAPPS_DB_HOST`, in one of two ways:
+By default the stack gets its own Docker network. The admin UI therefore reaches MySQL via
+the address in `CRAFTAPPS_DB_HOST`, in one of two ways:
 
-| Way                      | `CRAFTAPPS_DB_HOST`                       | What it needs                                                                             |
-| ------------------------ | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Via the Pi**           | `<host>`                                  | MySQL publishes port `3306` on the Pi, like the [MySQL template](#mysql)                  |
-| **Via a shared network** | name of the MySQL container, e.g. `MySQL` | `CraftApps-Admin` joins the MySQL network, see [Shared network](#shared-network-optional) |
+| Way                      | `CRAFTAPPS_DB_HOST`                       | What it needs                                                                                                    |
+| ------------------------ | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Via the Pi**           | `<host>`                                  | MySQL publishes port `3306` on the Pi, like the [MySQL template](#mysql)                                         |
+| **Via a shared network** | name of the MySQL container, e.g. `MySQL` | both containers join the MySQL network via environment variables, see [Shared network](#shared-network-optional) |
 
 ### 3. Create the stack in Portainer
 
@@ -566,27 +566,32 @@ source.
 
 **Environment variables:**
 
-| Variable                   | Value                                                                                   |
-| -------------------------- | --------------------------------------------------------------------------------------- |
-| `CRAFTAPPS_DB_HOST`        | Address of the database, see [step 2](#2-make-the-database-reachable)                   |
-| `CRAFTAPPS_DB_PASSWORD`    | Password from [step 1](#1-create-the-database)                                          |
-| `CRAFTAPPS_ADMIN_PASSWORD` | Password for the first account `admin`, at least 10 characters                          |
-| `CRAFTAPPS_WEB_PORT`       | only for a different apps port than `8085`                                              |
-| `CRAFTAPPS_ADMIN_PORT`     | only for a different admin UI port than `8086`                                          |
-| `CRAFTAPPS_DB_PORT`        | only if MySQL doesn't listen on port `3306`                                             |
-| `CRAFTAPPS_ADMIN_IMAGE`    | only for your [own image](#building-the-image-yourself)                                 |
-| `CRAFTAPPS_WATCHTOWER`     | `false` if Portainer deploys via webhook ([step 6](#6-deploy-after-the-build-optional)) |
+| Variable                     | Value                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `CRAFTAPPS_DB_HOST`          | Address of the database, see [step 2](#2-make-the-database-reachable)                                   |
+| `CRAFTAPPS_DB_PASSWORD`      | Password from [step 1](#1-create-the-database)                                                          |
+| `CRAFTAPPS_ADMIN_PASSWORD`   | Password for the first account `admin`, at least 10 characters                                          |
+| `CRAFTAPPS_WEB_PORT`         | only for a different apps port than `8085`                                                              |
+| `CRAFTAPPS_ADMIN_PORT`       | only for a different admin UI port than `8086`                                                          |
+| `CRAFTAPPS_DB_PORT`          | only if MySQL doesn't listen on port `3306`                                                             |
+| `CRAFTAPPS_ADMIN_IMAGE`      | only for your [own image](#building-the-image-yourself)                                                 |
+| `CRAFTAPPS_WATCHTOWER`       | `false` if Portainer deploys via webhook ([step 6](#6-deploy-after-the-build-optional))                 |
+| `CRAFTAPPS_NETWORK`          | only for an existing network instead of the stack's own, see [Shared network](#shared-network-optional) |
+| `CRAFTAPPS_NETWORK_EXTERNAL` | `true` together with `CRAFTAPPS_NETWORK`                                                                |
+| `CRAFTAPPS_WEB_IP`           | only for a fixed IP of `CraftApps` in that network                                                      |
+| `CRAFTAPPS_ADMIN_IP`         | only for a fixed IP of `CraftApps-Admin` in that network                                                |
 
 Then **Deploy the stack**.
 
 **What compose.yaml contains:**
 
-|                         | `CraftApps`                         | `CraftApps-Admin`                                                      |
-| ----------------------- | ----------------------------------- | ---------------------------------------------------------------------- |
-| Image                   | `nginx:alpine`                      | `ghcr.io/pr0gh4nt3r/craftapps-admin:latest` or `CRAFTAPPS_ADMIN_IMAGE` |
-| Port on the Pi          | `8085`                              | `8086`                                                                 |
-| Volume `craftapps_data` | at `/srv/craftapps`, read-only      | at `/data`                                                             |
-| Updates                 | Watchtower or Portainer via webhook | Watchtower or Portainer via webhook, after every build                 |
+|                         | `CraftApps`                            | `CraftApps-Admin`                                                      |
+| ----------------------- | -------------------------------------- | ---------------------------------------------------------------------- |
+| Image                   | `nginx:alpine`                         | `ghcr.io/pr0gh4nt3r/craftapps-admin:latest` or `CRAFTAPPS_ADMIN_IMAGE` |
+| Port on the Pi          | `8085`                                 | `8086`                                                                 |
+| Network                 | the stack's own or `CRAFTAPPS_NETWORK` | the stack's own or `CRAFTAPPS_NETWORK`                                 |
+| Volume `craftapps_data` | at `/srv/craftapps`, read-only         | at `/data`                                                             |
+| Updates                 | Watchtower or Portainer via webhook    | Watchtower or Portainer via webhook, after every build                 |
 
 - nginx reads `nginx.conf` only at startup: restart the `CraftApps` container after a
   change.
@@ -704,25 +709,24 @@ QEMU, which takes considerably longer.
 
 ### Shared network (optional)
 
-Without further configuration the stack gets its own Docker network. If the admin UI should
-reach MySQL via the container name, it additionally joins the MySQL network. For that, add
-the following to `compose.yaml` in your repo, here for an existing network `<network>`:
+Without further settings the stack gets its own Docker network. If the admin UI should
+reach MySQL via its container name, or the reverse proxy should reach the containers
+directly, both containers can join an existing network instead – with these environment
+variables in the stack, without changing `compose.yaml`:
 
-```yaml
-services:
-  craftapps-admin:
-    networks:
-      - default
-      - shared
+| Variable                     | Value                                                                     | Example       |
+| ---------------------------- | ------------------------------------------------------------------------- | ------------- |
+| `CRAFTAPPS_NETWORK`          | name of the existing network, see **Networks** in Portainer               | `shared`      |
+| `CRAFTAPPS_NETWORK_EXTERNAL` | `true`, so that Compose uses the existing network instead of creating one | `true`        |
+| `CRAFTAPPS_WEB_IP`           | optional: fixed IP of `CraftApps`                                         | `172.20.0.10` |
+| `CRAFTAPPS_ADMIN_IP`         | optional: fixed IP of `CraftApps-Admin`                                   | `172.20.0.11` |
+| `CRAFTAPPS_DB_HOST`          | name of the MySQL container in this network                               | `MySQL`       |
 
-networks:
-  shared:
-    name: <network>
-    external: true
-```
-
-Likewise, `craftapps-web` can join the Zoraxy network. Zoraxy can then use `CraftApps:80`
-and `CraftApps-Admin:3000` as targets instead of the Pi's ports.
+- Both containers are then only in this network, the stack doesn't create its own.
+- Fixed IPs only work in a network with its own subnet, e.g. one created with
+  `docker network create --subnet 172.20.0.0/16 shared`, and only with free addresses.
+- Zoraxy can then use `CraftApps:80` and `CraftApps-Admin:3000` as targets if it's in the
+  same network, or the fixed IPs – instead of the Pi's ports.
 
 ### MySQL
 
@@ -880,6 +884,9 @@ Sorted by where the problem shows up. The admin UI's messages are in German.
 | Deploy: `required variable CRAFTAPPS_DB_HOST is missing a value`                              | a required environment variable is missing                                                               | add it under **Environment variables** in the stack, see [the table](#craftapps-and-craftapps-admin)                |
 | Deploy: `unauthorized` or `pull access denied` for the admin image                            | the image isn't public and Portainer has no credentials for it, or the image name is wrong               | [Registry in Portainer](#registry-in-portainer-optional); image name with the registry URL as host, owner lowercase |
 | `CraftApps` doesn't start: `Are you trying to mount a directory onto a file (or vice-versa)?` | **Enable relative path volumes** is off, so Docker can't find `./nginx.conf`                             | create the stack with **Enable relative path volumes** and a **Local filesystem path**                              |
+| Deploy: `network … declared as external, but could not be found`                              | `CRAFTAPPS_NETWORK` is missing or misspelled, or the network doesn't exist                               | check the name under **Networks**, see [Shared network](#shared-network-optional)                                   |
+| Deploy: `no configured subnet contains IP address …`                                          | the fixed IP isn't in the network's subnet, or `CRAFTAPPS_NETWORK` is missing                            | an IP from the network's subnet, see [Shared network](#shared-network-optional)                                     |
+| Deploy: `Address already in use`                                                              | another container already has the fixed IP                                                               | a free IP                                                                                                           |
 
 ### Build and deploy
 

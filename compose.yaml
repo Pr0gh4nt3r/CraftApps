@@ -35,6 +35,9 @@ services:
       # Straight from the repo – needs "Enable relative path volumes" in Portainer.
       # nginx reads the file only at startup: restart it after a change.
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      default:
+        ipv4_address: ${CRAFTAPPS_WEB_IP:-} # optional, see networks below
 
   # --------------------------------------------------------
   #  Admin UI and automatic updates
@@ -76,7 +79,20 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    networks:
+      default:
+        ipv4_address: ${CRAFTAPPS_ADMIN_IP:-} # optional, see networks below
 
 volumes:
   data:
     name: craftapps_data # apps and overview, managed by craftapps-admin
+
+networks:
+  # Without further settings the stack gets its own network. To put both containers into an
+  # existing network instead, e.g. the one of MySQL or the reverse proxy, set
+  # CRAFTAPPS_NETWORK to its name and CRAFTAPPS_NETWORK_EXTERNAL=true in Portainer – and
+  # optionally fixed IPs via CRAFTAPPS_WEB_IP and CRAFTAPPS_ADMIN_IP, which only works in a
+  # network with its own subnet. See README.md, "Shared network".
+  default:
+    name: ${CRAFTAPPS_NETWORK:-craftapps_default} # an empty name fails at deploy time
+    external: ${CRAFTAPPS_NETWORK_EXTERNAL:-false}
