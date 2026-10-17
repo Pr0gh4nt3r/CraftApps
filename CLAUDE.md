@@ -1,39 +1,38 @@
 # CLAUDE.md
 
-Hinweise für Claude in diesem Repo. Die allgemeinen Commit-Regeln stehen in
-`~/.claude/CLAUDE.md`.
+Notes for Claude in this repo. The general commit rules are in `~/.claude/CLAUDE.md`.
 
-## Prüfungen vor jedem Commit
+## Checks before every commit
 
-Für die geänderten Dateien, jeweils fehlerfrei:
+For the changed files, each without errors:
 
-- **`admin/`:** dort `npm run lint` (ESLint) und `npm run build` (`tsc` für Oberfläche und
-  Server, Vite-Build wie im CI). Vorher `npm ci`, falls `node_modules` fehlt.
-- **`compose.yaml`, `compose.dev.yaml`:** `docker compose -f <Datei> config -q`; für
-  `compose.yaml` die Pflichtvariablen `CRAFTAPPS_*` mit Platzhaltern setzen.
-- **`nginx.conf`:** `nginx -t` im Container `nginx:alpine`, die Datei eingebunden als
+- **`admin/`:** run `npm run lint` (ESLint) and `npm run build` (`tsc` for UI and server,
+  Vite build as in CI) there. Run `npm ci` first if `node_modules` is missing.
+- **`compose.yaml`, `compose.dev.yaml`:** `docker compose -f <file> config -q`; for
+  `compose.yaml`, set the required variables `CRAFTAPPS_*` to placeholders.
+- **`nginx.conf`:** `nginx -t` in the container `nginx:alpine`, with the file mounted as
   `/etc/nginx/conf.d/default.conf`.
-- **`.gitea/workflows/*.yaml`, `.github/workflows/*.yaml`:** gültiges YAML.
+- **`.gitea/workflows/*.yaml`, `.github/workflows/*.yaml`:** valid YAML.
 
-## Lokal starten
+## Running locally
 
-Siehe README, Abschnitt „Entwicklung“: MySQL aus `compose.dev.yaml`, dann in `admin/`
-`npm run dev:server` und `npm run dev:web`.
+See README, section "Entwicklung": MySQL from `compose.dev.yaml`, then `npm run dev:server`
+and `npm run dev:web` in `admin/`.
 
-## Doku
+## Documentation
 
-Neben der README erklären die Kommentare in `compose.yaml`, `nginx.conf`, `admin/Dockerfile`
-und in den Workflows für Gitea und GitHub, wie alles zusammenspielt – bei Änderungen
-mitpflegen.
+Besides the README, the comments in `compose.yaml`, `nginx.conf`, `admin/Dockerfile` and in
+the workflows for Gitea and GitHub explain how everything fits together – keep them up to
+date with every change.
 
-## Sprache
+## Language
 
-Kommentare in Code und Konfiguration – auch in den Code-Beispielen der README – immer auf
-Englisch. README, Oberfläche und Meldungen bleiben deutsch.
+Comments in code and configuration – including the code examples in the README – always in
+English. README, UI and messages stay in German.
 
 ## Push
 
-Ein Push nach `main` geht direkt in Betrieb: Bei Änderungen in `admin/` bauen GitHub Actions
-(über den Spiegel von Gitea nach GitHub) und Gitea Actions das Image der Verwaltung, und
-Watchtower spielt das Image von `ghcr.io` ein. Änderungen an `compose.yaml` oder
-`nginx.conf` deployt Portainer neu.
+A push to `main` goes straight into production: on changes in `admin/`, GitHub Actions (via
+the mirror from Gitea to GitHub) and Gitea Actions build the admin image, and Watchtower
+deploys the image from `ghcr.io`. Portainer redeploys changes to `compose.yaml` or
+`nginx.conf`.
