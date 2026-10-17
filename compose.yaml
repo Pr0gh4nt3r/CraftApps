@@ -24,6 +24,9 @@ services:
     container_name: CraftApps
     restart: unless-stopped
     labels:
+      # Watchtower keeps nginx up to date; CRAFTAPPS_WATCHTOWER=false leaves that to
+      # Portainer, e.g. via its webhook after the build
+      - "com.centurylinklabs.watchtower.enable=${CRAFTAPPS_WATCHTOWER:-true}"
       - "com.centurylinklabs.watchtower.monitor-only=false"
     ports:
       - ${CRAFTAPPS_WEB_PORT:-8085}:80
@@ -43,7 +46,9 @@ services:
     container_name: CraftApps-Admin
     restart: unless-stopped
     labels:
-      # Watchtower pulls new admin images from the registry
+      # Watchtower pulls new admin images from the registry; CRAFTAPPS_WATCHTOWER=false
+      # leaves that to Portainer, e.g. via its webhook after the build
+      - "com.centurylinklabs.watchtower.enable=${CRAFTAPPS_WATCHTOWER:-true}"
       - "com.centurylinklabs.watchtower.monitor-only=false"
     ports:
       - ${CRAFTAPPS_ADMIN_PORT:-8086}:3000

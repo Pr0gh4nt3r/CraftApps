@@ -5,6 +5,10 @@
 #
 # Requires a runner and the repo secret REGISTRY_TOKEN – a token of the repo owner
 # with the permission "package: Read and Write" (see README.md).
+#
+# Optional deploy: with the repo secret PORTAINER_WEBHOOK (the stack's webhook URL),
+# Portainer redeploys the stack once the build has succeeded – and after changes to
+# compose.yaml or nginx.conf, which need no new image (see README.md).
 name: Verwaltung bauen
 
 on:
@@ -12,6 +16,8 @@ on:
     branches: [main]
     paths:
       - "admin/**"
+      - "compose.yaml"
+      - "nginx.conf"
       - ".gitea/workflows/admin-image.yaml"
   # No weekly rebuild: this image is only a fallback, the GitHub workflow picks up the
   # security updates for Node and Alpine every Monday
@@ -20,11 +26,27 @@ on:
 jobs:
   image:
     runs-on: ubuntu-latest
+    env:
+      PORTAINER_WEBHOOK: ${{ secrets.PORTAINER_WEBHOOK }}
     steps:
       - name: Quellen holen
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the whole history, to compare with the previous push
+
+      # A push that only touches compose.yaml or nginx.conf needs no new image
+      - name: Prüfen, ob gebaut werden muss
+        id: changes
+        env:
+          BEFORE: ${{ gitea.event.before }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != push ] ||
+            ! git diff --quiet "$BEFORE" HEAD -- admin .gitea/workflows/admin-image.yaml 2>/dev/null; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Registry und Image-Namen bestimmen
+        if: steps.changes.outputs.build == 'true'
         run: |
           registry="${GITHUB_SERVER_URL#*://}"
           registry="${registry%/}"
@@ -34,12 +56,15 @@ jobs:
 
       # Only needed if the runner itself isn't ARM64 – harmless on the Pi
       - name: QEMU einrichten
+        if: steps.changes.outputs.build == 'true'
         uses: docker/setup-qemu-action@v3
 
       - name: Buildx einrichten
+        if: steps.changes.outputs.build == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Bei der Gitea-Registry anmelden
+        if: steps.changes.outputs.build == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -47,6 +72,7 @@ jobs:
           password: ${{ secrets.REGISTRY_TOKEN }}
 
       - name: Bauen und hochladen
+        if: steps.changes.outputs.build == 'true'
         uses: docker/build-push-action@v6
         with:
           context: admin
@@ -56,3 +82,8 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ gitea.sha }}
+
+      # Only runs if every step above succeeded, so Portainer never deploys a failed build
+      - name: In Portainer deployen
+        if: env.PORTAINER_WEBHOOK != ''
+        run: curl -fsS --retry 3 -X POST "$PORTAINER_WEBHOOK"

@@ -58,6 +58,8 @@ Browser ─> <host>:8085  ─> nginx (CraftApps)
 - Standardmäßig sind Apps und Verwaltung nur im lokalen Netz über die Ports des Pi
   erreichbar. Öffentlich mit eigenen Domains und HTTPS macht sie ein Reverse Proxy wie
   Zoraxy, siehe [Schritt 5](#5-https-mit-reverse-proxy-optional).
+- Statt Watchtower und Polling kann Portainer per Webhook direkt nach dem Build deployen,
+  siehe [Schritt 6](#6-deploy-nach-dem-build-optional).
 - Portainer kann Images aus einem Git-Repo nicht selbst bauen
   ([Portainer-FAQ](https://docs.portainer.io/2.39-lts/faqs/troubleshooting/stacks-deployments-and-updates/can-i-build-an-image-while-deploying-a-stack-application-from-git)).
   Deshalb baut GitHub Actions das Image, und die Compose-Datei verweist nur darauf.
@@ -117,7 +119,8 @@ wenn du das [Image selbst baust](#image-selbst-bauen).
   („Enable relative path volumes“).
 - **Ein Git-Repo mit diesem Projekt,** aus dem Portainer den Stack holt: das öffentliche
   auf GitHub oder ein eigenes, z.B. ein Fork oder ein Repo in Gitea.
-- **Auf dem Pi** MySQL und Watchtower, optional Zoraxy und Gotify. Was CraftApps von ihnen
+- **Auf dem Pi** MySQL und Watchtower, optional Zoraxy und Gotify. Watchtower entfällt,
+  wenn Portainer nach dem Build per Webhook deployt (Schritt 6). Was CraftApps von ihnen
   braucht – und Vorlagen, falls etwas davon fehlt –, steht unter [Container](#container).
 
 ### 1. Datenbank anlegen
@@ -181,6 +184,32 @@ Funktionen. HTTPS und eigene Domains bringt ein Reverse Proxy davor, z.B.
 | `<admin-domain>` | `<host>:8086` | Verwaltung |
 
 Danach in den Einstellungen der Verwaltung beide Adressen auf `https://` umstellen.
+
+### 6. Deploy nach dem Build (optional)
+
+Statt per Polling und Watchtower kann Portainer selbst deployen, sobald der Build durch
+ist. Die Pipeline ist dann: Push → Build → Deploy.
+
+1. In Portainer im Stack `craftapps` bei **GitOps updates** den Mechanismus **Webhook**
+   wählen, **Re-pull image** und **Force redeployment** einschalten und die Webhook-URL
+   mit **Copy link** kopieren. Ohne **Force redeployment** deployt Portainer nur, wenn sich
+   im Repo etwas geändert hat; ein neues Image allein, etwa vom wöchentlichen Build, reicht
+   dann nicht.
+2. Im Repo, dessen Build das Image für den Stack liefert, die URL als Secret
+   `PORTAINER_WEBHOOK` anlegen: auf GitHub unter
+   **Settings → Secrets and variables → Actions**, in Gitea unter
+   **Einstellungen → Actions → Secrets**.
+3. Im Stack `CRAFTAPPS_WATCHTOWER` auf `false` setzen, damit Watchtower die beiden Container
+   nicht zusätzlich aktualisiert.
+
+Der Workflow ruft die URL als letzten Schritt auf: nach einem erfolgreichen Build und nach
+Änderungen an `compose.yaml` oder `nginx.conf`, die kein neues Image brauchen. Schlägt der
+Build fehl, deployt Portainer nicht. Ohne das Secret baut der Workflow nur.
+
+Die URL muss vom Runner aus erreichbar sein und ein gültiges Zertifikat haben, etwa über
+den Reverse Proxy. Die Runner von GitHub erreichen dein lokales Netz nicht; öffentlich
+gibst du am besten nur den Pfad `/api/stacks/webhooks/` frei. Wer die URL kennt, kann den
+Stack neu deployen – sie gehört deshalb nur in das Secret.
 
 ### Image selbst bauen
 
@@ -251,6 +280,9 @@ nach `<gitea-host>/<besitzer>/craftapps-admin`.
 - **Ohne Watchtower** oder um nicht zu warten: in Portainer **Containers → CraftApps-Admin →
   Recreate** mit **Re-pull image**.
 - **Ein Build von Hand:** auf GitHub unter **Actions → Verwaltung bauen → Run workflow**.
+- **Mit Webhook** ([Schritt 6](#6-deploy-nach-dem-build-optional)) deployt Portainer nach
+  jedem Build und nach Änderungen an `compose.yaml` oder `nginx.conf`. Das
+  Polling-Intervall und Watchtower spielen dann keine Rolle.
 - **Geplante Läufe** pausiert GitHub, wenn sich 60 Tage lang nichts im Repo tut. Unter
   **Actions** lassen sie sich wieder einschalten.
 
@@ -316,15 +348,15 @@ und `CraftApps-Admin` sind CraftApps selbst, den `gitea-runner` brauchst du nur,
 Image in Gitea zu bauen. Bei den übrigen steht, was CraftApps von ihnen braucht, und eine
 Vorlage, falls einer davon fehlt.
 
-| Container         | Image                                       | Aufgabe                             |
-| ----------------- | ------------------------------------------- | ----------------------------------- |
-| `CraftApps`       | `nginx:alpine`                              | liefert die Apps aus                |
-| `CraftApps-Admin` | `ghcr.io/pr0gh4nt3r/craftapps-admin:latest` | die Verwaltung                      |
-| `gitea-runner`    | `gitea/act_runner:latest`                   | baut das Image in Gitea, optional   |
-| `MySQL`           | z.B. `mysql:8.4`                            | Benutzer, Einstellungen und Verlauf |
-| Watchtower        | z.B. `nickfedor/watchtower:latest`          | spielt neue Images ein              |
-| Zoraxy            | z.B. `zoraxydocker/zoraxy:latest`           | Domains und HTTPS, optional         |
-| Gotify            | z.B. `gotify/server:latest`                 | Push-Nachrichten, optional          |
+| Container         | Image                                       | Aufgabe                                         |
+| ----------------- | ------------------------------------------- | ----------------------------------------------- |
+| `CraftApps`       | `nginx:alpine`                              | liefert die Apps aus                            |
+| `CraftApps-Admin` | `ghcr.io/pr0gh4nt3r/craftapps-admin:latest` | die Verwaltung                                  |
+| `gitea-runner`    | `gitea/act_runner:latest`                   | baut das Image in Gitea, optional               |
+| `MySQL`           | z.B. `mysql:8.4`                            | Benutzer, Einstellungen und Verlauf             |
+| Watchtower        | z.B. `nickfedor/watchtower:latest`          | spielt neue Images ein, mit Webhook nicht nötig |
+| Zoraxy            | z.B. `zoraxydocker/zoraxy:latest`           | Domains und HTTPS, optional                     |
+| Gotify            | z.B. `gotify/server:latest`                 | Push-Nachrichten, optional                      |
 
 ### CraftApps und CraftApps-Admin
 
@@ -341,31 +373,33 @@ holt die Datei aus dem Repo und deployt bei jeder Änderung neu.
   Fine-grained Token mit **Contents: Read**
 - **Repository reference:** `refs/heads/main`
 - **Compose path:** `compose.yaml`
-- **GitOps updates** an, Mechanismus **Polling**, Intervall `5m`
+- **GitOps updates** an, Mechanismus **Polling**, Intervall `5m` – oder **Webhook**, siehe
+  [Schritt 6](#6-deploy-nach-dem-build-optional)
 - **Enable relative path volumes** an, **Local filesystem path** z.B. `/opt/stacks`.
   Portainer klont das Repo dorthin, nginx bekommt `nginx.conf` von dort.
 - **Environment variables:**
 
-  | Variable                   | Wert                                                                     |
-  | -------------------------- | ------------------------------------------------------------------------ |
-  | `CRAFTAPPS_DB_HOST`        | Adresse der Datenbank, siehe [Schritt 2](#2-datenbank-erreichbar-machen) |
-  | `CRAFTAPPS_DB_PASSWORD`    | Passwort aus [Schritt 1](#1-datenbank-anlegen)                           |
-  | `CRAFTAPPS_ADMIN_PASSWORD` | Passwort für das erste Konto `admin`, mindestens 10 Zeichen              |
-  | `CRAFTAPPS_WEB_PORT`       | nur für einen anderen Port der Apps als `8085`                           |
-  | `CRAFTAPPS_ADMIN_PORT`     | nur für einen anderen Port der Verwaltung als `8086`                     |
-  | `CRAFTAPPS_DB_PORT`        | nur, wenn MySQL nicht auf Port `3306` lauscht                            |
-  | `CRAFTAPPS_ADMIN_IMAGE`    | nur für ein [eigenes Image](#image-selbst-bauen)                         |
+  | Variable                   | Wert                                                                                         |
+  | -------------------------- | -------------------------------------------------------------------------------------------- |
+  | `CRAFTAPPS_DB_HOST`        | Adresse der Datenbank, siehe [Schritt 2](#2-datenbank-erreichbar-machen)                     |
+  | `CRAFTAPPS_DB_PASSWORD`    | Passwort aus [Schritt 1](#1-datenbank-anlegen)                                               |
+  | `CRAFTAPPS_ADMIN_PASSWORD` | Passwort für das erste Konto `admin`, mindestens 10 Zeichen                                  |
+  | `CRAFTAPPS_WEB_PORT`       | nur für einen anderen Port der Apps als `8085`                                               |
+  | `CRAFTAPPS_ADMIN_PORT`     | nur für einen anderen Port der Verwaltung als `8086`                                         |
+  | `CRAFTAPPS_DB_PORT`        | nur, wenn MySQL nicht auf Port `3306` lauscht                                                |
+  | `CRAFTAPPS_ADMIN_IMAGE`    | nur für ein [eigenes Image](#image-selbst-bauen)                                             |
+  | `CRAFTAPPS_WATCHTOWER`     | `false`, wenn Portainer per Webhook deployt ([Schritt 6](#6-deploy-nach-dem-build-optional)) |
 
 Dann **Deploy the stack**.
 
 **Was in compose.yaml steht:**
 
-|                         | `CraftApps`                        | `CraftApps-Admin`                                                        |
-| ----------------------- | ---------------------------------- | ------------------------------------------------------------------------ |
-| Image                   | `nginx:alpine`                     | `ghcr.io/pr0gh4nt3r/craftapps-admin:latest` oder `CRAFTAPPS_ADMIN_IMAGE` |
-| Port auf dem Pi         | `8085`                             | `8086`                                                                   |
-| Volume `craftapps_data` | unter `/srv/craftapps`, nur lesend | unter `/data`                                                            |
-| Updates                 | Watchtower                         | Watchtower, nach jedem Build                                             |
+|                         | `CraftApps`                           | `CraftApps-Admin`                                                        |
+| ----------------------- | ------------------------------------- | ------------------------------------------------------------------------ |
+| Image                   | `nginx:alpine`                        | `ghcr.io/pr0gh4nt3r/craftapps-admin:latest` oder `CRAFTAPPS_ADMIN_IMAGE` |
+| Port auf dem Pi         | `8085`                                | `8086`                                                                   |
+| Volume `craftapps_data` | unter `/srv/craftapps`, nur lesend    | unter `/data`                                                            |
+| Updates                 | Watchtower oder Portainer per Webhook | Watchtower oder Portainer per Webhook, nach jedem Build                  |
 
 - nginx liest `nginx.conf` nur beim Start: Nach einer Änderung den Container `CraftApps`
   neu starten.
@@ -477,6 +511,9 @@ volumes:
 ```
 
 ### Watchtower
+
+Deployt Portainer per Webhook ([Schritt 6](#6-deploy-nach-dem-build-optional)), braucht
+CraftApps Watchtower nicht; dann im Stack `CRAFTAPPS_WATCHTOWER=false` setzen.
 
 **Was CraftApps braucht:**
 

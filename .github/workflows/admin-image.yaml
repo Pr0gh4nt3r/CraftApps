@@ -5,6 +5,10 @@
 # Runs natively on a GitHub ARM64 runner; the workflow's GITHUB_TOKEN is enough for the
 # upload. Gitea ignores this folder as long as .gitea/workflows exists – the Gitea build
 # there runs independently of this one.
+#
+# Optional deploy: with the repo secret PORTAINER_WEBHOOK (the stack's webhook URL),
+# Portainer redeploys the stack once the build has succeeded – and after changes to
+# compose.yaml or nginx.conf, which need no new image (see README.md).
 name: Verwaltung bauen
 
 on:
@@ -12,6 +16,8 @@ on:
     branches: [main]
     paths:
       - "admin/**"
+      - "compose.yaml"
+      - "nginx.conf"
       - ".github/workflows/admin-image.yaml"
   # Rebuild weekly so security updates for Node and Alpine get in.
   # GitHub pauses scheduled runs if nothing happens in the repo for 60 days.
@@ -26,17 +32,35 @@ permissions:
 jobs:
   image:
     runs-on: ubuntu-24.04-arm
+    env:
+      PORTAINER_WEBHOOK: ${{ secrets.PORTAINER_WEBHOOK }}
     steps:
       - name: Quellen holen
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the whole history, to compare with the previous push
+
+      # A push that only touches compose.yaml or nginx.conf needs no new image
+      - name: Prüfen, ob gebaut werden muss
+        id: changes
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != push ] ||
+            ! git diff --quiet "$BEFORE" HEAD -- admin .github/workflows/admin-image.yaml 2>/dev/null; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Image-Namen bestimmen
+        if: steps.changes.outputs.build == 'true'
         run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/craftapps-admin" >> "$GITHUB_ENV"
 
       - name: Buildx einrichten
+        if: steps.changes.outputs.build == 'true'
         uses: docker/setup-buildx-action@v4
 
       - name: Bei der GitHub Container Registry anmelden
+        if: steps.changes.outputs.build == 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -44,6 +68,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Bauen und hochladen
+        if: steps.changes.outputs.build == 'true'
         uses: docker/build-push-action@v7
         with:
           context: admin
@@ -55,3 +80,8 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}
+
+      # Only runs if every step above succeeded, so Portainer never deploys a failed build
+      - name: In Portainer deployen
+        if: env.PORTAINER_WEBHOOK != ''
+        run: curl -fsS --retry 3 -X POST "$PORTAINER_WEBHOOK"

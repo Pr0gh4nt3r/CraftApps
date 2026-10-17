@@ -34,6 +34,7 @@ English. The README exists in English (`README.md`, shown by default) and in Ger
 ## Push
 
 A push to `main` goes straight into production: on changes in `admin/`, GitHub Actions (via
-the mirror from Gitea to GitHub) and Gitea Actions build the admin image, and Watchtower
-deploys the image from `ghcr.io`. Portainer redeploys changes to `compose.yaml` or
-`nginx.conf`.
+the mirror from Gitea to GitHub) and Gitea Actions build the admin image. Watchtower deploys
+the image from `ghcr.io` and Portainer redeploys changes to `compose.yaml` or `nginx.conf` –
+or, with the repo secret `PORTAINER_WEBHOOK`, Portainer deploys everything right after the
+workflow.
