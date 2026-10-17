@@ -16,19 +16,20 @@ For the changed files, each without errors:
 
 ## Running locally
 
-See README, section "Entwicklung": MySQL from `compose.dev.yaml`, then `npm run dev:server`
+See README, section "Development": MySQL from `compose.dev.yaml`, then `npm run dev:server`
 and `npm run dev:web` in `admin/`.
 
 ## Documentation
 
-Besides the README, the comments in `compose.yaml`, `nginx.conf`, `admin/Dockerfile` and in
+Besides the READMEs, the comments in `compose.yaml`, `nginx.conf`, `admin/Dockerfile` and in
 the workflows for Gitea and GitHub explain how everything fits together – keep them up to
 date with every change.
 
 ## Language
 
-Comments in code and configuration – including the code examples in the README – always in
-English. README, UI and messages stay in German.
+Comments in code and configuration – including the code examples in the READMEs – always in
+English. The README exists in English (`README.md`, shown by default) and in German
+(`README.de.md`) – keep both in sync. UI and messages stay in German.
 
 ## Push
 

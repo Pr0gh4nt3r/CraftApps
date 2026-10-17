@@ -1,6 +1,6 @@
 {
   // "Server und Oberfläche" starts both; start the database first:
-  // docker compose -f compose.dev.yaml up -d (see README, Entwicklung)
+  // docker compose -f compose.dev.yaml up -d (see README, Development)
   "version": "0.2.0",
   "configurations": [
     {

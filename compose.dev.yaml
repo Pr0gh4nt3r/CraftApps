@@ -2,7 +2,7 @@
 #  Local development: MySQL for the admin
 #    docker compose -f compose.dev.yaml up -d
 #
-#  The admin itself runs with npm, see README (Entwicklung).
+#  The admin itself runs with npm, see README (Development).
 #  The credentials match admin/.env.example – for local use only.
 # ------------------------------------------------------------
 name: craftapps-dev

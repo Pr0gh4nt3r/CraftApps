@@ -1,289 +1,291 @@
 # CraftApps
 
-Selbst gehostete Web-Versionen der Craft-Apps von [storytold](https://github.com/storytold)
-(PhotoCraft, VectorCraft, FilmCraft, …) auf dem Raspberry Pi, mit einer Verwaltung im Stil
-des Craft Launchers:
+**English** | [Deutsch](README.de.md)
 
-- **nginx** liefert die installierten Apps aus (`/photocraft/`, `/vectorcraft/`, …) und
-  zeigt unter `/` eine Übersicht.
-- **Die Verwaltung** (Node.js/TypeScript) zeigt alle verfügbaren Apps, installiert und
-  entfernt sie, spielt Updates automatisch oder per Knopf ein und meldet alles über Gotify.
+Self-hosted web versions of the craft apps by [storytold](https://github.com/storytold)
+(PhotoCraft, VectorCraft, FilmCraft, …) on a Raspberry Pi, with an admin UI in the style of
+the Craft Launcher:
 
-## Inhalt
+- **nginx** serves the installed apps (`/photocraft/`, `/vectorcraft/`, …) and shows an
+  overview at `/`.
+- **The admin UI** (Node.js/TypeScript) lists all available apps, installs and removes
+  them, applies updates automatically or at the push of a button and reports everything
+  via Gotify. Its user interface is in German.
 
-- [Aufbau](#aufbau)
-- [So greift alles ineinander](#so-greift-alles-ineinander)
-- [Was die Verwaltung kann](#was-die-verwaltung-kann)
-- [Einrichtung](#einrichtung)
-- [Im Betrieb](#im-betrieb)
-- [Benachrichtigungen](#benachrichtigungen)
-- [Gut zu wissen](#gut-zu-wissen)
-- [Entwicklung](#entwicklung)
-- [Container](#container)
+## Contents
 
-## Aufbau
+- [Structure](#structure)
+- [How everything fits together](#how-everything-fits-together)
+- [What the admin UI can do](#what-the-admin-ui-can-do)
+- [Setup](#setup)
+- [Operation](#operation)
+- [Notifications](#notifications)
+- [Good to know](#good-to-know)
+- [Development](#development)
+- [Containers](#containers)
+
+## Structure
 
 ```text
 CraftApps\
-├── .gitea\workflows\admin-image.yaml   Baut das Image zusätzlich in Gitea (optional)
-├── .github\workflows\admin-image.yaml  Baut das Image der Verwaltung (ARM64) nach ghcr.io, wenn sich admin\ ändert
-├── .vscode\                            Starten und Debuggen in VS Code, empfohlene Erweiterungen
-├── admin\                              Verwaltung: Fastify-Server und React-Oberfläche
+├── .gitea\workflows\admin-image.yaml   Also builds the image in Gitea (optional)
+├── .github\workflows\admin-image.yaml  Builds the admin image (ARM64) to ghcr.io when admin\ changes
+├── .vscode\                            Launch and debug in VS Code, recommended extensions
+├── admin\                              Admin UI: Fastify server and React frontend
 │   ├── Dockerfile
 │   └── src\
-│       ├── server\                     API, Anmeldung, Installer, GitHub, Gotify
-│       ├── shared\                     Typen für Server und Oberfläche
-│       └── web\                        Oberfläche
-├── compose.dev.yaml                    MySQL für die lokale Entwicklung
-├── compose.yaml                        Stack für Portainer: nginx und Verwaltung
-└── nginx.conf                          Konfiguration des nginx
+│       ├── server\                     API, login, installer, GitHub, Gotify
+│       ├── shared\                     Types shared by server and frontend
+│       └── web\                        Frontend
+├── compose.dev.yaml                    MySQL for local development
+├── compose.yaml                        Stack for Portainer: nginx and admin UI
+└── nginx.conf                          nginx configuration
 ```
 
-## So greift alles ineinander
+## How everything fits together
 
 ```text
-Push ins Repo
- ├─ admin\ geändert  ─> GitHub Actions baut das Image ─> ghcr.io ─> Watchtower aktualisiert CraftApps-Admin
- └─ compose.yaml oder nginx.conf geändert ─> Portainer holt das Repo (GitOps) und deployt den Stack neu
+Push to the repo
+ ├─ admin\ changed  ─> GitHub Actions builds the image ─> ghcr.io ─> Watchtower updates CraftApps-Admin
+ └─ compose.yaml or nginx.conf changed ─> Portainer pulls the repo (GitOps) and redeploys the stack
 
-Verwaltung ─> GitHub: neue Apps und Releases ─> lädt <app>-web-*.zip ins Volume craftapps_data ─> nginx liefert aus
-           └─> Gotify: Push-Nachricht
+Admin UI ─> GitHub: new apps and releases ─> downloads <app>-web-*.zip into the volume craftapps_data ─> nginx serves it
+         └─> Gotify: push notification
 
 Browser ─> <host>:8085  ─> nginx (CraftApps)
-        └─> <host>:8086 ─> Verwaltung (CraftApps-Admin)
+        └─> <host>:8086 ─> admin UI (CraftApps-Admin)
 ```
 
-- Standardmäßig sind Apps und Verwaltung nur im lokalen Netz über die Ports des Pi
-  erreichbar. Öffentlich mit eigenen Domains und HTTPS macht sie ein Reverse Proxy wie
-  Zoraxy, siehe [Schritt 5](#5-https-mit-reverse-proxy-optional).
-- Portainer kann Images aus einem Git-Repo nicht selbst bauen
-  ([Portainer-FAQ](https://docs.portainer.io/2.39-lts/faqs/troubleshooting/stacks-deployments-and-updates/can-i-build-an-image-while-deploying-a-stack-application-from-git)).
-  Deshalb baut GitHub Actions das Image, und die Compose-Datei verweist nur darauf.
-- Liegt das Repo in Gitea, spiegelt Gitea es nach GitHub. Zusätzlich kann Gitea Actions das
-  Image in die Gitea-Registry bauen, siehe [Image selbst bauen](#image-selbst-bauen).
-- `nginx.conf` kommt per Bind-Mount direkt aus dem Repo. Das geht nur mit
-  „Enable relative path volumes“ der Portainer Business Edition
-  ([Portainer-Doku](https://docs.portainer.io/advanced/relative-paths)).
-- nginx ist das offizielle Image `nginx:alpine`, Watchtower hält es aktuell.
+- By default, apps and admin UI are only reachable in the local network via the Pi's
+  ports. A reverse proxy such as Zoraxy makes them public with your own domains and HTTPS,
+  see [step 5](#5-https-via-reverse-proxy-optional).
+- Portainer can't build images from a Git repo itself
+  ([Portainer FAQ](https://docs.portainer.io/2.39-lts/faqs/troubleshooting/stacks-deployments-and-updates/can-i-build-an-image-while-deploying-a-stack-application-from-git)).
+  That's why GitHub Actions builds the image and the compose file only references it.
+- If the repo lives in Gitea, Gitea mirrors it to GitHub. Gitea Actions can additionally
+  build the image into the Gitea registry, see
+  [Building the image yourself](#building-the-image-yourself).
+- `nginx.conf` is bind-mounted straight from the repo. That only works with
+  "Enable relative path volumes" of Portainer Business Edition
+  ([Portainer docs](https://docs.portainer.io/advanced/relative-paths)).
+- nginx is the official image `nginx:alpine`, Watchtower keeps it up to date.
 
-## Was die Verwaltung kann
+## What the admin UI can do
 
-- **Apps** im Raster wie der Craft Launcher – mit dessen Icons, Markenfarben und deutschen
-  Texten: installieren, aktualisieren, neu installieren, deinstallieren, automatische
-  Updates je App an- oder ausschalten.
-- **Neue Apps** findet sie selbst: alle Repos von storytold, die auf `craft` enden und
-  deren neuestes Release ein `<app>-web-*.zip` hat. Neue Apps werden gemeldet und auf
-  Wunsch automatisch installiert.
-- **Updates ohne Unterbrechung:** Neue Dateien kommen neben die alten, `index.html` wird
-  zuletzt umgeschaltet, die Vorversion bleibt bis zum nächsten Update liegen. Jeder
-  Download wird per SHA-256 geprüft.
-- **Anmeldung** mit Benutzern in MySQL, Aktivitätsverlauf, Einstellungen (Prüfintervall,
-  Gotify, Adressen) und Benutzerverwaltung.
-- **Push-Nachrichten** über Gotify, siehe [Benachrichtigungen](#benachrichtigungen).
+- **Apps** in a grid like the Craft Launcher – with its icons, brand colors and German
+  texts: install, update, reinstall, uninstall, toggle automatic updates per app.
+- **New apps** it finds by itself: all storytold repos ending in `craft` whose latest
+  release has a `<app>-web-*.zip`. New apps are reported and, if you like, installed
+  automatically.
+- **Updates without interruption:** new files go next to the old ones, `index.html` is
+  switched last, the previous version stays until the next update. Every download is
+  verified via SHA-256.
+- **Login** with users in MySQL, activity log, settings (check interval, Gotify,
+  addresses) and user management.
+- **Push notifications** via Gotify, see [Notifications](#notifications).
 
-Daten: Benutzer, Einstellungen und Verlauf liegen in MySQL, die Apps im Volume
-`craftapps_data`, das nginx nur lesend einbindet.
+Data: users, settings and history live in MySQL, the apps in the volume `craftapps_data`,
+which nginx mounts read-only.
 
-## Einrichtung
+## Setup
 
-Die Schritte bauen aufeinander auf. Wie die einzelnen Container eingerichtet werden, steht
-gesammelt unter [Container](#container); die Schritte verweisen an der passenden Stelle
-dorthin. Das Image der Verwaltung gibt es fertig als
-`ghcr.io/pr0gh4nt3r/craftapps-admin:latest`, selbst bauen musst du es nicht.
+The steps build on each other. How each container is set up is collected under
+[Containers](#containers); the steps link there where needed. The admin image is available
+ready-made as `ghcr.io/pr0gh4nt3r/craftapps-admin:latest`, you don't have to build it
+yourself.
 
-In Adressen, Befehlen und Vorlagen stehen Platzhalter für deine Werte:
+Addresses, commands and templates contain placeholders for your values:
 
-| Platzhalter      | Bedeutung                                     | Beispiel                                    |
-| ---------------- | --------------------------------------------- | ------------------------------------------- |
-| `<host>`         | Adresse des Pi im lokalen Netz                | `192.168.1.10`                              |
-| `<repo-url>`     | Adresse des Repos zum Klonen                  | `https://github.com/benutzer/CraftApps.git` |
-| `<apps-domain>`  | Domain für die Apps                           | `craft.example.com`                         |
-| `<admin-domain>` | Domain für die Verwaltung                     | `craft-admin.example.com`                   |
-| `<github-konto>` | Dein GitHub-Konto, klein geschrieben          | `benutzer`                                  |
-| `<gitea-host>`   | Adresse deiner Gitea-Instanz, ohne `https://` | `gitea.example.com`                         |
-| `<besitzer>`     | Konto in Gitea, dem das Repo gehört           | `benutzer`                                  |
+| Placeholder        | Meaning                                            | Example                                 |
+| ------------------ | -------------------------------------------------- | --------------------------------------- |
+| `<host>`           | Address of the Pi in the local network             | `192.168.1.10`                          |
+| `<repo-url>`       | Address of the repo for cloning                    | `https://github.com/user/CraftApps.git` |
+| `<apps-domain>`    | Domain for the apps                                | `craft.example.com`                     |
+| `<admin-domain>`   | Domain for the admin UI                            | `craft-admin.example.com`               |
+| `<github-account>` | Your GitHub account, in lowercase                  | `user`                                  |
+| `<gitea-host>`     | Address of your Gitea instance, without `https://` | `gitea.example.com`                     |
+| `<owner>`          | Gitea account that owns the repo                   | `user`                                  |
 
-Die Domains brauchst du nur für
-[HTTPS mit Reverse Proxy](#5-https-mit-reverse-proxy-optional), die letzten drei nur,
-wenn du das [Image selbst baust](#image-selbst-bauen).
+You only need the domains for
+[HTTPS via reverse proxy](#5-https-via-reverse-proxy-optional), the last three only if you
+[build the image yourself](#building-the-image-yourself).
 
-### Voraussetzungen
+### Prerequisites
 
-- **Raspberry Pi** mit 64-Bit-System und Docker. Das Image der Verwaltung gibt es nur für
-  ARM64.
-- **Portainer Business Edition.** Nur sie kann `nginx.conf` direkt aus dem Repo einbinden
-  („Enable relative path volumes“).
-- **Ein Git-Repo mit diesem Projekt,** aus dem Portainer den Stack holt: das öffentliche
-  auf GitHub oder ein eigenes, z.B. ein Fork oder ein Repo in Gitea.
-- **Auf dem Pi** MySQL und Watchtower, optional Zoraxy und Gotify. Was CraftApps von ihnen
-  braucht – und Vorlagen, falls etwas davon fehlt –, steht unter [Container](#container).
+- **Raspberry Pi** with a 64-bit OS and Docker. The admin image exists for ARM64 only.
+- **Portainer Business Edition.** Only it can mount `nginx.conf` straight from the repo
+  ("Enable relative path volumes").
+- **A Git repo with this project** that Portainer pulls the stack from: the public one on
+  GitHub or your own, e.g. a fork or a repo in Gitea.
+- **On the Pi** MySQL and Watchtower, optionally Zoraxy and Gotify. What CraftApps needs
+  from them – and templates in case something is missing – is described under
+  [Containers](#containers).
 
-### 1. Datenbank anlegen
+### 1. Create the database
 
-Im Container `MySQL`, z.B. in Portainer unter **Containers → MySQL → Console** mit
+In the `MySQL` container, e.g. in Portainer under **Containers → MySQL → Console** with
 `mysql -uroot -p`:
 
 ```sql
 CREATE DATABASE craftapps CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'craftapps'@'%' IDENTIFIED BY 'ein-langes-passwort';
+CREATE USER 'craftapps'@'%' IDENTIFIED BY 'a-long-password';
 GRANT ALL PRIVILEGES ON craftapps.* TO 'craftapps'@'%';
 ```
 
-Das Passwort brauchst du in Schritt 3 als `CRAFTAPPS_DB_PASSWORD`. Die Tabellen legt die
-Verwaltung beim ersten Start selbst an.
+You need the password in step 3 as `CRAFTAPPS_DB_PASSWORD`. The admin UI creates the tables
+itself on its first start.
 
-### 2. Datenbank erreichbar machen
+### 2. Make the database reachable
 
-Der Stack bekommt sein eigenes Docker-Netz. Die Verwaltung erreicht MySQL deshalb über die
-Adresse in `CRAFTAPPS_DB_HOST`, und dafür gibt es zwei Wege:
+The stack gets its own Docker network. The admin UI therefore reaches MySQL via the address
+in `CRAFTAPPS_DB_HOST`, and there are two ways to do that:
 
-- **Über den Pi:** MySQL gibt Port `3306` am Pi frei, `CRAFTAPPS_DB_HOST` ist dann
-  `<host>`. So macht es auch die [Vorlage für MySQL](#mysql).
-- **Über ein gemeinsames Netz:** `CraftApps-Admin` kommt zusätzlich in das Netz von MySQL,
-  `CRAFTAPPS_DB_HOST` ist dann der Name des MySQL-Containers. Das braucht eine Ergänzung
-  in `compose.yaml`, siehe [Gemeinsames Netz](#gemeinsames-netz-optional).
+- **Via the Pi:** MySQL publishes port `3306` on the Pi, `CRAFTAPPS_DB_HOST` is then
+  `<host>`. The [MySQL template](#mysql) does it this way.
+- **Via a shared network:** `CraftApps-Admin` additionally joins the MySQL network,
+  `CRAFTAPPS_DB_HOST` is then the name of the MySQL container. This needs an addition to
+  `compose.yaml`, see [Shared network](#shared-network-optional).
 
-### 3. Stack in Portainer anlegen
+### 3. Create the stack in Portainer
 
-Den Stack `craftapps` wie unter
-[CraftApps und CraftApps-Admin](#craftapps-und-craftapps-admin) beschrieben anlegen.
-Danach laufen die Container `CraftApps` und `CraftApps-Admin`, und im Log der Verwaltung
-steht „Benutzer admin angelegt“.
+Create the stack `craftapps` as described under
+[CraftApps and CraftApps-Admin](#craftapps-and-craftapps-admin). Afterwards the containers
+`CraftApps` and `CraftApps-Admin` are running, and the admin UI's log says
+"Benutzer admin angelegt" (user admin created).
 
-### 4. Erste Anmeldung
+### 4. First login
 
-`http://<host>:8086` öffnen und mit `admin` und dem Passwort aus
-`CRAFTAPPS_ADMIN_PASSWORD` anmelden. Unter **Einstellungen** eintragen:
+Open `http://<host>:8086` and log in with `admin` and the password from
+`CRAFTAPPS_ADMIN_PASSWORD`. Under **Einstellungen** (settings), enter:
 
-- **Öffentliche Adresse der Apps:** `http://<host>:8085`, mit Reverse Proxy
-  `https://<apps-domain>` – für die „Öffnen“-Knöpfe
-- **Adresse dieser Verwaltung:** `http://<host>:8086` bzw. `https://<admin-domain>` – öffnet
-  sich beim Antippen einer Benachrichtigung
-- **Gotify-Server** und **App-Token**, siehe [Gotify](#gotify), dann
-  **Testnachricht senden**
+- **Öffentliche Adresse der Apps** (public address of the apps): `http://<host>:8085`,
+  with a reverse proxy `https://<apps-domain>` – for the "Öffnen" (open) buttons
+- **Adresse dieser Verwaltung** (address of this admin UI): `http://<host>:8086` or
+  `https://<admin-domain>` – opens when a notification is tapped
+- **Gotify-Server** and **App-Token**, see [Gotify](#gotify), then
+  **Testnachricht senden** (send test message)
 
-Etwa zehn Sekunden nach dem Start fragt die Verwaltung zum ersten Mal GitHub ab und zeigt
-dann alle verfügbaren Apps. Zum Abschluss eine App installieren und unter
-`http://<host>:8085` öffnen.
+About ten seconds after the start, the admin UI queries GitHub for the first time and then
+shows all available apps. Finally, install an app and open it at `http://<host>:8085`.
 
-### 5. HTTPS mit Reverse Proxy (optional)
+### 5. HTTPS via reverse proxy (optional)
 
-WebGPU und die Zwischenablage erlauben Browser nur in einem sicheren Kontext, also über
-HTTPS oder direkt auf `localhost`. Über `http://<host>:8085` laufen die Apps, nur ohne diese
-Funktionen. HTTPS und eigene Domains bringt ein Reverse Proxy davor, z.B.
-[Zoraxy](#zoraxy) mit Zertifikaten von Let's Encrypt:
+Browsers only allow WebGPU and the clipboard in a secure context, i.e. via HTTPS or
+directly on `localhost`. Via `http://<host>:8085` the apps run, just without these
+features. A reverse proxy in front adds HTTPS and your own domains, e.g. [Zoraxy](#zoraxy)
+with certificates from Let's Encrypt:
 
-| Domain           | Ziel          | Zweck      |
-| ---------------- | ------------- | ---------- |
-| `<apps-domain>`  | `<host>:8085` | Apps       |
-| `<admin-domain>` | `<host>:8086` | Verwaltung |
+| Domain           | Target        | Purpose  |
+| ---------------- | ------------- | -------- |
+| `<apps-domain>`  | `<host>:8085` | Apps     |
+| `<admin-domain>` | `<host>:8086` | Admin UI |
 
-Danach in den Einstellungen der Verwaltung beide Adressen auf `https://` umstellen.
+Then switch both addresses in the admin UI's settings to `https://`.
 
-### Image selbst bauen
+### Building the image yourself
 
-Nur nötig, wenn du nicht das fertige Image nehmen willst. Beide Wege bauen bei jeder
-Änderung in `admin\` neu, der GitHub-Workflow zusätzlich montags früh für
-Sicherheitsupdates. Im Stack zeigt dann `CRAFTAPPS_ADMIN_IMAGE` auf dein Image.
+Only needed if you don't want to use the ready-made image. Both ways rebuild on every
+change in `admin\`, the GitHub workflow additionally early on Mondays for security updates.
+In the stack, `CRAFTAPPS_ADMIN_IMAGE` then points to your image.
 
-#### Auf GitHub
+#### On GitHub
 
-Der Workflow [.github/workflows/admin-image.yaml](.github/workflows/admin-image.yaml)
-baut in jedem GitHub-Repo mit diesem Projekt, etwa einem Fork, nach
-`ghcr.io/<github-konto>/craftapps-admin`. Er läuft nativ auf einem ARM64-Runner von GitHub
-und braucht kein Secret.
+The workflow [.github/workflows/admin-image.yaml](.github/workflows/admin-image.yaml)
+builds in every GitHub repo with this project, such as a fork, to
+`ghcr.io/<github-account>/craftapps-admin`. It runs natively on a GitHub ARM64 runner and
+needs no secret.
 
-1. In einem Fork die Workflows unter **Actions** einmal erlauben.
-2. Unter **Actions → Verwaltung bauen → Run workflow** den ersten Build starten.
-3. Das Paket erscheint im Profil unter **Packages** und übernimmt die Sichtbarkeit des
-   Repos. Ist es privat, unter **Package settings → Change visibility** auf **Public**
-   stellen, sonst brauchen Portainer und Watchtower Zugangsdaten.
-4. Im Stack `CRAFTAPPS_ADMIN_IMAGE` auf `ghcr.io/<github-konto>/craftapps-admin:latest`
-   setzen.
+1. In a fork, allow the workflows once under **Actions**.
+2. Start the first build under **Actions → Verwaltung bauen → Run workflow**.
+3. The package appears in your profile under **Packages** and inherits the repo's
+   visibility. If it is private, set it to **Public** under
+   **Package settings → Change visibility**, otherwise Portainer and Watchtower need
+   credentials.
+4. In the stack, set `CRAFTAPPS_ADMIN_IMAGE` to
+   `ghcr.io/<github-account>/craftapps-admin:latest`.
 
-**Spiegel aus Gitea:** Liegt das Repo in Gitea, im Repo unter **Einstellungen** bei den
-Spiegel-Einstellungen einen Push-Mirror auf das GitHub-Repo anlegen und das Synchronisieren
-bei jedem Push einschalten. Der GitHub-Token dafür braucht **Contents** und **Workflows**,
-jeweils mit Lesen und Schreiben. Ohne **Workflows** lehnt GitHub jeden Push ab, der
-`.github/workflows/` ändert.
+**Mirror from Gitea:** If the repo lives in Gitea, add a push mirror to the GitHub repo in
+the repo's **Settings** under the mirror settings and enable syncing on every push. The
+GitHub token for it needs **Contents** and **Workflows**, both with read and write access.
+Without **Workflows**, GitHub rejects every push that changes `.github/workflows/`.
 
 #### In Gitea
 
-Der Workflow [.gitea/workflows/admin-image.yaml](.gitea/workflows/admin-image.yaml) baut
-nach `<gitea-host>/<besitzer>/craftapps-admin`.
+The workflow [.gitea/workflows/admin-image.yaml](.gitea/workflows/admin-image.yaml) builds
+to `<gitea-host>/<owner>/craftapps-admin`.
 
-1. **Actions einschalten:** Actions und Pakete (die Container-Registry) sind in aktuellen
-   Gitea-Versionen standardmäßig an. Sonst in der `app.ini` unter `[actions]` und
-   `[packages]` jeweils `ENABLED = true` setzen, im Container per
-   `GITEA__actions__ENABLED=true` und `GITEA__packages__ENABLED=true`, und Gitea neu
-   starten. Fehlt im Repo der Reiter **Actions**, ihn unter **Einstellungen** für das Repo
-   einschalten.
-2. **Runner einrichten** wie unter [Gitea-Runner](#gitea-runner) beschrieben, bis er in
-   Gitea als online erscheint.
-3. **Token für den Build:** in Gitea mit dem Konto `<besitzer>` unter
-   **Einstellungen → Anwendungen** einen Token mit **package: Lesen und Schreiben**
-   erzeugen, z.B. `craftapps-build`, und ihn im Repo unter
-   **Einstellungen → Actions → Secrets** als Secret `REGISTRY_TOKEN` anlegen.
-4. **Image bauen:** unter **Actions → Verwaltung bauen → Run workflow**. Der erste Lauf lädt
-   das Job-Image des Runners, etwa 0,5 GB. Danach liegt das Image in deinem Gitea-Profil
-   unter **Pakete**: `<gitea-host>/<besitzer>/craftapps-admin:latest`. Den Besitzer
-   schreibt der Workflow klein, weil Docker in Image-Namen keine Großbuchstaben erlaubt.
-5. **Lesezugriff für Portainer und Watchtower,** falls die Pakete nicht öffentlich sind –
-   etwa weil deine Gitea-Instanz eine Anmeldung verlangt: einen Token mit
-   **package: Lesen** erzeugen, z.B. `pi-lesen`, und in Portainer unter
-   **Registries → Add registry → Custom registry** eintragen: Name `Gitea`, Registry URL
-   `<gitea-host>`, **Authentication** an, Benutzer `<besitzer>`, als Passwort den Token.
-   Watchtower bekommt ihn als `config.json`, siehe [Watchtower](#watchtower).
-6. Im Stack `CRAFTAPPS_ADMIN_IMAGE` auf `<gitea-host>/<besitzer>/craftapps-admin:latest`
-   setzen.
+1. **Enable Actions:** Actions and packages (the container registry) are enabled by
+   default in current Gitea versions. Otherwise set `ENABLED = true` under `[actions]` and
+   `[packages]` in `app.ini`, in a container via `GITEA__actions__ENABLED=true` and
+   `GITEA__packages__ENABLED=true`, and restart Gitea. If the repo has no **Actions** tab,
+   enable it for the repo under **Settings**.
+2. **Set up a runner** as described under [Gitea runner](#gitea-runner), until it shows up
+   as online in Gitea.
+3. **Token for the build:** in Gitea, with the account `<owner>`, create a token with
+   **package: Read and Write** under **Settings → Applications**, e.g. `craftapps-build`,
+   and add it in the repo under **Settings → Actions → Secrets** as the secret
+   `REGISTRY_TOKEN`.
+4. **Build the image:** under **Actions → Verwaltung bauen → Run workflow**. The first run
+   downloads the runner's job image, about 0.5 GB. Afterwards the image is in your Gitea
+   profile under **Packages**: `<gitea-host>/<owner>/craftapps-admin:latest`. The workflow
+   writes the owner in lowercase because Docker doesn't allow uppercase letters in image
+   names.
+5. **Read access for Portainer and Watchtower,** if the packages aren't public – e.g.
+   because your Gitea instance requires a login: create a token with **package: Read**,
+   e.g. `pi-read`, and add it in Portainer under
+   **Registries → Add registry → Custom registry**: name `Gitea`, registry URL
+   `<gitea-host>`, **Authentication** on, user `<owner>`, the token as password.
+   Watchtower gets it as `config.json`, see [Watchtower](#watchtower).
+6. In the stack, set `CRAFTAPPS_ADMIN_IMAGE` to
+   `<gitea-host>/<owner>/craftapps-admin:latest`.
 
-## Im Betrieb
+## Operation
 
-| Du änderst …     | Was passiert                                                                                                  |
-| ---------------- | ------------------------------------------------------------------------------------------------------------- |
-| Code in `admin\` | GitHub Actions baut ein neues Image, Watchtower spielt es ein.                                                |
-| `compose.yaml`   | Portainer deployt den Stack innerhalb des Polling-Intervalls neu.                                             |
-| `nginx.conf`     | Portainer holt die neue Datei. Danach den Container `CraftApps` neu starten – nginx liest sie nur beim Start. |
-| nichts           | Montags früh baut GitHub Actions neu (Sicherheitsupdates für Node und Alpine), nginx hält Watchtower aktuell. |
+| You change …     | What happens                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Code in `admin\` | GitHub Actions builds a new image, Watchtower deploys it.                                                           |
+| `compose.yaml`   | Portainer redeploys the stack within the polling interval.                                                          |
+| `nginx.conf`     | Portainer pulls the new file. Then restart the `CraftApps` container – nginx only reads it at startup.              |
+| nothing          | Early on Mondays GitHub Actions rebuilds (security updates for Node and Alpine), Watchtower keeps nginx up to date. |
 
-- **Ohne Watchtower** oder um nicht zu warten: in Portainer **Containers → CraftApps-Admin →
-  Recreate** mit **Re-pull image**.
-- **Ein Build von Hand:** auf GitHub unter **Actions → Verwaltung bauen → Run workflow**.
-- **Geplante Läufe** pausiert GitHub, wenn sich 60 Tage lang nichts im Repo tut. Unter
-  **Actions** lassen sie sich wieder einschalten.
+- **Without Watchtower** or to avoid waiting: in Portainer **Containers → CraftApps-Admin →
+  Recreate** with **Re-pull image**.
+- **A manual build:** on GitHub under **Actions → Verwaltung bauen → Run workflow**.
+- **Scheduled runs** are paused by GitHub if nothing happens in the repo for 60 days. They
+  can be re-enabled under **Actions**.
 
-## Benachrichtigungen
+## Notifications
 
-| Ereignis                                                                             | Gotify-Priorität |
-| ------------------------------------------------------------------------------------ | ---------------- |
-| Neue App verfügbar (beim allerersten Start und ab vier auf einmal als Sammelmeldung) | 5                |
-| Update verfügbar – nur für Apps, deren automatische Updates aus sind                 | 5                |
-| Update eingespielt (automatisch oder per Knopf), neue App automatisch installiert    | 4                |
-| Fehler – jeder Fehler einmal, nicht bei jeder Prüfung erneut                         | 8                |
+| Event                                                                          | Gotify priority |
+| ------------------------------------------------------------------------------ | --------------- |
+| New app available (on the very first start and as a summary from four at once) | 5               |
+| Update available – only for apps with automatic updates turned off             | 5               |
+| Update applied (automatically or by button), new app installed automatically   | 4               |
+| Error – each error once, not again on every check                              | 8               |
 
-Jede Kategorie lässt sich in den Einstellungen abschalten. Antippen öffnet die
-Verwaltung.
+Each category can be turned off in the settings. Tapping a notification opens the admin
+UI.
 
-## Gut zu wissen
+## Good to know
 
-- Pro Prüfung braucht die Verwaltung etwa 16 Anfragen an die GitHub-API. Ohne Token erlaubt
-  GitHub 60 pro Stunde; für Prüfintervalle unter etwa 20 Minuten in `compose.yaml`
-  `GITHUB_TOKEN` setzen.
-- Anmeldung: höchstens 10 Versuche pro 15 Minuten und IP-Adresse.
-- Reihenfolge, Namen, Farben, deutsche Texte und Icons übernimmt die Verwaltung aus dem
-  [Craft Launcher](https://github.com/storytold/craft-launcher). Ist der nicht erreichbar,
-  gilt der zuletzt bekannte Stand.
-- Der Container der Verwaltung läuft als Benutzer 1000 mit schreibgeschütztem
-  Dateisystem und ohne Linux-Capabilities. Ein neues Volume `craftapps_data` gehört
-  automatisch diesem Benutzer. Meldet die Verwaltung trotzdem fehlende Schreibrechte, auf
-  dem Pi `sudo chown -R 1000:1000 /var/lib/docker/volumes/craftapps_data/_data` ausführen.
+- Each check needs about 16 requests to the GitHub API. Without a token GitHub allows 60
+  per hour; for check intervals below about 20 minutes set `GITHUB_TOKEN` in
+  `compose.yaml`.
+- Login: at most 10 attempts per 15 minutes and IP address.
+- The admin UI takes order, names, colors, German texts and icons from the
+  [Craft Launcher](https://github.com/storytold/craft-launcher). If it is unreachable, the
+  last known state applies.
+- The admin container runs as user 1000 with a read-only file system and without Linux
+  capabilities. A new volume `craftapps_data` belongs to this user automatically. If the
+  admin UI still reports missing write access, run
+  `sudo chown -R 1000:1000 /var/lib/docker/volumes/craftapps_data/_data` on the Pi.
 
-## Entwicklung
+## Development
 
-Gedacht für Linux oder WSL mit Node.js 24 und Docker. Unter WSL gehört das Repo ins
-Linux-Dateisystem (nicht unter `/mnt/c`), sonst bemerkt Vite Änderungen nicht zuverlässig.
-Docker läuft dort entweder direkt in der Distribution oder über Docker Desktop mit
-eingeschalteter WSL-Integration für die Distribution, aber nicht beides.
+Meant for Linux or WSL with Node.js 24 and Docker. On WSL the repo belongs in the Linux file
+system (not under `/mnt/c`), otherwise Vite doesn't reliably notice changes. Docker runs
+there either directly in the distribution or via Docker Desktop with WSL integration
+enabled for the distribution, but not both.
 
 ```bash
 docker compose -f compose.dev.yaml up -d   # MySQL for development
@@ -294,97 +296,96 @@ npm run dev:server                         # server, restarts on changes
 npm run dev:web                            # second terminal: UI at http://localhost:5173
 ```
 
-Anmelden mit `admin` und dem Passwort aus `.env`. Installierte Apps landen in `admin/data`.
+Log in with `admin` and the password from `.env`. Installed apps end up in `admin/data`.
 
-**Debuggen in VS Code:** unter **Ausführen und Debuggen** „Server und Oberfläche“ starten.
-Das startet beides; Breakpoints gehen direkt im TypeScript des Servers. Die Oberfläche
-debuggst du mit den Entwicklertools des Browsers.
+**Debugging in VS Code:** under **Run and Debug**, start "Server und Oberfläche" (server
+and frontend). That starts both; breakpoints work directly in the server's TypeScript.
+Debug the frontend with the browser's developer tools.
 
-**Prüfen** – muss vor jedem Commit fehlerfrei durchlaufen:
+**Checks** – must pass without errors before every commit:
 
 ```bash
 npm run lint    # ESLint, warnings count as errors
 npm run build   # tsc for UI and server, Vite build as in CI
 ```
 
-## Container
+## Containers
 
-Alle Container laufen auf dem Pi und werden in Portainer als Stack angelegt. `CraftApps`
-und `CraftApps-Admin` sind CraftApps selbst, den `gitea-runner` brauchst du nur, um das
-Image in Gitea zu bauen. Bei den übrigen steht, was CraftApps von ihnen braucht, und eine
-Vorlage, falls einer davon fehlt.
+All containers run on the Pi and are created in Portainer as stacks. `CraftApps` and
+`CraftApps-Admin` are CraftApps itself; you only need the `gitea-runner` to build the image
+in Gitea. For the others you'll find what CraftApps needs from them and a template in case
+one is missing.
 
-| Container         | Image                                       | Aufgabe                             |
+| Container         | Image                                       | Task                                |
 | ----------------- | ------------------------------------------- | ----------------------------------- |
-| `CraftApps`       | `nginx:alpine`                              | liefert die Apps aus                |
-| `CraftApps-Admin` | `ghcr.io/pr0gh4nt3r/craftapps-admin:latest` | die Verwaltung                      |
-| `gitea-runner`    | `gitea/act_runner:latest`                   | baut das Image in Gitea, optional   |
-| `MySQL`           | z.B. `mysql:8.4`                            | Benutzer, Einstellungen und Verlauf |
-| Watchtower        | z.B. `nickfedor/watchtower:latest`          | spielt neue Images ein              |
-| Zoraxy            | z.B. `zoraxydocker/zoraxy:latest`           | Domains und HTTPS, optional         |
-| Gotify            | z.B. `gotify/server:latest`                 | Push-Nachrichten, optional          |
+| `CraftApps`       | `nginx:alpine`                              | serves the apps                     |
+| `CraftApps-Admin` | `ghcr.io/pr0gh4nt3r/craftapps-admin:latest` | the admin UI                        |
+| `gitea-runner`    | `gitea/act_runner:latest`                   | builds the image in Gitea, optional |
+| `MySQL`           | e.g. `mysql:8.4`                            | users, settings and history         |
+| Watchtower        | e.g. `nickfedor/watchtower:latest`          | deploys new images                  |
+| Zoraxy            | e.g. `zoraxydocker/zoraxy:latest`           | domains and HTTPS, optional         |
+| Gotify            | e.g. `gotify/server:latest`                 | push notifications, optional        |
 
-### CraftApps und CraftApps-Admin
+### CraftApps and CraftApps-Admin
 
-Beide stehen in [compose.yaml](compose.yaml) und laufen als Stack `craftapps`. Portainer
-holt die Datei aus dem Repo und deployt bei jeder Änderung neu.
+Both are defined in [compose.yaml](compose.yaml) and run as the stack `craftapps`.
+Portainer pulls the file from the repo and redeploys on every change.
 
-**Stack anlegen:** in Portainer unter **Stacks → Add stack**:
+**Create the stack:** in Portainer under **Stacks → Add stack**:
 
 - **Name:** `craftapps`
 - **Build method:** **Repository**
 - **Repository URL:** `<repo-url>`
-- **Authentication**, falls das Repo nicht öffentlich ist: Benutzer und ein Token mit
-  Lesezugriff auf das Repo – in Gitea mit **repository: Lesen**, auf GitHub ein
-  Fine-grained Token mit **Contents: Read**
+- **Authentication**, if the repo isn't public: user and a token with read access to the
+  repo – in Gitea with **repository: Read**, on GitHub a fine-grained token with
+  **Contents: Read**
 - **Repository reference:** `refs/heads/main`
 - **Compose path:** `compose.yaml`
-- **GitOps updates** an, Mechanismus **Polling**, Intervall `5m`
-- **Enable relative path volumes** an, **Local filesystem path** z.B. `/opt/stacks`.
-  Portainer klont das Repo dorthin, nginx bekommt `nginx.conf` von dort.
+- **GitOps updates** on, mechanism **Polling**, interval `5m`
+- **Enable relative path volumes** on, **Local filesystem path** e.g. `/opt/stacks`.
+  Portainer clones the repo there, nginx gets `nginx.conf` from there.
 - **Environment variables:**
 
-  | Variable                   | Wert                                                                     |
-  | -------------------------- | ------------------------------------------------------------------------ |
-  | `CRAFTAPPS_DB_HOST`        | Adresse der Datenbank, siehe [Schritt 2](#2-datenbank-erreichbar-machen) |
-  | `CRAFTAPPS_DB_PASSWORD`    | Passwort aus [Schritt 1](#1-datenbank-anlegen)                           |
-  | `CRAFTAPPS_ADMIN_PASSWORD` | Passwort für das erste Konto `admin`, mindestens 10 Zeichen              |
-  | `CRAFTAPPS_WEB_PORT`       | nur für einen anderen Port der Apps als `8085`                           |
-  | `CRAFTAPPS_ADMIN_PORT`     | nur für einen anderen Port der Verwaltung als `8086`                     |
-  | `CRAFTAPPS_DB_PORT`        | nur, wenn MySQL nicht auf Port `3306` lauscht                            |
-  | `CRAFTAPPS_ADMIN_IMAGE`    | nur für ein [eigenes Image](#image-selbst-bauen)                         |
+  | Variable                   | Value                                                                 |
+  | -------------------------- | --------------------------------------------------------------------- |
+  | `CRAFTAPPS_DB_HOST`        | Address of the database, see [step 2](#2-make-the-database-reachable) |
+  | `CRAFTAPPS_DB_PASSWORD`    | Password from [step 1](#1-create-the-database)                        |
+  | `CRAFTAPPS_ADMIN_PASSWORD` | Password for the first account `admin`, at least 10 characters        |
+  | `CRAFTAPPS_WEB_PORT`       | only for a different apps port than `8085`                            |
+  | `CRAFTAPPS_ADMIN_PORT`     | only for a different admin UI port than `8086`                        |
+  | `CRAFTAPPS_DB_PORT`        | only if MySQL doesn't listen on port `3306`                           |
+  | `CRAFTAPPS_ADMIN_IMAGE`    | only for your [own image](#building-the-image-yourself)               |
 
-Dann **Deploy the stack**.
+Then **Deploy the stack**.
 
-**Was in compose.yaml steht:**
+**What compose.yaml contains:**
 
-|                         | `CraftApps`                        | `CraftApps-Admin`                                                        |
-| ----------------------- | ---------------------------------- | ------------------------------------------------------------------------ |
-| Image                   | `nginx:alpine`                     | `ghcr.io/pr0gh4nt3r/craftapps-admin:latest` oder `CRAFTAPPS_ADMIN_IMAGE` |
-| Port auf dem Pi         | `8085`                             | `8086`                                                                   |
-| Volume `craftapps_data` | unter `/srv/craftapps`, nur lesend | unter `/data`                                                            |
-| Updates                 | Watchtower                         | Watchtower, nach jedem Build                                             |
+|                         | `CraftApps`                    | `CraftApps-Admin`                                                      |
+| ----------------------- | ------------------------------ | ---------------------------------------------------------------------- |
+| Image                   | `nginx:alpine`                 | `ghcr.io/pr0gh4nt3r/craftapps-admin:latest` or `CRAFTAPPS_ADMIN_IMAGE` |
+| Port on the Pi          | `8085`                         | `8086`                                                                 |
+| Volume `craftapps_data` | at `/srv/craftapps`, read-only | at `/data`                                                             |
+| Updates                 | Watchtower                     | Watchtower, after every build                                          |
 
-- nginx liest `nginx.conf` nur beim Start: Nach einer Änderung den Container `CraftApps`
-  neu starten.
-- Die Verwaltung verbindet sich über `CRAFTAPPS_DB_HOST` mit MySQL und legt das Konto
-  `admin` nur an, solange es noch keinen Benutzer gibt.
-- Sie läuft als Benutzer 1000 mit schreibgeschütztem Dateisystem, ohne Linux-Capabilities
-  und mit `no-new-privileges`. Ob sie läuft, prüft Docker über `/healthz`.
-- Optional `GITHUB_TOKEN` für Prüfintervalle unter etwa 20 Minuten, siehe
-  [Gut zu wissen](#gut-zu-wissen).
+- nginx reads `nginx.conf` only at startup: restart the `CraftApps` container after a
+  change.
+- The admin UI connects to MySQL via `CRAFTAPPS_DB_HOST` and only creates the account
+  `admin` while there is no user yet.
+- It runs as user 1000 with a read-only file system, without Linux capabilities and with
+  `no-new-privileges`. Docker checks via `/healthz` whether it is running.
+- Optionally `GITHUB_TOKEN` for check intervals below about 20 minutes, see
+  [Good to know](#good-to-know).
 
-### Gitea-Runner
+### Gitea runner
 
-Nur für das [Image in Gitea](#in-gitea): Der Runner baut es, sobald sich `admin\` ändert.
-Auf dem Pi baut er nativ für ARM64; auf einem anderen Rechner emuliert der Workflow ARM64
-per QEMU, das dauert deutlich länger.
+Only for the [image in Gitea](#in-gitea): the runner builds it whenever `admin\` changes.
+On the Pi it builds natively for ARM64; on another machine the workflow emulates ARM64 via
+QEMU, which takes considerably longer.
 
-1. **Registrierungstoken holen:** in Gitea im Repo unter **Einstellungen → Actions →
-   Runner → Neuen Runner erstellen**. Ein Runner auf Repo-Ebene führt nur die Workflows
-   dieses Repos aus.
-2. **Stack anlegen:** in Portainer unter **Stacks → Add stack** einen Stack `gitea-runner`
-   mit dem **Web editor**:
+1. **Get a registration token:** in Gitea, in the repo under **Settings → Actions →
+   Runners → Create new Runner**. A runner at repo level only runs this repo's workflows.
+2. **Create the stack:** in Portainer under **Stacks → Add stack** a stack `gitea-runner`
+   with the **Web editor**:
 
    ```yaml
    services:
@@ -394,7 +395,7 @@ per QEMU, das dauert deutlich länger.
        restart: unless-stopped
        environment:
          GITEA_INSTANCE_URL: https://<gitea-host>
-         GITEA_RUNNER_REGISTRATION_TOKEN: "<registrierungstoken>"
+         GITEA_RUNNER_REGISTRATION_TOKEN: "<registration-token>"
          GITEA_RUNNER_NAME: pi
          GITEA_RUNNER_LABELS: ubuntu-latest:docker://gitea/runner-images:ubuntu-latest
        volumes:
@@ -405,30 +406,29 @@ per QEMU, das dauert deutlich länger.
      runner-data:
    ```
 
-   Das Label `ubuntu-latest` verlangt der Workflow. Seine Jobs laufen damit im Image
-   `gitea/runner-images:ubuntu-latest`, das es für ARM64 gibt und das Docker-CLI und
-   Buildx mitbringt. Gebaut wird über den eingebundenen Socket mit dem Docker des Pi.
+   The workflow requires the label `ubuntu-latest`. Its jobs therefore run in the image
+   `gitea/runner-images:ubuntu-latest`, which exists for ARM64 and includes the Docker CLI
+   and Buildx. The build uses the Pi's Docker via the mounted socket.
 
-3. **Prüfen:** Unter **Einstellungen → Actions → Runner** steht der Runner `pi` als online.
-4. **Registrierungstoken wieder entfernen:** Der Runner hat jetzt eigene Zugangsdaten im
-   Volume `runner-data` gespeichert und registriert sich nur neu, wenn die fehlen. Im
-   Stack die Zeile `GITEA_RUNNER_REGISTRATION_TOKEN` löschen und **Update the stack**.
-   `GITEA_RUNNER_LABELS` bleibt stehen, die Labels übernimmt der Runner bei jedem Start.
-   Optional den Registrierungstoken in Gitea zurücksetzen – der Runner meldet sich mit
-   seinen eigenen Zugangsdaten an und läuft weiter.
+3. **Check:** under **Settings → Actions → Runners** the runner `pi` shows up as online.
+4. **Remove the registration token again:** the runner has now stored its own credentials
+   in the volume `runner-data` and only registers again if they are missing. Delete the
+   line `GITEA_RUNNER_REGISTRATION_TOKEN` in the stack and **Update the stack**.
+   `GITEA_RUNNER_LABELS` stays, the runner applies the labels on every start. Optionally
+   reset the registration token in Gitea – the runner logs in with its own credentials and
+   keeps running.
 
-> Der Runner kann Docker auf dem Pi steuern. Lass auf ihm nur Workflows aus Repos laufen,
-> denen du vertraust.
+> The runner can control Docker on the Pi. Only let it run workflows from repos you trust.
 >
-> Das Volume `runner-data` beim Löschen des Stacks nicht mitlöschen. Sonst muss sich der
-> Runner mit einem neuen Registrierungstoken neu registrieren; den alten Eintrag dann
-> unter **Einstellungen → Actions → Runner** löschen.
+> Don't delete the volume `runner-data` along with the stack. Otherwise the runner has to
+> register again with a new registration token; then delete the old entry under
+> **Settings → Actions → Runners**.
 
-### Gemeinsames Netz (optional)
+### Shared network (optional)
 
-Ohne weitere Angaben bekommt der Stack sein eigenes Docker-Netz. Soll die Verwaltung MySQL
-über den Containernamen erreichen, kommt sie zusätzlich in das Netz von MySQL. Dafür in
-`compose.yaml` deines Repos ergänzen, hier für ein bestehendes Netz `<netz>`:
+Without further configuration the stack gets its own Docker network. If the admin UI should
+reach MySQL via the container name, it additionally joins the MySQL network. For that, add
+the following to `compose.yaml` in your repo, here for an existing network `<network>`:
 
 ```yaml
 services:
@@ -439,22 +439,22 @@ services:
 
 networks:
   shared:
-    name: <netz>
+    name: <network>
     external: true
 ```
 
-Genauso kann `craftapps-web` in das Netz von Zoraxy. Als Ziele in Zoraxy gehen dann statt
-der Ports des Pi `CraftApps:80` und `CraftApps-Admin:3000`.
+Likewise, `craftapps-web` can join the Zoraxy network. Zoraxy can then use `CraftApps:80`
+and `CraftApps-Admin:3000` as targets instead of the Pi's ports.
 
 ### MySQL
 
-**Was CraftApps braucht:** MySQL 8 mit der Datenbank und dem Benutzer aus
-[Schritt 1](#1-datenbank-anlegen), erreichbar für `CraftApps-Admin` unter
-`CRAFTAPPS_DB_HOST`, siehe [Schritt 2](#2-datenbank-erreichbar-machen).
+**What CraftApps needs:** MySQL 8 with the database and user from
+[step 1](#1-create-the-database), reachable for `CraftApps-Admin` at `CRAFTAPPS_DB_HOST`,
+see [step 2](#2-make-the-database-reachable).
 
-**Falls er fehlt:** Stack `mysql` mit dem **Web editor**, das Root-Passwort unter
-**Environment variables** als `MYSQL_ROOT_PASSWORD`. Port `3306` ist damit im ganzen
-lokalen Netz erreichbar, `CRAFTAPPS_DB_HOST` ist `<host>`:
+**If it's missing:** stack `mysql` with the **Web editor**, the root password under
+**Environment variables** as `MYSQL_ROOT_PASSWORD`. Port `3306` is then reachable in the
+whole local network, `CRAFTAPPS_DB_HOST` is `<host>`:
 
 ```yaml
 services:
@@ -476,32 +476,32 @@ volumes:
 
 ### Watchtower
 
-**Was CraftApps braucht:**
+**What CraftApps needs:**
 
-- **Zugang zur Registry,** nur für ein Image aus einer Registry mit Anmeldung, etwa der
-  Gitea-Registry. Die Zugangsdaten für `<gitea-host>` gehören dann in eine eigene
-  `config.json`. Dafür auf dem Pi anmelden, als Passwort den Lese-Token aus
-  [In Gitea](#in-gitea):
+- **Access to the registry,** only for an image from a registry that requires a login,
+  such as the Gitea registry. The credentials for `<gitea-host>` then belong in a separate
+  `config.json`. Log in on the Pi, with the read token from [In Gitea](#in-gitea) as
+  password:
 
   ```bash
-  sudo docker --config /opt/watchtower login <gitea-host> -u <besitzer>
+  sudo docker --config /opt/watchtower login <gitea-host> -u <owner>
   ```
 
-  Die Datei `/opt/watchtower/config.json` dann in Watchtower als `/config.json` einbinden,
-  wie in der Vorlage unten. `REPO_USER` und `REPO_PASS` eignen sich dafür nicht:
-  Watchtower schickt sie an jede Registry, auch an Docker Hub.
+  Then mount the file `/opt/watchtower/config.json` into Watchtower as `/config.json`, as
+  in the template below. `REPO_USER` and `REPO_PASS` aren't suitable for this: Watchtower
+  sends them to every registry, Docker Hub included.
 
-- **Updates trotz monitor-only.** `CraftApps` und `CraftApps-Admin` tragen das Label
-  `com.centurylinklabs.watchtower.monitor-only=false`. Läuft dein Watchtower mit
-  `WATCHTOWER_MONITOR_ONLY=true`, wirkt das Label nur zusammen mit
-  `WATCHTOWER_LABEL_TAKE_PRECEDENCE=true`. Sonst meldet Watchtower die Updates nur.
-- **Docker 29.** Das alte Image `containrrr/watchtower` wird seit Dezember 2025 nicht mehr
-  gepflegt und braucht ab Docker 29 `DOCKER_API_VERSION=1.44`. Der Fork
-  `nickfedor/watchtower` versteht dieselben Labels und Variablen und handelt die
-  API-Version selbst aus.
+- **Updates despite monitor-only.** `CraftApps` and `CraftApps-Admin` carry the label
+  `com.centurylinklabs.watchtower.monitor-only=false`. If your Watchtower runs with
+  `WATCHTOWER_MONITOR_ONLY=true`, the label only takes effect together with
+  `WATCHTOWER_LABEL_TAKE_PRECEDENCE=true`. Otherwise Watchtower only reports the updates.
+- **Docker 29.** The old image `containrrr/watchtower` has been unmaintained since December
+  2025 and needs `DOCKER_API_VERSION=1.44` from Docker 29 on. The fork
+  `nickfedor/watchtower` understands the same labels and variables and negotiates the API
+  version itself.
 
-**Falls er fehlt:** Stack `watchtower` mit dem **Web editor**. Die Zeile mit `config.json`
-braucht es nur für eine Registry mit Anmeldung; die Datei dann vorher wie oben anlegen:
+**If it's missing:** stack `watchtower` with the **Web editor**. The `config.json` line is
+only needed for a registry with login; create the file first as described above:
 
 ```yaml
 services:
@@ -520,13 +520,13 @@ services:
 
 ### Zoraxy
 
-**Was CraftApps braucht:** nichts, Zoraxy ist optional und bringt HTTPS und eigene Domains,
-siehe [Schritt 5](#5-https-mit-reverse-proxy-optional). Die Ziele sind die Ports des Pi,
-`<host>:8085` und `<host>:8086`; in einem [gemeinsamen Netz](#gemeinsames-netz-optional)
-auch die Container direkt.
+**What CraftApps needs:** nothing, Zoraxy is optional and adds HTTPS and your own domains,
+see [step 5](#5-https-via-reverse-proxy-optional). The targets are the Pi's ports,
+`<host>:8085` and `<host>:8086`; in a [shared network](#shared-network-optional) also the
+containers directly.
 
-**Falls es fehlt:** Stack `zoraxy` mit dem **Web editor**. Der Router muss die Ports 80 und
-443 an den Pi weiterleiten.
+**If it's missing:** stack `zoraxy` with the **Web editor**. The router has to forward ports
+80 and 443 to the Pi.
 
 ```yaml
 services:
@@ -551,17 +551,17 @@ volumes:
   zoraxy-plugin:
 ```
 
-Danach die Oberfläche unter `http://<host>:8000` öffnen, ein Konto anlegen und die
-Zertifikate per ACME (Let's Encrypt) holen.
+Then open the web UI at `http://<host>:8000`, create an account and get the certificates via
+ACME (Let's Encrypt).
 
 ### Gotify
 
-**Was CraftApps braucht:** einen App-Token. In Gotify unter **Apps → Create Application**
-eine Anwendung `CraftApps` anlegen und den Token zusammen mit der Adresse des Servers in
-den Einstellungen der Verwaltung eintragen, siehe [Schritt 4](#4-erste-anmeldung).
+**What CraftApps needs:** an app token. In Gotify under **Apps → Create Application**,
+create an application `CraftApps` and enter the token together with the server's address in
+the admin UI's settings, see [step 4](#4-first-login).
 
-**Falls es fehlt:** Stack `gotify` mit dem **Web editor**, das Passwort für das Konto
-`admin` unter **Environment variables** als `GOTIFY_ADMIN_PASSWORD`:
+**If it's missing:** stack `gotify` with the **Web editor**, the password for the account
+`admin` under **Environment variables** as `GOTIFY_ADMIN_PASSWORD`:
 
 ```yaml
 services:
@@ -581,6 +581,6 @@ volumes:
   gotify-data:
 ```
 
-Die Adresse für die Verwaltung ist dann `http://<host>:8080`. Damit die App auf dem Handy
-Gotify auch unterwegs erreicht, in Zoraxy eine Proxy-Regel für eine eigene Domain mit dem
-Ziel `<host>:8080` anlegen.
+The address for the admin UI is then `http://<host>:8080`. For the phone app to reach Gotify
+on the go as well, add a proxy rule in Zoraxy for a domain of your own with the target
+`<host>:8080`.
