@@ -1,0 +1,57 @@
+// Everything that recurs across the components: colors, hairlines, the breakpoint, the tone
+// colors and the small uppercase labels. Each partial loads it with @use 'shared'; its CSS
+// (the custom properties) is emitted only once.
+@use 'sass:map';
+
+// Colors stay custom properties – React sets the app color --c at runtime
+:root {
+  color-scheme: dark;
+  --bg: #0d0f13;
+  --surface: #14171d;
+  --surface-2: #1b1f27;
+  --line: #262b34;
+  --line-strong: #3a404c;
+  --text: #e7e9ee;
+  --muted: #8f96a3;
+  --ok: #3ddc97;
+  --warn: #f5a524;
+  --danger: #ff6b6b;
+  --primary: #2f7bf5;
+  --mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+// Below this width the top bar wraps and the tabs get a row of their own
+$narrow: 720px;
+
+// Hairlines between areas, the stronger one around controls
+$hairline: 1px solid var(--line);
+$hairline-strong: 1px solid var(--line-strong);
+
+// Text colors of the tones the components pass as class (status in AppCard, kinds in ActivityPage)
+$tones: (
+  ok: var(--ok),
+  warn: var(--warn),
+  error: var(--danger),
+  info: var(--primary),
+  muted: var(--muted),
+);
+
+// One rule per tone: .chip.ok, .chip.warn, …
+@mixin tones($names...) {
+  @each $name in $names {
+    &.#{$name} {
+      color: map.get($tones, $name);
+    }
+  }
+}
+
+// Small uppercase monospace labels: buttons, chips, table headings, links in the cards
+@mixin label($size, $spacing, $line-height: null) {
+  @if $line-height {
+    font: 700 #{$size}/#{$line-height} var(--mono);
+  } @else {
+    font: 700 $size var(--mono);
+  }
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+}

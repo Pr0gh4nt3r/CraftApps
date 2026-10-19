@@ -1,0 +1,86 @@
+// Panels and form fields (SettingsPage, UsersPage, Login)
+@use 'shared';
+
+.panel {
+  max-width: 760px;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: var(--surface);
+  border: shared.$hairline;
+
+  h2 {
+    margin-bottom: 14px;
+    font-size: 16px;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 14px;
+
+  input,
+  select {
+    height: 38px;
+    padding: 0 10px;
+    border: shared.$hairline-strong;
+    border-radius: 0;
+    background: var(--bg);
+
+    &:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+  }
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  max-width: 760px;
+  padding: 12px 0;
+  background: var(--bg);
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.form-ok {
+  color: var(--ok);
+  font-size: 14px;
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+
+  .field {
+    flex: 1;
+    min-width: 180px;
+    margin-bottom: 0;
+  }
+
+  .btn {
+    height: 38px;
+  }
+}

@@ -38,7 +38,7 @@ CraftApps\
 │   └── src\
 │       ├── server\                     API, Anmeldung, Installer, GitHub, Gotify
 │       ├── shared\                     Typen und Meldungen (Deutsch/Englisch) für Server und Oberfläche
-│       └── web\                        Oberfläche, ihre Texte auf Deutsch und Englisch in locales\
+│       └── web\                        Oberfläche, ihre Texte (Deutsch/Englisch) in locales\, SCSS in styles\
 ├── dev.sh                              Startet MySQL, Verwaltung und Startseite für einen lokalen Test
 ├── docker-compose.dev.yml              MySQL für die lokale Entwicklung
 ├── docker-compose.yml                  Stack für Portainer: nginx und Verwaltung
