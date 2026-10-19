@@ -6,3 +6,6 @@ admin/data/
 .vscode/*
 !.vscode/extensions.json
 !.vscode/launch.json
+# Local Claude Code config (real Gitea host, local paths, personal settings)
+.mcp.json
+.claude/settings.local.json
