@@ -39,6 +39,7 @@ CraftApps\
 │       ├── server\                     API, login, installer, GitHub, Gotify
 │       ├── shared\                     Types and messages (German/English) for server and frontend
 │       └── web\                        Frontend, its texts in German and English in locales\
+├── dev.sh                              Starts MySQL, admin UI and start page for a local test
 ├── docker-compose.dev.yml              MySQL for local development
 ├── docker-compose.yml                  Stack for Portainer: nginx and admin UI
 ├── docs\images\                        Screenshots for this README
@@ -469,6 +470,27 @@ system (not under `/mnt/c`), otherwise Vite doesn't reliably notice changes. Doc
 there either directly in the distribution or via Docker Desktop with WSL integration
 enabled for the distribution, but not both.
 
+One command in the main folder starts everything for a local test, **Ctrl+C** stops it all
+again:
+
+```bash
+./dev.sh
+```
+
+- **Admin UI** at `http://localhost:5173`: Vite shows changes to the frontend right away,
+  the server restarts on changes.
+- **Start page** at `http://localhost:8080`: nginx with `nginx.conf` as on the Pi, serving
+  `admin/data`. Another port: `START_PAGE_PORT=8090 ./dev.sh`.
+- Beforehand the script starts MySQL from `docker-compose.dev.yml` – and at the end stops it
+  only if it started it. It runs `npm ci` if the dependencies are missing or
+  `package-lock.json` changed, and creates `admin/.env` from `.env.example` if it's missing.
+
+Log in with `admin` and the password from `admin/.env`. Installed apps end up in
+`admin/data`. So that the **Open** buttons lead to the local start page, enter
+`http://localhost:8080` as **Public address of the apps** under **Settings**.
+
+The same step by step:
+
 ```bash
 docker compose -f docker-compose.dev.yml up -d   # MySQL for development
 cd admin
@@ -476,14 +498,17 @@ npm ci
 cp .env.example .env                       # once; matches docker-compose.dev.yml
 npm run dev:server                         # server, restarts on changes
 npm run dev:web                            # second terminal: UI at http://localhost:5173
+# third terminal, in the main folder: start page at http://localhost:8080
+docker run --rm -p 127.0.0.1:8080:80 \
+  -v "$PWD/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+  -v "$PWD/admin/data:/srv/craftapps:ro" nginx:alpine
 ```
-
-Log in with `admin` and the password from `.env`. Installed apps end up in `admin/data`.
 
 **Debugging in VS Code:** open the `CraftApps` folder itself, not a folder above it –
 VS Code only reads the launch configurations from the opened folder's `.vscode`. Then start
-"Server und Oberfläche" (server and frontend) under **Run and Debug**. That starts both;
-breakpoints work directly in the server's TypeScript. Debug the frontend with the browser's
+"Server und Oberfläche" (server and frontend) under **Run and Debug** instead of
+`./dev.sh`. That starts both, but not MySQL and the start page – see the steps above.
+Breakpoints work directly in the server's TypeScript. Debug the frontend with the browser's
 developer tools.
 
 **Checks** – must pass without errors before every commit:

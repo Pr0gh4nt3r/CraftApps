@@ -13,18 +13,22 @@ For the changed files, each without errors:
 - **`nginx.conf`:** `nginx -t` in the container `nginx:alpine`, with the file mounted as
   `/etc/nginx/conf.d/default.conf`.
 - **`.gitea/workflows/*.yaml`, `.github/workflows/*.yaml`:** valid YAML.
+- **`dev.sh`:** `bash -n dev.sh` and shellcheck, e.g.
+  `docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable dev.sh`.
 
 ## Running locally
 
-See README, section "Development": MySQL from `docker-compose.dev.yml`, then
-`npm run dev:server` and `npm run dev:web` in `admin/`.
+`./dev.sh` starts MySQL from `docker-compose.dev.yml`, server and Vite in `admin/` and nginx
+for the start page; Ctrl+C stops everything again. The single steps are in the README,
+section "Development".
 
 ## Documentation
 
-Besides the READMEs, the comments in `docker-compose.yml`, `nginx.conf`, `admin/Dockerfile`
-and in the workflows for Gitea and GitHub explain how everything fits together – keep them
-up to date with every change. Screenshots in `docs/images/` only show example values such
-as `gitea.example.com` and the account `user`, never real domains or accounts.
+Besides the READMEs, the comments in `docker-compose.yml`, `nginx.conf`, `dev.sh`,
+`admin/Dockerfile` and in the workflows for Gitea and GitHub explain how everything fits
+together – keep them up to date with every change. Screenshots in `docs/images/` only show
+example values such as `gitea.example.com` and the account `user`, never real domains or
+accounts.
 
 ## Icons
 
@@ -44,8 +48,8 @@ language of the respective README.
 The admin UI and the start page exist in German and English. UI texts live in
 `admin/src/web/locales/de.json` and `en.json`, messages the server generates (activity log,
 errors, job progress, Gotify notifications) in `admin/src/shared/messages.ts` as key +
-parameters – add every new text in both languages. Log messages and the workflows' step
-names stay German.
+parameters – add every new text in both languages. Log messages, the output of `dev.sh` and
+the workflows' step names stay German.
 
 ## Push
 

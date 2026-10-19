@@ -39,6 +39,7 @@ CraftApps\
 │       ├── server\                     API, Anmeldung, Installer, GitHub, Gotify
 │       ├── shared\                     Typen und Meldungen (Deutsch/Englisch) für Server und Oberfläche
 │       └── web\                        Oberfläche, ihre Texte auf Deutsch und Englisch in locales\
+├── dev.sh                              Startet MySQL, Verwaltung und Startseite für einen lokalen Test
 ├── docker-compose.dev.yml              MySQL für die lokale Entwicklung
 ├── docker-compose.yml                  Stack für Portainer: nginx und Verwaltung
 ├── docs\images\                        Screenshots für diese README
@@ -473,6 +474,28 @@ Linux-Dateisystem (nicht unter `/mnt/c`), sonst bemerkt Vite Änderungen nicht z
 Docker läuft dort entweder direkt in der Distribution oder über Docker Desktop mit
 eingeschalteter WSL-Integration für die Distribution, aber nicht beides.
 
+Ein Befehl im Hauptordner startet alles für einen lokalen Test, **Strg+C** beendet alles
+wieder:
+
+```bash
+./dev.sh
+```
+
+- **Verwaltung** unter `http://localhost:5173`: Vite zeigt Änderungen an der Oberfläche
+  sofort, der Server startet bei Änderungen neu.
+- **Startseite** unter `http://localhost:8080`: nginx mit `nginx.conf` wie auf dem Pi,
+  liefert `admin/data` aus. Anderer Port: `START_PAGE_PORT=8090 ./dev.sh`.
+- Vorher startet das Skript MySQL aus `docker-compose.dev.yml` – und stoppt es am Ende nur,
+  wenn es MySQL selbst gestartet hat. Fehlen die Abhängigkeiten oder hat sich
+  `package-lock.json` geändert, führt es `npm ci` aus; fehlt `admin/.env`, legt es sie aus
+  `.env.example` an.
+
+Anmelden mit `admin` und dem Passwort aus `admin/.env`. Installierte Apps landen in
+`admin/data`. Damit die „Öffnen“-Knöpfe zur lokalen Startseite führen, unter
+**Einstellungen** bei **Öffentliche Adresse der Apps** `http://localhost:8080` eintragen.
+
+Dasselbe Schritt für Schritt:
+
 ```bash
 docker compose -f docker-compose.dev.yml up -d   # MySQL for development
 cd admin
@@ -480,15 +503,18 @@ npm ci
 cp .env.example .env                       # once; matches docker-compose.dev.yml
 npm run dev:server                         # server, restarts on changes
 npm run dev:web                            # second terminal: UI at http://localhost:5173
+# third terminal, in the main folder: start page at http://localhost:8080
+docker run --rm -p 127.0.0.1:8080:80 \
+  -v "$PWD/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+  -v "$PWD/admin/data:/srv/craftapps:ro" nginx:alpine
 ```
-
-Anmelden mit `admin` und dem Passwort aus `.env`. Installierte Apps landen in `admin/data`.
 
 **Debuggen in VS Code:** den Ordner `CraftApps` selbst öffnen, nicht einen Ordner darüber –
 die Startkonfigurationen liest VS Code nur aus dem `.vscode` des geöffneten Ordners. Dann
-unter **Ausführen und Debuggen** „Server und Oberfläche“ starten. Das startet beides;
-Breakpoints gehen direkt im TypeScript des Servers. Die Oberfläche debuggst du mit den
-Entwicklertools des Browsers.
+statt `./dev.sh` unter **Ausführen und Debuggen** „Server und Oberfläche“ starten. Das
+startet beides, aber nicht MySQL und die Startseite – siehe die Schritte oben. Breakpoints
+gehen direkt im TypeScript des Servers. Die Oberfläche debuggst du mit den Entwicklertools
+des Browsers.
 
 **Prüfen** – muss vor jedem Commit fehlerfrei durchlaufen:
 
