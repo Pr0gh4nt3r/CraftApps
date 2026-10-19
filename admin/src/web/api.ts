@@ -1,3 +1,6 @@
+import type { Msg } from '../shared/messages';
+import { t, tm } from './i18n';
+
 const unauthorizedListeners = new Set<() => void>();
 
 /** Called as soon as the server reports "not logged in" (e.g. session expired). */
@@ -16,7 +19,9 @@ export async function api<T = unknown>(method: string, url: string, body?: unkno
   const data: unknown = res.headers.get('content-type')?.includes('application/json') ? await res.json() : null;
   if (!res.ok) {
     if (res.status === 401 && url !== '/api/auth/login') unauthorizedListeners.forEach((listener) => listener());
-    throw new Error((data as { error?: string } | null)?.error ?? `Fehler ${res.status}`);
+    // The server sends errors as a message the UI shows in its language
+    const error = (data as { error?: Msg | string } | null)?.error;
+    throw new Error(typeof error === 'string' ? error : error ? tm(error) : t('common.errorStatus', { status: res.status }));
   }
   return data as T;
 }

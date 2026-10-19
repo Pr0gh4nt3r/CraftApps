@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { csrfGuard, ensureInitialAdmin, registerAccount, registerLogin, sessionGuard } from './auth.js';
+import { msg, renderMsg, type Msg } from '../shared/messages.js';
 import { loadConfig } from './config.js';
 import { connectDb, migrate } from './db.js';
 import { GitHub } from './github.js';
@@ -38,7 +39,8 @@ await app.register(rateLimit, {
   errorResponseBuilder: () => ({
     statusCode: 429,
     error: 'Too Many Requests',
-    message: 'Zu viele Versuche – bitte in ein paar Minuten noch einmal',
+    message: renderMsg('de', msg('error.tooManyAttempts')),
+    msg: msg('error.tooManyAttempts'),
   }),
 });
 await app.register(fastifyStatic, {
@@ -51,14 +53,16 @@ await app.register(fastifyStatic, {
     ),
 });
 
-app.setErrorHandler((err: { statusCode?: number; message: string }, req, reply) => {
+// Errors go to the UI as a message it shows in its language (validation errors as plain text)
+app.setErrorHandler((err: { statusCode?: number; message: string; msg?: Msg }, req, reply) => {
   const status = typeof err.statusCode === 'number' && err.statusCode >= 400 ? err.statusCode : 500;
   if (status >= 500) req.log.error(err);
-  return reply.code(status).send({ error: status >= 500 ? 'Interner Fehler' : err.message });
+  const error = status >= 500 ? msg('error.internal') : (err.msg ?? msg('raw', { text: err.message }));
+  return reply.code(status).send({ error });
 });
 app.setNotFoundHandler((req, reply) =>
   req.url.startsWith('/api/')
-    ? reply.code(404).send({ error: 'Nicht gefunden' })
+    ? reply.code(404).send({ error: msg('error.notFound') })
     : reply.header('Cache-Control', 'no-cache').sendFile('index.html'),
 );
 

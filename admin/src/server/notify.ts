@@ -1,4 +1,5 @@
-import { USER_AGENT } from './util.js';
+import { msg } from '../shared/messages.js';
+import { MsgError, USER_AGENT } from './util.js';
 
 export interface Notification {
   title: string;
@@ -18,5 +19,5 @@ export async function sendGotify(baseUrl: string, token: string, note: Notificat
     body: JSON.stringify({ ...note, extras }),
     signal: AbortSignal.timeout(15_000),
   });
-  if (!res.ok) throw new Error(`Gotify antwortet ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  if (!res.ok) throw new MsgError(msg('error.gotify', { status: res.status, text: (await res.text()).slice(0, 200) }));
 }

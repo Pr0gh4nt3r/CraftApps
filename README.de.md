@@ -10,6 +10,7 @@ des Craft Launchers:
   zeigt unter `/` eine Übersicht.
 - **Die Verwaltung** (Node.js/TypeScript) zeigt alle verfügbaren Apps, installiert und
   entfernt sie, spielt Updates automatisch oder per Knopf ein und meldet alles über Gotify.
+  Ihre Oberfläche gibt es auf Deutsch und Englisch.
 
 ## Inhalt
 
@@ -36,8 +37,8 @@ CraftApps\
 │   ├── public\                         Tab-Icons: Verwaltung, overview\ für die Startseite
 │   └── src\
 │       ├── server\                     API, Anmeldung, Installer, GitHub, Gotify
-│       ├── shared\                     Typen für Server und Oberfläche
-│       └── web\                        Oberfläche
+│       ├── shared\                     Typen und Meldungen (Deutsch/Englisch) für Server und Oberfläche
+│       └── web\                        Oberfläche, ihre Texte auf Deutsch und Englisch in locales\
 ├── docker-compose.dev.yml              MySQL für die lokale Entwicklung
 ├── docker-compose.yml                  Stack für Portainer: nginx und Verwaltung
 ├── docs\images\                        Screenshots für diese README
@@ -128,9 +129,9 @@ Registry-Eintrag.
 
 ## Was die Verwaltung kann
 
-- **Apps** im Raster wie der Craft Launcher – mit dessen Icons, Markenfarben und deutschen
-  Texten: installieren, aktualisieren, neu installieren, deinstallieren, automatische
-  Updates je App an- oder ausschalten.
+- **Apps** im Raster wie der Craft Launcher – mit dessen Icons, Markenfarben und
+  Kurzbeschreibungen: installieren, aktualisieren, neu installieren, deinstallieren,
+  automatische Updates je App an- oder ausschalten.
 - **Neue Apps** findet sie selbst: alle Repos von storytold, die auf `craft` enden und
   deren neuestes Release ein `<app>-web-*.zip` hat. Neue Apps werden gemeldet und auf
   Wunsch automatisch installiert.
@@ -140,6 +141,9 @@ Registry-Eintrag.
 - **Anmeldung** mit Benutzern in MySQL, Aktivitätsverlauf, Einstellungen (Prüfintervall,
   Gotify, Adressen) und Benutzerverwaltung.
 - **Push-Nachrichten** über Gotify, siehe [Benachrichtigungen](#benachrichtigungen).
+- **Deutsch und Englisch:** Die Verwaltung richtet sich nach der Sprache des Browsers und
+  hat oben einen Umschalter, ebenso die Startseite unter `/`. Die Gotify-Nachrichten folgen
+  der Sprache aus den Einstellungen.
 
 Daten: Benutzer, Einstellungen und Verlauf liegen in MySQL, die Apps im Volume
 `craftapps_data`, das nginx nur lesend einbindet.
@@ -445,8 +449,8 @@ Mirror-Token braucht **Contents** und **Workflows**, jeweils mit Lesen und Schre
 | Update eingespielt (automatisch oder per Knopf), neue App automatisch installiert    | 4                |
 | Fehler – jeder Fehler einmal, nicht bei jeder Prüfung erneut                         | 8                |
 
-Jede Kategorie lässt sich in den Einstellungen abschalten. Antippen öffnet die
-Verwaltung.
+Jede Kategorie lässt sich in den Einstellungen abschalten; dort wählst du auch die Sprache
+der Nachrichten, Deutsch oder Englisch. Antippen öffnet die Verwaltung.
 
 ## Gut zu wissen
 
@@ -454,9 +458,9 @@ Verwaltung.
   GitHub 60 pro Stunde; für Prüfintervalle unter etwa 20 Minuten in `docker-compose.yml`
   `GITHUB_TOKEN` setzen.
 - Anmeldung: höchstens 10 Versuche pro 15 Minuten und IP-Adresse.
-- Reihenfolge, Namen, Farben, deutsche Texte und Icons übernimmt die Verwaltung aus dem
-  [Craft Launcher](https://github.com/storytold/craft-launcher). Ist der nicht erreichbar,
-  gilt der zuletzt bekannte Stand.
+- Reihenfolge, Namen, Farben, deutsche und englische Texte und Icons übernimmt die
+  Verwaltung aus dem [Craft Launcher](https://github.com/storytold/craft-launcher). Ist der
+  nicht erreichbar, gilt der zuletzt bekannte Stand.
 - Der Container der Verwaltung läuft als Benutzer 1000 mit schreibgeschütztem
   Dateisystem und ohne Linux-Capabilities. Ein neues Volume `craftapps_data` gehört
   automatisch diesem Benutzer. Meldet die Verwaltung trotzdem fehlende Schreibrechte, auf
@@ -881,7 +885,8 @@ Ziel `<host>:8070` anlegen.
 
 ## Fehlersuche
 
-Sortiert nach der Stelle, an der das Problem auftritt.
+Sortiert nach der Stelle, an der das Problem auftritt. Die Meldungen der Verwaltung stehen
+hier so, wie sie auf Deutsch erscheinen.
 
 ### In Portainer
 

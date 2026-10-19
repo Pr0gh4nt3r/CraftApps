@@ -2,16 +2,17 @@ import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import type { EventView } from '../shared/types';
 import { api } from './api';
 import { formatDateTime } from './format';
+import { t, tm, type UiKey } from './i18n';
 
-const KINDS: Record<string, { label: string; tone: string }> = {
-  installed: { label: 'Installiert', tone: 'ok' },
-  updated: { label: 'Aktualisiert', tone: 'ok' },
-  uninstalled: { label: 'Entfernt', tone: 'muted' },
-  available: { label: 'Neu', tone: 'info' },
-  'update-available': { label: 'Update', tone: 'warn' },
-  error: { label: 'Fehler', tone: 'error' },
-  setting: { label: 'Einstellung', tone: 'muted' },
-  check: { label: 'Prüfung', tone: 'muted' },
+const KINDS: Record<string, { label: UiKey; tone: string }> = {
+  installed: { label: 'activity.kind.installed', tone: 'ok' },
+  updated: { label: 'activity.kind.updated', tone: 'ok' },
+  uninstalled: { label: 'activity.kind.uninstalled', tone: 'muted' },
+  available: { label: 'activity.kind.available', tone: 'info' },
+  'update-available': { label: 'activity.kind.updateAvailable', tone: 'warn' },
+  error: { label: 'activity.kind.error', tone: 'error' },
+  setting: { label: 'activity.kind.setting', tone: 'muted' },
+  check: { label: 'activity.kind.check', tone: 'muted' },
 };
 
 export function ActivityPage() {
@@ -35,30 +36,30 @@ export function ActivityPage() {
     <>
       <section className="toolbar">
         <div>
-          <h1>Aktivität</h1>
-          <p className="muted">Installationen, Updates, Fehler und Änderungen – die letzten 300 Einträge</p>
+          <h1>{t('activity.title')}</h1>
+          <p className="muted">{t('activity.subtitle')}</p>
         </div>
         <button className="btn" onClick={load}>
-          Aktualisieren
+          {t('activity.refresh')}
         </button>
       </section>
       {error && <p className="banner error">{error}</p>}
-      {events && events.length === 0 && <p className="banner">Noch keine Einträge.</p>}
+      {events && events.length === 0 && <p className="banner">{t('activity.empty')}</p>}
       {events && events.length > 0 && (
         <div className="table-wrap">
           <table className="table">
             <thead>
               <tr>
-                <th>Zeit</th>
-                <th>App</th>
-                <th>Art</th>
-                <th>Was</th>
-                <th>Durch</th>
+                <th>{t('activity.time')}</th>
+                <th>{t('activity.app')}</th>
+                <th>{t('activity.kind')}</th>
+                <th>{t('activity.what')}</th>
+                <th>{t('activity.by')}</th>
               </tr>
             </thead>
             <tbody>
               {events.map((e) => {
-                const kind = KINDS[e.kind] ?? { label: e.kind, tone: 'muted' };
+                const kind = KINDS[e.kind];
                 return (
                   <tr key={e.id}>
                     <td className="nowrap mono">{formatDateTime(e.at)}</td>
@@ -71,10 +72,10 @@ export function ActivityPage() {
                       )}
                     </td>
                     <td>
-                      <span className={`kind ${kind.tone}`}>{kind.label}</span>
+                      <span className={`kind ${kind?.tone ?? 'muted'}`}>{kind ? t(kind.label) : e.kind}</span>
                     </td>
-                    <td>{e.message}</td>
-                    <td className="muted nowrap">{e.username ?? 'automatisch'}</td>
+                    <td>{tm(e.message)}</td>
+                    <td className="muted nowrap">{e.username ?? t('activity.automatic')}</td>
                   </tr>
                 );
               })}

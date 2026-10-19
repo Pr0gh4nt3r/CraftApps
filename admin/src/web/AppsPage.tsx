@@ -3,6 +3,7 @@ import type { StateView } from '../shared/types';
 import { api } from './api';
 import { AppCard, type Action } from './AppCard';
 import { formatDateTime, formatRelative } from './format';
+import { t, tm } from './i18n';
 
 export function AppsPage() {
   const [state, setState] = useState<StateView | null>(null);
@@ -32,49 +33,52 @@ export function AppsPage() {
     await load();
   }
 
-  if (!state) return <p className="muted">Lädt …</p>;
+  if (!state) return <p className="muted">{t('common.loading')}</p>;
 
   const installed = state.apps.filter((a) => a.status !== 'not-installed').length;
   const updates = state.apps.filter((a) => a.status === 'update-available').length;
-  const github = state.github.remaining !== null ? ` · GitHub-API: ${state.github.remaining}/${state.github.limit}` : '';
+  const github =
+    state.github.remaining !== null
+      ? ` · ${t('apps.githubApi', { remaining: state.github.remaining, limit: state.github.limit ?? '?' })}`
+      : '';
 
   return (
     <>
       <section className="toolbar">
         <div>
-          <h1>Apps</h1>
+          <h1>{t('apps.title')}</h1>
           <p className="muted">
-            {installed} von {state.apps.length} installiert
-            {updates > 0 && ` · ${updates} ${updates === 1 ? 'Update' : 'Updates'} verfügbar`}
+            {t('apps.installed', { installed, total: state.apps.length })}
+            {updates > 0 && ` · ${updates === 1 ? t('apps.updatesOne') : t('apps.updatesOther', { count: updates })}`}
           </p>
         </div>
         <div className="toolbar-side">
           <p className="muted small">
-            Zuletzt geprüft: {formatDateTime(state.lastCheckAt)}
+            {t('apps.lastCheck', { time: formatDateTime(state.lastCheckAt) })}
             <br />
-            Nächste Prüfung: {state.checking ? 'läuft gerade' : formatRelative(state.nextCheckAt)}
+            {t('apps.nextCheck', { time: state.checking ? t('apps.checkingNow') : formatRelative(state.nextCheckAt) })}
             {github}
           </p>
           <button className="btn" disabled={state.checking} onClick={() => run('POST', '/api/check')}>
-            {state.checking ? 'Prüft …' : 'Jetzt prüfen'}
+            {state.checking ? t('apps.checking') : t('apps.checkNow')}
           </button>
         </div>
       </section>
 
       {state.warnings.map((warning) => (
-        <p key={warning} className="banner warn">
-          {warning}
+        <p key={JSON.stringify(warning)} className="banner warn">
+          {tm(warning)}
         </p>
       ))}
       {!state.notificationsConfigured && (
         <p className="banner">
-          Benachrichtigungen sind noch nicht eingerichtet – <a href="#einstellungen">Gotify in den Einstellungen hinterlegen</a>.
+          {t('apps.notifyMissing')} <a href="#einstellungen">{t('apps.notifyMissingLink')}</a>.
         </p>
       )}
       {notice && <p className="banner error">{notice}</p>}
 
       {state.apps.length === 0 ? (
-        <p className="banner">Noch keine Apps gefunden – die erste Prüfung läuft wenige Sekunden nach dem Start.</p>
+        <p className="banner">{t('apps.none')}</p>
       ) : (
         <div className="grid">
           {state.apps.map((app, index) => (

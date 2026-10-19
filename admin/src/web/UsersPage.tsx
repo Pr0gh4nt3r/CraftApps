@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type { MeView, UserView } from '../shared/types';
 import { api } from './api';
 import { formatDateTime } from './format';
+import { t } from './i18n';
 
 type Message = { tone: 'ok' | 'error'; text: string } | null;
 
@@ -30,7 +31,7 @@ export function UsersPage({ me }: { me: MeView }) {
       await api('POST', '/api/auth/password', { current, next });
       setCurrent('');
       setNext('');
-      setPasswordMessage({ tone: 'ok', text: 'Passwort geändert – andere Sitzungen wurden abgemeldet' });
+      setPasswordMessage({ tone: 'ok', text: t('users.passwordChanged') });
     } catch (err) {
       setPasswordMessage({ tone: 'error', text: (err as Error).message });
     }
@@ -40,7 +41,7 @@ export function UsersPage({ me }: { me: MeView }) {
     e.preventDefault();
     try {
       await api('POST', '/api/users', { username: newName, password: newPassword });
-      setListMessage({ tone: 'ok', text: `${newName} angelegt` });
+      setListMessage({ tone: 'ok', text: t('users.created', { name: newName }) });
       setNewName('');
       setNewPassword('');
       await load();
@@ -50,10 +51,10 @@ export function UsersPage({ me }: { me: MeView }) {
   }
 
   async function removeUser(user: UserView) {
-    if (!window.confirm(`${user.username} löschen?`)) return;
+    if (!window.confirm(t('users.confirmDelete', { name: user.username }))) return;
     try {
       await api('DELETE', `/api/users/${user.id}`);
-      setListMessage({ tone: 'ok', text: `${user.username} gelöscht` });
+      setListMessage({ tone: 'ok', text: t('users.deleted', { name: user.username }) });
       await load();
     } catch (err) {
       setListMessage({ tone: 'error', text: (err as Error).message });
@@ -64,19 +65,19 @@ export function UsersPage({ me }: { me: MeView }) {
     <>
       <section className="toolbar">
         <div>
-          <h1>Benutzer</h1>
-          <p className="muted">Alle Benutzer haben die gleichen Rechte</p>
+          <h1>{t('users.title')}</h1>
+          <p className="muted">{t('users.subtitle')}</p>
         </div>
       </section>
 
       <form className="panel" onSubmit={changePassword}>
-        <h2>Mein Passwort ändern</h2>
+        <h2>{t('users.myPassword')}</h2>
         <label className="field">
-          Aktuelles Passwort
+          {t('users.currentPassword')}
           <input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} required />
         </label>
         <label className="field">
-          Neues Passwort
+          {t('users.newPassword')}
           <input
             type="password"
             autoComplete="new-password"
@@ -85,23 +86,23 @@ export function UsersPage({ me }: { me: MeView }) {
             onChange={(e) => setNext(e.target.value)}
             required
           />
-          <span className="hint">Mindestens 10 Zeichen</span>
+          <span className="hint">{t('users.passwordHint')}</span>
         </label>
         <div className="form-actions">
-          <button className="btn">Passwort ändern</button>
+          <button className="btn">{t('users.changePassword')}</button>
           <Feedback message={passwordMessage} />
         </div>
       </form>
 
       <section className="panel">
-        <h2>Alle Benutzer</h2>
+        <h2>{t('users.all')}</h2>
         <div className="table-wrap">
           <table className="table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Angelegt</th>
-                <th>Zuletzt angemeldet</th>
+                <th>{t('users.name')}</th>
+                <th>{t('users.createdAt')}</th>
+                <th>{t('users.lastLogin')}</th>
                 <th />
               </tr>
             </thead>
@@ -110,14 +111,14 @@ export function UsersPage({ me }: { me: MeView }) {
                 <tr key={u.id}>
                   <td>
                     {u.username}
-                    {u.id === me.id && <span className="muted"> (du)</span>}
+                    {u.id === me.id && <span className="muted"> {t('users.you')}</span>}
                   </td>
                   <td className="nowrap mono">{formatDateTime(u.createdAt)}</td>
                   <td className="nowrap mono">{formatDateTime(u.lastLoginAt)}</td>
                   <td className="right">
                     {u.id !== me.id && (
                       <button className="link danger" onClick={() => removeUser(u)}>
-                        Löschen
+                        {t('users.delete')}
                       </button>
                     )}
                   </td>
@@ -128,11 +129,11 @@ export function UsersPage({ me }: { me: MeView }) {
         </div>
         <form className="inline-form" onSubmit={addUser}>
           <label className="field">
-            Neuer Benutzer
+            {t('users.newUser')}
             <input autoComplete="off" value={newName} onChange={(e) => setNewName(e.target.value)} required />
           </label>
           <label className="field">
-            Passwort
+            {t('users.password')}
             <input
               type="password"
               autoComplete="new-password"
@@ -142,7 +143,7 @@ export function UsersPage({ me }: { me: MeView }) {
               required
             />
           </label>
-          <button className="btn">Anlegen</button>
+          <button className="btn">{t('users.create')}</button>
         </form>
         <Feedback message={listMessage} />
       </section>

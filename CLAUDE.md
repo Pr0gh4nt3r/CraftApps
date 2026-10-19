@@ -39,7 +39,13 @@ together.
 Comments in code and configuration – including the code examples in the READMEs – always in
 English. The README exists in English (`README.md`, shown by default) and in German
 (`README.de.md`) – keep both in sync. The labels in the READMEs' Mermaid diagrams follow the
-language of the respective README. UI and messages stay in German.
+language of the respective README.
+
+The admin UI and the start page exist in German and English. UI texts live in
+`admin/src/web/locales/de.json` and `en.json`, messages the server generates (activity log,
+errors, job progress, Gotify notifications) in `admin/src/shared/messages.ts` as key +
+parameters – add every new text in both languages. Log messages and the workflows' step
+names stay German.
 
 ## Push
 

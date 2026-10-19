@@ -60,6 +60,12 @@ const MIGRATIONS: string[][] = [
       KEY ix_events_created (created_at)
     ) ${TABLE}`,
   ],
+  // English descriptions; messages as JSON (key + parameters) so the UI can show them in its
+  // language – events keep the German text in message, last_error holds the JSON itself
+  [
+    "ALTER TABLE apps ADD COLUMN description_en VARCHAR(512) NOT NULL DEFAULT '' AFTER description, MODIFY last_error TEXT NULL",
+    'ALTER TABLE events ADD COLUMN msg TEXT NULL AFTER message',
+  ],
 ];
 
 export async function connectDb(cfg: DbConfig, log: FastifyBaseLogger): Promise<Pool> {

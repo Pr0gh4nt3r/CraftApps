@@ -1,6 +1,7 @@
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual, type ScryptOptions } from 'node:crypto';
 import type { FastifyBaseLogger, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool, RowDataPacket } from 'mysql2/promise';
+import { msg, type Msg } from '../shared/messages.js';
 import type { MeView, UserView } from '../shared/types.js';
 import type { Config } from './config.js';
 
@@ -56,8 +57,8 @@ function cookieOptions(req: FastifyRequest) {
   };
 }
 
-function validPassword(password: string): string | null {
-  return password.length >= MIN_PASSWORD ? null : `Das Passwort muss mindestens ${MIN_PASSWORD} Zeichen haben`;
+function validPassword(password: string): Msg | null {
+  return password.length >= MIN_PASSWORD ? null : msg('error.passwordTooShort', { min: MIN_PASSWORD });
 }
 
 export async function ensureInitialAdmin(db: Pool, initial: Config['initialAdmin'], log: FastifyBaseLogger): Promise<void> {
@@ -80,7 +81,7 @@ export async function ensureInitialAdmin(db: Pool, initial: Config['initialAdmin
  */
 export async function csrfGuard(req: FastifyRequest, reply: FastifyReply) {
   if (!SAFE_METHODS.has(req.method) && req.headers['x-requested-with'] !== 'craftapps') {
-    return reply.code(403).send({ error: 'Anfrage abgelehnt' });
+    return reply.code(403).send({ error: msg('error.requestRejected') });
   }
 }
 
@@ -96,7 +97,7 @@ export function sessionGuard(db: Pool) {
       );
       if (rows[0]) req.user = { id: Number(rows[0].id), username: rows[0].username as string };
     }
-    if (!req.user) return reply.code(401).send({ error: 'Nicht angemeldet' });
+    if (!req.user) return reply.code(401).send({ error: msg('error.notLoggedIn') });
   };
 }
 
@@ -126,7 +127,7 @@ export function registerLogin(app: FastifyInstance, db: Pool): void {
       const ok = await verifyPassword(req.body.password, user ? (user.password_hash as string) : await dummyHash);
       if (!user || !ok) {
         req.log.warn(`Fehlgeschlagene Anmeldung für "${req.body.username}" von ${req.ip}`);
-        return reply.code(401).send({ error: 'Benutzername oder Passwort falsch' });
+        return reply.code(401).send({ error: msg('error.wrongLogin') });
       }
       const token = randomBytes(32).toString('base64url');
       await db.query('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)', [
@@ -169,7 +170,7 @@ export function registerAccount(app: FastifyInstance, db: Pool): void {
       if (problem) return reply.code(400).send({ error: problem });
       const [rows] = await db.query<RowDataPacket[]>('SELECT password_hash FROM users WHERE id = ?', [user.id]);
       if (!rows[0] || !(await verifyPassword(req.body.current, rows[0].password_hash as string))) {
-        return reply.code(400).send({ error: 'Das aktuelle Passwort stimmt nicht' });
+        return reply.code(400).send({ error: msg('error.wrongPassword') });
       }
       await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [await hashPassword(req.body.next), user.id]);
       // End all other sessions of this user
@@ -209,7 +210,7 @@ export function registerAccount(app: FastifyInstance, db: Pool): void {
     async (req, reply) => {
       const username = req.body.username.trim();
       if (!USERNAME.test(username)) {
-        return reply.code(400).send({ error: 'Benutzername: 3–64 Zeichen, nur Buchstaben, Ziffern, . _ -' });
+        return reply.code(400).send({ error: msg('error.invalidUsername') });
       }
       const problem = validPassword(req.body.password);
       if (problem) return reply.code(400).send({ error: problem });
@@ -220,7 +221,7 @@ export function registerAccount(app: FastifyInstance, db: Pool): void {
         ]);
       } catch (err) {
         if ((err as { code?: string }).code === 'ER_DUP_ENTRY') {
-          return reply.code(409).send({ error: 'Diesen Benutzernamen gibt es schon' });
+          return reply.code(409).send({ error: msg('error.usernameTaken') });
         }
         throw err;
       }
@@ -230,7 +231,7 @@ export function registerAccount(app: FastifyInstance, db: Pool): void {
 
   app.delete<{ Params: { id: string } }>('/api/users/:id', async (req, reply) => {
     const id = Number(req.params.id);
-    if (id === req.user!.id) return reply.code(400).send({ error: 'Du kannst dich nicht selbst löschen' });
+    if (id === req.user!.id) return reply.code(400).send({ error: msg('error.deleteSelf') });
     await db.query('DELETE FROM users WHERE id = ?', [id]);
     return { ok: true };
   });

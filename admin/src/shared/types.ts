@@ -1,24 +1,30 @@
 // Shared types for server and UI (types only, no runtime code)
 
+import type { Lang, Msg } from './messages.js';
+
 export type AppStatus = 'not-installed' | 'installed' | 'update-available';
 export type JobKind = 'install' | 'update' | 'uninstall';
 export type JobState = 'queued' | 'running' | 'done' | 'failed';
+/** Progress step of a job – the UI shows it via the message key phase.<step> */
+export type JobPhase = 'queued' | 'checking' | 'downloading' | 'extracting' | 'switching' | 'done' | 'failed';
 
 export interface JobView {
   id: number;
   appId: string;
   kind: JobKind;
   state: JobState;
-  phase: string;
+  phase: JobPhase;
   /** 0..1, null = progress unknown */
   progress: number | null;
-  error: string | null;
+  error: Msg | null;
 }
 
 export interface AppView {
   id: string;
   name: string;
+  /** German short description; descriptionEn is the English one */
   description: string;
+  descriptionEn: string;
   color: string;
   hasIcon: boolean;
   websiteUrl: string;
@@ -31,7 +37,7 @@ export interface AppView {
   latestSize: number | null;
   autoUpdate: boolean;
   /** Error during the last check */
-  error: string | null;
+  error: Msg | null;
   /** Public address of the app, if set in the settings */
   openUrl: string | null;
   /** Running or recently failed action */
@@ -45,7 +51,7 @@ export interface StateView {
   nextCheckAt: string | null;
   github: { remaining: number | null; limit: number | null; resetAt: string | null };
   notificationsConfigured: boolean;
-  warnings: string[];
+  warnings: Msg[];
 }
 
 export interface EventView {
@@ -55,7 +61,7 @@ export interface EventView {
   appName: string | null;
   appColor: string | null;
   kind: string;
-  message: string;
+  message: Msg;
   username: string | null;
 }
 
@@ -71,6 +77,8 @@ export interface SettingsView {
   notifyUpdateAvailable: boolean;
   notifyUpdated: boolean;
   notifyErrors: boolean;
+  /** Language of the Gotify notifications */
+  notifyLanguage: Lang;
 }
 
 /** Empty gotifyToken = leave unchanged */

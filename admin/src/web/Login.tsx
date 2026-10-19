@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import type { MeView } from '../shared/types';
 import { api } from './api';
+import { t } from './i18n';
+import { LangSwitch } from './LangSwitch';
 
 export function Login({ onLogin }: { onLogin: (me: MeView) => void }) {
   const [username, setUsername] = useState('');
@@ -23,16 +25,19 @@ export function Login({ onLogin }: { onLogin: (me: MeView) => void }) {
   return (
     <div className="login">
       <form className="login-box" onSubmit={submit}>
-        <h1>
-          Craft<span>Apps</span>
-        </h1>
-        <p className="muted">Verwaltung – bitte anmelden</p>
+        <div className="login-head">
+          <h1>
+            Craft<span>Apps</span>
+          </h1>
+          <LangSwitch />
+        </div>
+        <p className="muted">{t('login.prompt')}</p>
         <label className="field">
-          Benutzername
+          {t('login.username')}
           <input autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus />
         </label>
         <label className="field">
-          Passwort
+          {t('login.password')}
           <input
             type="password"
             autoComplete="current-password"
@@ -43,7 +48,7 @@ export function Login({ onLogin }: { onLogin: (me: MeView) => void }) {
         </label>
         {error && <p className="form-error">{error}</p>}
         <button className="btn primary" disabled={busy}>
-          {busy ? 'Anmelden …' : 'Anmelden'}
+          {busy ? t('login.submitting') : t('login.submit')}
         </button>
       </form>
     </div>
