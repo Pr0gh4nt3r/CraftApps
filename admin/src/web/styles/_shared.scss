@@ -1,6 +1,6 @@
 // Everything that recurs across the components: colors, hairlines, the breakpoint, the tone
-// colors and the small uppercase labels. Each partial loads it with @use 'shared'; its CSS
-// (the custom properties) is emitted only once.
+// colors and the small uppercase labels. Every partial loads it with @use – from a component
+// folder as '../../styles/shared'; its CSS (the custom properties) is emitted only once.
 @use 'sass:map';
 
 // Colors stay custom properties – React sets the app color --c at runtime

@@ -1,0 +1,26 @@
+// Progress of a running action on a card (AppCard)
+@use '../../styles/shared';
+
+.progress {
+  position: relative;
+  flex: 1;
+  height: 36px;
+  overflow: hidden;
+  border: shared.$hairline-strong;
+}
+
+.progress-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--c) 35%, transparent);
+  transition: width 0.3s;
+}
+
+.progress-label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  @include shared.label(12px, 0.08em);
+}

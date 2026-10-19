@@ -36,9 +36,21 @@ CraftApps\
 │   ├── Dockerfile
 │   ├── public\                         Tab-Icons: Verwaltung, overview\ für die Startseite
 │   └── src\
-│       ├── server\                     API, Anmeldung, Installer, GitHub, Gotify
+│       ├── server\                     Fastify-Server, main.ts startet ihn
+│       │   ├── api\                    Routen für die Verwaltung
+│       │   ├── apps\                   Apps finden, installieren und aktualisieren; Startseite
+│       │   ├── auth\                   Benutzer, Sitzungen, Anmeldung
+│       │   ├── core\                   Konfiguration, Datenbank, Hilfsfunktionen
+│       │   ├── notify\                 Benachrichtigungen über Gotify
+│       │   └── settings\               Einstellungen
 │       ├── shared\                     Typen und Meldungen (Deutsch/Englisch) für Server und Oberfläche
-│       └── web\                        Oberfläche, ihre Texte (Deutsch/Englisch) in locales\, SCSS in styles\
+│       └── web\                        React-Oberfläche, main.tsx startet sie
+│           ├── App\                    Kopfzeile und Tabs
+│           ├── components\             AppCard, LangSwitch, Toggle – jeweils mit ihren Styles
+│           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
+│           ├── lib\                    API-Aufrufe und Formatierung
+│           ├── pages\                  Apps, Aktivität, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles
+│           └── styles\                 Globales SCSS; index.scss lädt alle Styles
 ├── dev.sh                              Startet MySQL, Verwaltung und Startseite für einen lokalen Test
 ├── docker-compose.dev.yml              MySQL für die lokale Entwicklung
 ├── docker-compose.yml                  Stack für Portainer: nginx und Verwaltung

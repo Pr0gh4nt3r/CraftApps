@@ -1,4 +1,4 @@
-// Tables (ActivityPage, UsersPage) and the marks in the activity log
+// Tables (ActivityPage, UsersPage)
 @use 'shared';
 
 .table-wrap {
@@ -24,20 +24,4 @@
     color: var(--muted);
     @include shared.label(11px, 0.1em);
   }
-}
-
-// Color of the app
-.dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 8px;
-  border-radius: 50%;
-  background: var(--c, var(--muted));
-}
-
-// Kind of entry
-.kind {
-  @include shared.label(10.5px, 0.08em);
-  @include shared.tones(ok, warn, error, info, muted);
 }
