@@ -3,25 +3,34 @@ import type { MeView } from '../shared/types';
 import { ActivityPage } from './ActivityPage';
 import { api, onUnauthorized } from './api';
 import { AppsPage } from './AppsPage';
+import { t, useLang } from './i18n';
+import { LangSwitch } from './LangSwitch';
 import { Login } from './Login';
 import { SettingsPage } from './SettingsPage';
 import { UsersPage } from './UsersPage';
 
+// The ids end up in the URL (#einstellungen) and stay the same in every language
 const TABS = [
-  { id: 'apps', label: 'Apps' },
-  { id: 'aktivitaet', label: 'Aktivität' },
-  { id: 'einstellungen', label: 'Einstellungen' },
-  { id: 'benutzer', label: 'Benutzer' },
+  { id: 'apps', label: 'tab.apps' },
+  { id: 'aktivitaet', label: 'tab.activity' },
+  { id: 'einstellungen', label: 'tab.settings' },
+  { id: 'benutzer', label: 'tab.users' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
 
-const tabFromHash = (): TabId => TABS.find((t) => `#${t.id}` === location.hash)?.id ?? 'apps';
+const tabFromHash = (): TabId => TABS.find((entry) => `#${entry.id}` === location.hash)?.id ?? 'apps';
 
 export function App() {
   // undefined = still checking, null = not logged in
   const [me, setMe] = useState<MeView | null | undefined>(undefined);
   const [tab, setTab] = useState<TabId>(tabFromHash);
+  // Changing the language renders the whole UI again
+  const lang = useLang();
+
+  useEffect(() => {
+    document.title = t('app.title');
+  }, [lang]);
 
   useEffect(() => {
     api<MeView>('GET', '/api/auth/me').then(setMe, () => setMe(null));
@@ -47,19 +56,20 @@ export function App() {
       <header className="topbar">
         <div className="brand">
           Craft<span>Apps</span>
-          <small>Verwaltung</small>
+          <small>{t('app.subtitle')}</small>
         </div>
         <nav className="tabs">
-          {TABS.map((t) => (
-            <a key={t.id} href={`#${t.id}`} className={t.id === tab ? 'active' : undefined}>
-              {t.label}
+          {TABS.map((entry) => (
+            <a key={entry.id} href={`#${entry.id}`} className={entry.id === tab ? 'active' : undefined}>
+              {t(entry.label)}
             </a>
           ))}
         </nav>
         <div className="user">
+          <LangSwitch />
           {me.username}
           <button className="link" onClick={logout}>
-            Abmelden
+            {t('app.logout')}
           </button>
         </div>
       </header>

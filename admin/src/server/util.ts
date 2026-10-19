@@ -1,3 +1,5 @@
+import { msg, renderMsg, type Msg } from '../shared/messages.js';
+
 /** Names of the craft apps: photocraft, figcraft, ... (repo name in lowercase) */
 export const APP_ID = /^[a-z0-9]+craft$/;
 export const USER_AGENT = 'craftapps-admin';
@@ -9,11 +11,20 @@ export function version(tag: string | null): string {
   return (tag ?? '').replace(/^v/, '');
 }
 
-/** Readable error message – with a hint if write access to the data volume is missing. */
-export function errorText(err: unknown): string {
-  const e = err as NodeJS.ErrnoException | undefined;
-  if (e?.code === 'EACCES' || e?.code === 'EPERM') {
-    return `Keine Schreibrechte auf ${e.path ?? 'das Daten-Volume'} – das Volume muss dem Benutzer 1000 gehören (siehe README)`;
+/** Error with a message the UI can show in its language; message is the German text for the log. */
+export class MsgError extends Error {
+  constructor(readonly msg: Msg) {
+    super(renderMsg('de', msg));
   }
-  return err instanceof Error ? err.message : String(err);
 }
+
+/** Message for the UI – with a hint if write access to the data volume is missing. */
+export function toMsg(err: unknown): Msg {
+  if (err instanceof MsgError) return err.msg;
+  const e = err as NodeJS.ErrnoException | undefined;
+  if (e?.code === 'EACCES' || e?.code === 'EPERM') return msg('error.noWriteAccess', { path: e.path ?? '/data' });
+  return msg('raw', { text: (err instanceof Error ? err.message : String(err)).slice(0, 500) });
+}
+
+/** Readable error message for the log */
+export const errorText = (err: unknown): string => renderMsg('de', toMsg(err));

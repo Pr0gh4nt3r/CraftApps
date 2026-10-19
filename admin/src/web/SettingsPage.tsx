@@ -1,18 +1,23 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { SettingsView } from '../shared/types';
 import { api } from './api';
+import { t } from './i18n';
 import { Toggle } from './Toggle';
 
-const INTERVALS = [
-  { minutes: 30, label: 'alle 30 Minuten' },
-  { minutes: 60, label: 'stündlich' },
-  { minutes: 180, label: 'alle 3 Stunden' },
-  { minutes: 360, label: 'alle 6 Stunden' },
-  { minutes: 720, label: 'alle 12 Stunden' },
-  { minutes: 1440, label: 'täglich' },
-];
+const INTERVALS = [30, 60, 180, 360, 720, 1440] as const;
+
+// Each language under its own name, like in the language switch
+const NOTIFY_LANGUAGES = [
+  { id: 'de', name: 'Deutsch' },
+  { id: 'en', name: 'English' },
+] as const;
 
 type Message = { tone: 'ok' | 'error'; text: string } | null;
+
+const intervalLabel = (minutes: number) =>
+  (INTERVALS as readonly number[]).includes(minutes)
+    ? t(`settings.interval.${minutes as (typeof INTERVALS)[number]}`)
+    : t('settings.interval.custom', { minutes });
 
 export function SettingsPage() {
   const [form, setForm] = useState<SettingsView | null>(null);
@@ -24,12 +29,12 @@ export function SettingsPage() {
     api<SettingsView>('GET', '/api/settings').then(setForm, (err: Error) => setMessage({ tone: 'error', text: err.message }));
   }, []);
 
-  if (!form) return message ? <p className="banner error">{message.text}</p> : <p className="muted">Lädt …</p>;
+  if (!form) return message ? <p className="banner error">{message.text}</p> : <p className="muted">{t('common.loading')}</p>;
 
   const set = <K extends keyof SettingsView>(key: K, value: SettingsView[K]) => setForm({ ...form, [key]: value });
-  const intervals = INTERVALS.some((i) => i.minutes === form.checkIntervalMinutes)
-    ? INTERVALS
-    : [...INTERVALS, { minutes: form.checkIntervalMinutes, label: `alle ${form.checkIntervalMinutes} Minuten` }];
+  const intervals: number[] = (INTERVALS as readonly number[]).includes(form.checkIntervalMinutes)
+    ? [...INTERVALS]
+    : [...INTERVALS, form.checkIntervalMinutes];
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -40,7 +45,7 @@ export function SettingsPage() {
       const { gotifyTokenSet: _, ...values } = form;
       setForm(await api<SettingsView>('PUT', '/api/settings', { ...values, ...(token ? { gotifyToken: token } : {}) }));
       setToken('');
-      setMessage({ tone: 'ok', text: 'Gespeichert' });
+      setMessage({ tone: 'ok', text: t('settings.saved') });
     } catch (err) {
       setMessage({ tone: 'error', text: (err as Error).message });
     } finally {
@@ -52,8 +57,12 @@ export function SettingsPage() {
     if (!form) return;
     setMessage(null);
     try {
-      await api('POST', '/api/settings/test-notification', { gotifyUrl: form.gotifyUrl, ...(token ? { gotifyToken: token } : {}) });
-      setMessage({ tone: 'ok', text: 'Testnachricht verschickt – sieh in Gotify nach' });
+      await api('POST', '/api/settings/test-notification', {
+        gotifyUrl: form.gotifyUrl,
+        notifyLanguage: form.notifyLanguage,
+        ...(token ? { gotifyToken: token } : {}),
+      });
+      setMessage({ tone: 'ok', text: t('settings.testSent') });
     } catch (err) {
       setMessage({ tone: 'error', text: (err as Error).message });
     }
@@ -63,60 +72,60 @@ export function SettingsPage() {
     <form onSubmit={save}>
       <section className="toolbar">
         <div>
-          <h1>Einstellungen</h1>
-          <p className="muted">Gilt für alle Benutzer dieser Verwaltung</p>
+          <h1>{t('settings.title')}</h1>
+          <p className="muted">{t('settings.subtitle')}</p>
         </div>
       </section>
 
       <section className="panel">
-        <h2>Updates</h2>
+        <h2>{t('settings.updates')}</h2>
         <label className="field">
-          Auf neue Apps und Versionen prüfen
+          {t('settings.interval')}
           <select value={form.checkIntervalMinutes} onChange={(e) => set('checkIntervalMinutes', Number(e.target.value))}>
-            {intervals.map((i) => (
-              <option key={i.minutes} value={i.minutes}>
-                {i.label}
+            {intervals.map((minutes) => (
+              <option key={minutes} value={minutes}>
+                {intervalLabel(minutes)}
               </option>
             ))}
           </select>
-          <span className="hint">Ohne GitHub-Token erlaubt GitHub 60 Anfragen pro Stunde; ein Durchlauf braucht etwa 16.</span>
+          <span className="hint">{t('settings.intervalHint')}</span>
         </label>
         <Toggle checked={form.defaultAutoUpdate} onChange={(v) => set('defaultAutoUpdate', v)}>
-          Neu installierte Apps automatisch aktualisieren
+          {t('settings.defaultAutoUpdate')}
         </Toggle>
         <Toggle checked={form.autoInstallNew} onChange={(v) => set('autoInstallNew', v)}>
-          Neu erschienene Apps automatisch installieren (sonst nur benachrichtigen)
+          {t('settings.autoInstallNew')}
         </Toggle>
       </section>
 
       <section className="panel">
-        <h2>Adressen</h2>
+        <h2>{t('settings.addresses')}</h2>
         <label className="field">
-          Öffentliche Adresse der Apps
+          {t('settings.appsBaseUrl')}
           <input
             type="url"
             placeholder="https://craft.example.com"
             value={form.appsBaseUrl}
             onChange={(e) => set('appsBaseUrl', e.target.value)}
           />
-          <span className="hint">Der nginx mit den Apps, z.B. über Zoraxy – für die „Öffnen“-Knöpfe.</span>
+          <span className="hint">{t('settings.appsBaseUrlHint')}</span>
         </label>
         <label className="field">
-          Adresse dieser Verwaltung
+          {t('settings.adminBaseUrl')}
           <input
             type="url"
             placeholder="https://craft-admin.example.com"
             value={form.adminBaseUrl}
             onChange={(e) => set('adminBaseUrl', e.target.value)}
           />
-          <span className="hint">Öffnet sich, wenn du eine Benachrichtigung antippst.</span>
+          <span className="hint">{t('settings.adminBaseUrlHint')}</span>
         </label>
       </section>
 
       <section className="panel">
-        <h2>Benachrichtigungen über Gotify</h2>
+        <h2>{t('settings.gotify')}</h2>
         <label className="field">
-          Gotify-Server
+          {t('settings.gotifyUrl')}
           <input
             type="url"
             placeholder="https://gotify.example.com"
@@ -125,38 +134,48 @@ export function SettingsPage() {
           />
         </label>
         <label className="field">
-          App-Token
+          {t('settings.gotifyToken')}
           <input
             type="password"
             autoComplete="off"
-            placeholder={form.gotifyTokenSet ? 'gespeichert – leer lassen, um es zu behalten' : 'In Gotify unter „Apps“ anlegen'}
+            placeholder={form.gotifyTokenSet ? t('settings.gotifyTokenSet') : t('settings.gotifyTokenNew')}
             value={token}
             onChange={(e) => setToken(e.target.value)}
           />
         </label>
-        <p className="muted small">Benachrichtigen bei …</p>
+        <label className="field">
+          {t('settings.notifyLanguage')}
+          <select value={form.notifyLanguage} onChange={(e) => set('notifyLanguage', e.target.value === 'en' ? 'en' : 'de')}>
+            {NOTIFY_LANGUAGES.map((l) => (
+              <option key={l.id} value={l.id} lang={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="muted small">{t('settings.notifyAbout')}</p>
         <Toggle checked={form.notifyNewApps} onChange={(v) => set('notifyNewApps', v)}>
-          neuen Apps, die installiert werden können
+          {t('settings.notifyNewApps')}
         </Toggle>
         <Toggle checked={form.notifyUpdateAvailable} onChange={(v) => set('notifyUpdateAvailable', v)}>
-          verfügbaren Updates (für Apps ohne automatische Updates)
+          {t('settings.notifyUpdateAvailable')}
         </Toggle>
         <Toggle checked={form.notifyUpdated} onChange={(v) => set('notifyUpdated', v)}>
-          durchgeführten Updates
+          {t('settings.notifyUpdated')}
         </Toggle>
         <Toggle checked={form.notifyErrors} onChange={(v) => set('notifyErrors', v)}>
-          Fehlern
+          {t('settings.notifyErrors')}
         </Toggle>
         <div className="form-actions">
           <button type="button" className="btn" onClick={sendTest}>
-            Testnachricht senden
+            {t('settings.sendTest')}
           </button>
         </div>
       </section>
 
       <div className="form-actions sticky-actions">
         <button className="btn primary narrow" disabled={saving}>
-          {saving ? 'Speichert …' : 'Speichern'}
+          {saving ? t('settings.saving') : t('settings.save')}
         </button>
         {message && <p className={message.tone === 'ok' ? 'form-ok' : 'form-error'}>{message.text}</p>}
       </div>

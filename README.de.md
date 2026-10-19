@@ -10,6 +10,7 @@ des Craft Launchers:
   zeigt unter `/` eine Übersicht.
 - **Die Verwaltung** (Node.js/TypeScript) zeigt alle verfügbaren Apps, installiert und
   entfernt sie, spielt Updates automatisch oder per Knopf ein und meldet alles über Gotify.
+  Ihre Oberfläche gibt es auf Deutsch und Englisch.
 
 ## Inhalt
 
@@ -36,8 +37,9 @@ CraftApps\
 │   ├── public\                         Tab-Icons: Verwaltung, overview\ für die Startseite
 │   └── src\
 │       ├── server\                     API, Anmeldung, Installer, GitHub, Gotify
-│       ├── shared\                     Typen für Server und Oberfläche
-│       └── web\                        Oberfläche
+│       ├── shared\                     Typen und Meldungen (Deutsch/Englisch) für Server und Oberfläche
+│       └── web\                        Oberfläche, ihre Texte auf Deutsch und Englisch in locales\
+├── dev.sh                              Startet MySQL, Verwaltung und Startseite für einen lokalen Test
 ├── docker-compose.dev.yml              MySQL für die lokale Entwicklung
 ├── docker-compose.yml                  Stack für Portainer: nginx und Verwaltung
 ├── docs\images\                        Screenshots für diese README
@@ -128,9 +130,9 @@ Registry-Eintrag.
 
 ## Was die Verwaltung kann
 
-- **Apps** im Raster wie der Craft Launcher – mit dessen Icons, Markenfarben und deutschen
-  Texten: installieren, aktualisieren, neu installieren, deinstallieren, automatische
-  Updates je App an- oder ausschalten.
+- **Apps** im Raster wie der Craft Launcher – mit dessen Icons, Markenfarben und
+  Kurzbeschreibungen: installieren, aktualisieren, neu installieren, deinstallieren,
+  automatische Updates je App an- oder ausschalten.
 - **Neue Apps** findet sie selbst: alle Repos von storytold, die auf `craft` enden und
   deren neuestes Release ein `<app>-web-*.zip` hat. Neue Apps werden gemeldet und auf
   Wunsch automatisch installiert.
@@ -140,9 +142,31 @@ Registry-Eintrag.
 - **Anmeldung** mit Benutzern in MySQL, Aktivitätsverlauf, Einstellungen (Prüfintervall,
   Gotify, Adressen) und Benutzerverwaltung.
 - **Push-Nachrichten** über Gotify, siehe [Benachrichtigungen](#benachrichtigungen).
+- **Deutsch und Englisch:** Die Verwaltung richtet sich nach der Sprache des Browsers und
+  hat oben einen Umschalter, ebenso die Startseite unter `/`. Die Gotify-Nachrichten folgen
+  der Sprache aus den Einstellungen.
 
 Daten: Benutzer, Einstellungen und Verlauf liegen in MySQL, die Apps im Volume
 `craftapps_data`, das nginx nur lesend einbindet.
+
+### Screenshots
+
+**Apps:** eine Karte je App – hier installiert, mit wartendem Update (automatische Updates
+aus) und noch nicht installiert:
+
+![Verwaltung: Apps mit Status, Version und automatischen Updates](docs/images/admin-apps-de.png)
+
+**Aktivität:** was passiert ist, automatisch oder durch welchen Benutzer:
+
+![Verwaltung: Aktivitätsverlauf mit Installationen, einem verfügbaren Update und geänderten Einstellungen](docs/images/admin-activity-de.png)
+
+**Einstellungen:** Prüfintervall, Adressen und Gotify:
+
+![Verwaltung: Einstellungen für Updates, Adressen und Benachrichtigungen über Gotify](docs/images/admin-settings-de.png)
+
+**Startseite** unter `/`: die installierten Apps, ausgeliefert von nginx:
+
+![Startseite: die installierten Apps mit Version und Release-Datum](docs/images/start-page-de.png)
 
 ## Einrichtung
 
@@ -445,8 +469,8 @@ Mirror-Token braucht **Contents** und **Workflows**, jeweils mit Lesen und Schre
 | Update eingespielt (automatisch oder per Knopf), neue App automatisch installiert    | 4                |
 | Fehler – jeder Fehler einmal, nicht bei jeder Prüfung erneut                         | 8                |
 
-Jede Kategorie lässt sich in den Einstellungen abschalten. Antippen öffnet die
-Verwaltung.
+Jede Kategorie lässt sich in den Einstellungen abschalten; dort wählst du auch die Sprache
+der Nachrichten, Deutsch oder Englisch. Antippen öffnet die Verwaltung.
 
 ## Gut zu wissen
 
@@ -454,9 +478,9 @@ Verwaltung.
   GitHub 60 pro Stunde; für Prüfintervalle unter etwa 20 Minuten in `docker-compose.yml`
   `GITHUB_TOKEN` setzen.
 - Anmeldung: höchstens 10 Versuche pro 15 Minuten und IP-Adresse.
-- Reihenfolge, Namen, Farben, deutsche Texte und Icons übernimmt die Verwaltung aus dem
-  [Craft Launcher](https://github.com/storytold/craft-launcher). Ist der nicht erreichbar,
-  gilt der zuletzt bekannte Stand.
+- Reihenfolge, Namen, Farben, deutsche und englische Texte und Icons übernimmt die
+  Verwaltung aus dem [Craft Launcher](https://github.com/storytold/craft-launcher). Ist der
+  nicht erreichbar, gilt der zuletzt bekannte Stand.
 - Der Container der Verwaltung läuft als Benutzer 1000 mit schreibgeschütztem
   Dateisystem und ohne Linux-Capabilities. Ein neues Volume `craftapps_data` gehört
   automatisch diesem Benutzer. Meldet die Verwaltung trotzdem fehlende Schreibrechte, auf
@@ -469,6 +493,28 @@ Linux-Dateisystem (nicht unter `/mnt/c`), sonst bemerkt Vite Änderungen nicht z
 Docker läuft dort entweder direkt in der Distribution oder über Docker Desktop mit
 eingeschalteter WSL-Integration für die Distribution, aber nicht beides.
 
+Ein Befehl im Hauptordner startet alles für einen lokalen Test, **Strg+C** beendet alles
+wieder:
+
+```bash
+./dev.sh
+```
+
+- **Verwaltung** unter `http://localhost:5173`: Vite zeigt Änderungen an der Oberfläche
+  sofort, der Server startet bei Änderungen neu.
+- **Startseite** unter `http://localhost:8080`: nginx mit `nginx.conf` wie auf dem Pi,
+  liefert `admin/data` aus. Anderer Port: `START_PAGE_PORT=8090 ./dev.sh`.
+- Vorher startet das Skript MySQL aus `docker-compose.dev.yml` – und stoppt es am Ende nur,
+  wenn es MySQL selbst gestartet hat. Fehlen die Abhängigkeiten oder hat sich
+  `package-lock.json` geändert, führt es `npm ci` aus; fehlt `admin/.env`, legt es sie aus
+  `.env.example` an.
+
+Anmelden mit `admin` und dem Passwort aus `admin/.env`. Installierte Apps landen in
+`admin/data`. Damit die „Öffnen“-Knöpfe zur lokalen Startseite führen, unter
+**Einstellungen** bei **Öffentliche Adresse der Apps** `http://localhost:8080` eintragen.
+
+Dasselbe Schritt für Schritt:
+
 ```bash
 docker compose -f docker-compose.dev.yml up -d   # MySQL for development
 cd admin
@@ -476,13 +522,18 @@ npm ci
 cp .env.example .env                       # once; matches docker-compose.dev.yml
 npm run dev:server                         # server, restarts on changes
 npm run dev:web                            # second terminal: UI at http://localhost:5173
+# third terminal, in the main folder: start page at http://localhost:8080
+docker run --rm -p 127.0.0.1:8080:80 \
+  -v "$PWD/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+  -v "$PWD/admin/data:/srv/craftapps:ro" nginx:alpine
 ```
 
-Anmelden mit `admin` und dem Passwort aus `.env`. Installierte Apps landen in `admin/data`.
-
-**Debuggen in VS Code:** unter **Ausführen und Debuggen** „Server und Oberfläche“ starten.
-Das startet beides; Breakpoints gehen direkt im TypeScript des Servers. Die Oberfläche
-debuggst du mit den Entwicklertools des Browsers.
+**Debuggen in VS Code:** den Ordner `CraftApps` selbst öffnen, nicht einen Ordner darüber –
+die Startkonfigurationen liest VS Code nur aus dem `.vscode` des geöffneten Ordners. Dann
+statt `./dev.sh` unter **Ausführen und Debuggen** „Server und Oberfläche“ starten. Das
+startet beides, aber nicht MySQL und die Startseite – siehe die Schritte oben. Breakpoints
+gehen direkt im TypeScript des Servers. Die Oberfläche debuggst du mit den Entwicklertools
+des Browsers.
 
 **Prüfen** – muss vor jedem Commit fehlerfrei durchlaufen:
 
@@ -881,7 +932,8 @@ Ziel `<host>:8070` anlegen.
 
 ## Fehlersuche
 
-Sortiert nach der Stelle, an der das Problem auftritt.
+Sortiert nach der Stelle, an der das Problem auftritt. Die Meldungen der Verwaltung stehen
+hier so, wie sie auf Deutsch erscheinen.
 
 ### In Portainer
 

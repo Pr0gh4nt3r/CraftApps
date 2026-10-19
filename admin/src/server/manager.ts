@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Pool, RowDataPacket } from 'mysql2/promise';
+import { msg, parseMsg, renderMsg, type Localized, type Msg } from '../shared/messages.js';
 import type { AppView, JobKind, JobView, StateView } from '../shared/types.js';
 import type { Config } from './config.js';
 import { GitHubLimitError, findWebAsset, type GitHub, type Repo } from './github.js';
@@ -11,13 +12,14 @@ import { appMeta, fetchIcon, launcherInfo, type LauncherInfo } from './launcher.
 import { sendGotify } from './notify.js';
 import { writeOverview } from './overview.js';
 import type { Settings, SettingsStore } from './settings.js';
-import { APP_ID, MINUTE, errorText, version } from './util.js';
+import { APP_ID, MINUTE, MsgError, errorText, toMsg, version } from './util.js';
 
 interface AppRow extends RowDataPacket {
   id: string;
   repo: string;
   name: string;
   description: string;
+  description_en: string;
   color: string;
   in_catalog: number;
   latest_tag: string | null;
@@ -39,15 +41,15 @@ interface Job extends JobView {
 
 type NotifyCategory = 'notifyNewApps' | 'notifyUpdateAvailable' | 'notifyUpdated' | 'notifyErrors';
 
-export class NotFoundError extends Error {
+export class NotFoundError extends MsgError {
   readonly statusCode = 404;
 }
 
-export class ConflictError extends Error {
+export class ConflictError extends MsgError {
   readonly statusCode = 409;
 }
 
-const KIND_LABEL: Record<JobKind, string> = { install: 'Installation', update: 'Update', uninstall: 'Deinstallation' };
+const jobLabel = (kind: JobKind): Msg => msg(`job.${kind}` as const);
 const parseAsset = (json: string | null): Asset | null => (json ? (JSON.parse(json) as Asset) : null);
 const parseFiles = (json: string | null): string[] => (json ? (JSON.parse(json) as string[]) : []);
 
@@ -62,7 +64,7 @@ export class Manager {
   private timer: NodeJS.Timeout | undefined;
   private housekeeping: NodeJS.Timeout | undefined;
   private lastGlobalError: string | null = null;
-  private readonly warnings: string[] = [];
+  private readonly warnings: Msg[] = [];
 
   constructor(
     private readonly db: Pool,
@@ -80,9 +82,7 @@ export class Manager {
       await fs.access(this.cfg.dataDir, fs.constants.W_OK);
       await fs.rm(path.join(this.cfg.dataDir, '.tmp'), { recursive: true, force: true }); // leftovers of aborted downloads
     } catch {
-      this.warnings.push(
-        `Keine Schreibrechte auf ${this.cfg.dataDir} – das Daten-Volume muss dem Benutzer 1000 gehören (siehe README).`,
-      );
+      this.warnings.push(msg('error.noWriteAccess', { path: this.cfg.dataDir }));
     }
     await this.refreshOverview();
     const lastCheck = await this.settings.getInternal<string>('lastCheckAt');
@@ -135,11 +135,11 @@ export class Manager {
         repos = await this.github.listRepos(this.cfg.owner);
         this.lastGlobalError = null;
       } catch (err) {
-        await this.failure(null, `App-Suche auf GitHub fehlgeschlagen: ${errorText(err)}`);
+        await this.failure(null, msg('error.appSearchFailed', { error: toMsg(err) }));
         return;
       }
       await this.syncCatalog(repos, await launcherInfo(this.settings, this.log), settings);
-      if (username) await this.event('check', 'Nach Updates gesucht', null, username);
+      if (username) await this.event('check', msg('event.checked'), null, username);
 
       const fresh: AppRow[] = [];
       for (const app of await this.apps()) {
@@ -148,14 +148,14 @@ export class Manager {
         try {
           await this.refreshRelease(app);
         } catch (err) {
-          await this.failure(app, `Prüfung fehlgeschlagen: ${errorText(err)}`);
+          await this.failure(app, msg('error.checkFailed', { error: toMsg(err) }));
           if (err instanceof GitHubLimitError) break; // the remaining ones would fail the same way
           continue;
         }
         const installed = this.isInstalled(app);
         if (app.installed_tag && !installed) {
           await this.clearInstalled(app.id);
-          await this.event('uninstalled', 'Dateien fehlen im Volume – als nicht installiert markiert', app.id);
+          await this.event('uninstalled', msg('event.filesMissing'), app.id);
         }
         if (!parseAsset(app.latest_asset) || !app.latest_tag) continue;
         if (installed) {
@@ -165,8 +165,13 @@ export class Manager {
           } else if (app.notified_tag !== app.latest_tag) {
             await this.markNotified(app);
             const change = `${version(app.installed_tag)} → ${version(app.latest_tag)}`;
-            await this.event('update-available', `Update verfügbar: ${change}`, app.id);
-            await this.notify('notifyUpdateAvailable', `Update für ${app.name}`, `**${change}** ist verfügbar.`, 5);
+            await this.event('update-available', msg('event.updateAvailable', { change }), app.id);
+            await this.notify(
+              'notifyUpdateAvailable',
+              msg('notify.updateAvailable.title', { app: app.name }),
+              msg('notify.updateAvailable.body', { change }),
+              5,
+            );
           }
         } else if (app.notified_tag === null) {
           await this.markNotified(app);
@@ -192,11 +197,20 @@ export class Manager {
       const meta = appMeta(id, repo, launcher);
       const rank = order.indexOf(id);
       await this.db.query(
-        `INSERT INTO apps (id, repo, name, description, color, sort_key, in_catalog, auto_update)
-         VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+        `INSERT INTO apps (id, repo, name, description, description_en, color, sort_key, in_catalog, auto_update)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
          ON DUPLICATE KEY UPDATE repo = VALUES(repo), name = VALUES(name), description = VALUES(description),
-           color = VALUES(color), sort_key = VALUES(sort_key), in_catalog = 1`,
-        [id, repo.name, meta.name, meta.description, meta.color, rank === -1 ? 1000 : rank, Number(settings.defaultAutoUpdate)],
+           description_en = VALUES(description_en), color = VALUES(color), sort_key = VALUES(sort_key), in_catalog = 1`,
+        [
+          id,
+          repo.name,
+          meta.name,
+          meta.description,
+          meta.descriptionEn,
+          meta.color,
+          rank === -1 ? 1000 : rank,
+          Number(settings.defaultAutoUpdate),
+        ],
       );
     }
     // Stop checking renamed or deleted repos; installed ones remain manageable
@@ -229,17 +243,22 @@ export class Manager {
   }
 
   private async announce(apps: AppRow[], firstRun: boolean, autoInstall: boolean): Promise<void> {
-    for (const app of apps) await this.event('available', `Neu verfügbar: ${version(app.latest_tag)}`, app.id);
-    const action = autoInstall ? 'wird automatisch installiert' : 'kann installiert werden';
+    for (const app of apps) await this.event('available', msg('event.available', { version: version(app.latest_tag) }), app.id);
     // On the very first run (or with many at once) one summary message instead of a flood
     if (firstRun || apps.length > 3) {
       const list = apps.map((a) => `- **${a.name}** ${version(a.latest_tag)}`).join('\n');
-      const all = autoInstall ? 'Alle werden automatisch installiert.' : 'Alle können installiert werden.';
-      await this.notify('notifyNewApps', `${apps.length} Craft-Apps verfügbar`, `${list}\n\n${all}`, 5);
+      const all = msg(autoInstall ? 'notify.newApps.allAuto' : 'notify.newApps.allManual');
+      await this.notify('notifyNewApps', msg('notify.newApps.title', { count: apps.length }), msg('notify.newApps.body', { list, all }), 5);
     } else {
       for (const a of apps) {
-        const about = a.description ? `\n\n${a.description}` : '';
-        await this.notify('notifyNewApps', `Neue App: ${a.name}`, `**${a.name}** ${version(a.latest_tag)} ${action}.${about}`, 5);
+        const descriptionEn = a.description_en || a.description;
+        const about: Localized = { de: a.description ? `\n\n${a.description}` : '', en: descriptionEn ? `\n\n${descriptionEn}` : '' };
+        const text = msg(autoInstall ? 'notify.newApp.auto' : 'notify.newApp.manual', {
+          app: a.name,
+          version: version(a.latest_tag),
+          about,
+        });
+        await this.notify('notifyNewApps', msg('notify.newApp.title', { app: a.name }), text, 5);
       }
     }
   }
@@ -249,8 +268,8 @@ export class Manager {
   /** Triggers an action from the UI. */
   async request(kind: JobKind, appId: string, username: string): Promise<JobView> {
     const app = await this.app(appId);
-    if (!app) throw new NotFoundError('Unbekannte App');
-    if (kind !== 'install' && !this.isInstalled(app)) throw new ConflictError(`${app.name} ist nicht installiert`);
+    if (!app) throw new NotFoundError(msg('error.unknownApp'));
+    if (kind !== 'install' && !this.isInstalled(app)) throw new ConflictError(msg('error.notInstalled', { app: app.name }));
     return this.enqueue(kind, app.id, username);
   }
 
@@ -258,9 +277,9 @@ export class Manager {
     const active = this.activeJob(appId);
     if (active) {
       if (active.kind === kind) return this.jobView(active);
-      throw new ConflictError('Für diese App läuft gerade schon eine andere Aktion');
+      throw new ConflictError(msg('error.jobRunning'));
     }
-    const job: Job = { id: this.nextJobId++, appId, kind, state: 'queued', phase: 'Wartet', progress: null, error: null, username, finishedAt: null };
+    const job: Job = { id: this.nextJobId++, appId, kind, state: 'queued', phase: 'queued', progress: null, error: null, username, finishedAt: null };
     const cutoff = Date.now() - 15 * MINUTE;
     this.jobs = [...this.jobs.filter((j) => j.finishedAt === null || j.finishedAt > cutoff), job];
     // Everything that touches files runs one after another
@@ -284,18 +303,20 @@ export class Manager {
     };
     const app = await this.app(job.appId).catch(() => undefined);
     try {
-      if (!app) throw new Error('Unbekannte App');
+      if (!app) throw new MsgError(msg('error.unknownApp'));
       if (job.kind === 'uninstall') await this.uninstall(app, job.username);
       else await this.install(app, job, progress);
       job.state = 'done';
-      progress('Fertig', 1);
+      progress('done', 1);
     } catch (err) {
       job.state = 'failed';
-      job.error = errorText(err);
-      progress('Fehlgeschlagen', null);
-      this.log.warn(`${job.appId}: ${KIND_LABEL[job.kind]} fehlgeschlagen: ${job.error}`);
-      await this.event('error', `${KIND_LABEL[job.kind]} fehlgeschlagen: ${job.error}`, job.appId, job.username);
-      await this.notify('notifyErrors', `${app?.name ?? job.appId}: ${KIND_LABEL[job.kind]} fehlgeschlagen`, job.error, 8);
+      job.error = toMsg(err);
+      progress('failed', null);
+      const failed = msg('event.jobFailed', { job: jobLabel(job.kind), error: job.error });
+      this.log.warn(`${job.appId}: ${renderMsg('de', failed)}`);
+      await this.event('error', failed, job.appId, job.username);
+      const title = msg('notify.jobFailed.title', { app: app?.name ?? job.appId, job: jobLabel(job.kind) });
+      await this.notify('notifyErrors', title, job.error, 8);
     } finally {
       job.finishedAt = Date.now();
       await this.refreshOverview();
@@ -305,10 +326,10 @@ export class Manager {
   /** Installs the latest version ("install" also reinstalls, "update" only if newer). */
   private async install(app: AppRow, job: Job, progress: OnProgress): Promise<void> {
     const fromTag = this.isInstalled(app) ? app.installed_tag : null;
-    progress('Prüft Version', null);
+    progress('checking', null);
     await this.refreshRelease(app);
     const asset = parseAsset(app.latest_asset);
-    if (!asset || !app.latest_tag) throw new Error('Keine Web-Version verfügbar');
+    if (!asset || !app.latest_tag) throw new MsgError(msg('error.noWebVersion'));
     if (job.kind === 'update' && fromTag === app.latest_tag) return; // already up to date by now
 
     const dir = appDir(this.cfg.dataDir, app.id);
@@ -334,13 +355,14 @@ export class Manager {
 
     const to = version(app.latest_tag);
     if (fromTag && fromTag !== app.latest_tag) {
-      const by = job.username ? ` (von ${job.username})` : ' (automatisch)';
-      await this.event('updated', `Aktualisiert: ${version(fromTag)} → ${to}`, app.id, job.username);
-      await this.notify('notifyUpdated', `${app.name} aktualisiert`, `**${version(fromTag)} → ${to}**${by}`, 4);
+      const from = version(fromTag);
+      await this.event('updated', msg('event.updated', { from, to }), app.id, job.username);
+      const text = job.username ? msg('notify.updated.byUser', { from, to, user: job.username }) : msg('notify.updated.auto', { from, to });
+      await this.notify('notifyUpdated', msg('notify.updated.title', { app: app.name }), text, 4);
     } else {
-      await this.event('installed', `${fromTag ? 'Neu installiert' : 'Installiert'}: ${to}`, app.id, job.username);
+      await this.event('installed', msg(fromTag ? 'event.reinstalled' : 'event.installed', { version: to }), app.id, job.username);
       if (!job.username) {
-        await this.notify('notifyUpdated', `${app.name} installiert`, `Version **${to}** wurde automatisch installiert.`, 4);
+        await this.notify('notifyUpdated', msg('notify.installed.title', { app: app.name }), msg('notify.installed.body', { version: to }), 4);
       }
     }
   }
@@ -348,14 +370,14 @@ export class Manager {
   private async uninstall(app: AppRow, username: string | null): Promise<void> {
     await fs.rm(appDir(this.cfg.dataDir, app.id), { recursive: true, force: true });
     await this.clearInstalled(app.id);
-    await this.event('uninstalled', 'Deinstalliert', app.id, username);
+    await this.event('uninstalled', msg('event.uninstalled'), app.id, username);
   }
 
   async setAutoUpdate(appId: string, enabled: boolean, username: string): Promise<void> {
     const app = await this.app(appId);
-    if (!app) throw new NotFoundError('Unbekannte App');
+    if (!app) throw new NotFoundError(msg('error.unknownApp'));
     await this.db.query('UPDATE apps SET auto_update = ? WHERE id = ?', [Number(enabled), appId]);
-    await this.event('setting', `Automatische Updates ${enabled ? 'eingeschaltet' : 'ausgeschaltet'}`, appId, username);
+    await this.event('setting', msg(enabled ? 'event.autoUpdateOn' : 'event.autoUpdateOff'), appId, username);
     // If an update is already pending, apply it right away
     if (enabled && this.isInstalled(app) && parseAsset(app.latest_asset) && app.latest_tag !== app.installed_tag) {
       this.queueQuietly('update', appId);
@@ -400,6 +422,7 @@ export class Manager {
       id: app.id,
       name: app.name,
       description: app.description,
+      descriptionEn: app.description_en || app.description,
       color: app.color,
       hasIcon: existsSync(path.join(this.cfg.dataDir, 'icons', `${app.id}.png`)),
       websiteUrl: `https://getartcraft.com/apps/${app.id}`,
@@ -411,7 +434,7 @@ export class Manager {
       latestPublishedAt: asset ? (app.latest_published_at?.toISOString() ?? null) : null,
       latestSize: asset?.size ?? null,
       autoUpdate: Boolean(app.auto_update),
-      error: app.last_error,
+      error: parseMsg(app.last_error),
       openUrl: installed && settings.appsBaseUrl ? `${settings.appsBaseUrl}/${app.id}/` : null,
       job: job ? this.jobView(job) : null,
     };
@@ -455,42 +478,45 @@ export class Manager {
     await this.db.query('UPDATE apps SET notified_tag = ? WHERE id = ?', [app.latest_tag, app.id]);
   }
 
-  async event(kind: string, message: string, appId: string | null = null, username: string | null = null): Promise<void> {
-    await this.db.query('INSERT INTO events (app_id, kind, message, username) VALUES (?, ?, ?, ?)', [
+  /** Activity log entry: the message as JSON for the UI, plus the German text */
+  async event(kind: string, message: Msg, appId: string | null = null, username: string | null = null): Promise<void> {
+    await this.db.query('INSERT INTO events (app_id, kind, message, msg, username) VALUES (?, ?, ?, ?, ?)', [
       appId,
       kind,
-      message.slice(0, 1024),
+      renderMsg('de', message).slice(0, 1024),
+      JSON.stringify(message),
       username,
     ]);
   }
 
-  private async notify(category: NotifyCategory, title: string, message: string, priority: number): Promise<void> {
+  private async notify(category: NotifyCategory, title: Msg, message: Msg, priority: number): Promise<void> {
     const s = await this.settings.get();
     if (!s[category] || !s.gotifyUrl || !s.gotifyToken) return;
+    const note = { title: renderMsg(s.notifyLanguage, title), message: renderMsg(s.notifyLanguage, message), priority };
     try {
-      await sendGotify(s.gotifyUrl, s.gotifyToken, { title, message, priority }, s.adminBaseUrl);
+      await sendGotify(s.gotifyUrl, s.gotifyToken, note, s.adminBaseUrl);
     } catch (err) {
       this.log.warn(`Benachrichtigung fehlgeschlagen: ${errorText(err)}`);
-      await this.event('error', `Benachrichtigung fehlgeschlagen: ${errorText(err)}`);
+      await this.event('error', msg('event.notifyFailed', { error: toMsg(err) }));
     }
   }
 
   /** Logs and reports errors – each error only once, not again on every check. */
-  private async failure(app: AppRow | null, message: string): Promise<void> {
-    this.log.warn(app ? `${app.id}: ${message}` : message);
+  private async failure(app: AppRow | null, message: Msg): Promise<void> {
+    const text = renderMsg('de', message);
+    this.log.warn(app ? `${app.id}: ${text}` : text);
+    const stored = JSON.stringify(message);
     if (app) {
-      if (app.last_error === message) return;
-      app.last_error = message;
-      await this.db.query('UPDATE apps SET last_error = ?, checked_at = CURRENT_TIMESTAMP(3) WHERE id = ?', [
-        message.slice(0, 1024),
-        app.id,
-      ]);
+      if (app.last_error === stored) return;
+      app.last_error = stored;
+      await this.db.query('UPDATE apps SET last_error = ?, checked_at = CURRENT_TIMESTAMP(3) WHERE id = ?', [stored, app.id]);
     } else {
-      if (this.lastGlobalError === message) return;
-      this.lastGlobalError = message;
+      if (this.lastGlobalError === stored) return;
+      this.lastGlobalError = stored;
     }
     await this.event('error', message, app?.id ?? null);
-    await this.notify('notifyErrors', app ? `Fehler bei ${app.name}` : 'Craft Apps: Fehler', message, 8);
+    const title = app ? msg('notify.error.title', { app: app.name }) : msg('notify.error.titleGlobal');
+    await this.notify('notifyErrors', title, message, 8);
   }
 
   private async refreshOverview(): Promise<void> {
@@ -502,6 +528,7 @@ export class Manager {
           id: a.id,
           name: a.name,
           description: a.description,
+          descriptionEn: a.description_en || a.description,
           color: a.color,
           version: version(a.installed_tag),
           publishedAt: a.installed_published_at,

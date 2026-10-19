@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { AppView } from '../shared/types';
 import { formatDate, formatSize } from './format';
+import { getLang, t, tm, type UiKey } from './i18n';
 import { Toggle } from './Toggle';
 
 export type Action = 'install' | 'update' | 'uninstall';
 
-const STATUS: Record<AppView['status'], { label: string; tone: string }> = {
-  installed: { label: 'Installiert · Aktuell', tone: 'ok' },
-  'update-available': { label: 'Update verfügbar', tone: 'warn' },
-  'not-installed': { label: 'Nicht installiert', tone: 'muted' },
+const STATUS: Record<AppView['status'], { label: UiKey; tone: string }> = {
+  installed: { label: 'app.status.installed', tone: 'ok' },
+  'update-available': { label: 'app.status.updateAvailable', tone: 'warn' },
+  'not-installed': { label: 'app.status.notInstalled', tone: 'muted' },
 };
 
 function metaLine(app: AppView): string {
@@ -49,10 +50,11 @@ export function AppCard({
   const installed = app.status !== 'not-installed';
   const [head, craft] = app.name.endsWith('Craft') ? [app.name.slice(0, -5), 'Craft'] : [app.name, ''];
   const status = STATUS[app.status];
+  const description = getLang() === 'en' ? app.descriptionEn : app.description;
 
   function choose(action: Action) {
     setMenuOpen(false);
-    if (action === 'uninstall' && !window.confirm(`${app.name} deinstallieren? Die Dateien werden gelöscht.`)) return;
+    if (action === 'uninstall' && !window.confirm(t('app.confirmUninstall', { app: app.name }))) return;
     onAction(action);
   }
 
@@ -60,25 +62,25 @@ export function AppCard({
   if (app.status === 'not-installed') {
     primary = (
       <button className="btn primary" onClick={() => onAction('install')}>
-        Installieren
+        {t('app.install')}
       </button>
     );
   } else if (app.status === 'update-available') {
     primary = (
       <button className="btn primary" onClick={() => onAction('update')}>
-        Aktualisieren
+        {t('app.update')}
       </button>
     );
   } else if (app.openUrl) {
     primary = (
       <a className="btn primary" href={app.openUrl} target="_blank" rel="noreferrer">
-        Öffnen
+        {t('app.open')}
       </a>
     );
   } else {
     primary = (
-      <button className="btn primary" disabled title="Öffentliche Adresse der Apps in den Einstellungen eintragen">
-        Öffnen
+      <button className="btn primary" disabled title={t('app.openMissing')}>
+        {t('app.open')}
       </button>
     );
   }
@@ -109,16 +111,16 @@ export function AppCard({
               {head}
               <span>{craft}</span>
             </h2>
-            <p className="desc">{app.description}</p>
+            <p className="desc">{description}</p>
           </div>
         </div>
-        <span className={`chip ${status.tone}`}>{status.label}</span>
+        <span className={`chip ${status.tone}`}>{t(status.label)}</span>
         <p className="meta">{metaLine(app)}</p>
-        {job?.state === 'failed' && <p className="card-error">{job.error}</p>}
-        {app.error && <p className="card-error">{app.error}</p>}
+        {job?.state === 'failed' && <p className="card-error">{tm(job.error)}</p>}
+        {app.error && <p className="card-error">{tm(app.error)}</p>}
         {installed && (
           <Toggle className="card-toggle" checked={app.autoUpdate} onChange={onAutoUpdate}>
-            Automatisch aktualisieren
+            {t('app.autoUpdate')}
           </Toggle>
         )}
       </div>
@@ -128,7 +130,7 @@ export function AppCard({
           <div className="progress">
             <span className="progress-bar" style={{ width: `${Math.round((job.progress ?? 0) * 100)}%` }} />
             <span className="progress-label">
-              {job.phase}
+              {tm({ key: `phase.${job.phase}` })}
               {job.progress !== null && job.progress < 1 ? ` ${Math.round(job.progress * 100)} %` : ' …'}
             </span>
           </div>
@@ -136,24 +138,24 @@ export function AppCard({
           <>
             {primary}
             <div className="menu-wrap" ref={menuRef}>
-              <button className="btn square" aria-label="Weitere Aktionen" onClick={() => setMenuOpen((open) => !open)}>
+              <button className="btn square" aria-label={t('app.moreActions')} onClick={() => setMenuOpen((open) => !open)}>
                 …
               </button>
               {menuOpen && (
                 <div className="menu">
                   {app.status === 'update-available' && app.openUrl && (
                     <a href={app.openUrl} target="_blank" rel="noreferrer">
-                      Öffnen ↗
+                      {t('app.open')} ↗
                     </a>
                   )}
-                  {installed && <button onClick={() => choose('install')}>Neu installieren</button>}
+                  {installed && <button onClick={() => choose('install')}>{t('app.reinstall')}</button>}
                   {installed && (
                     <button className="danger" onClick={() => choose('uninstall')}>
-                      Deinstallieren
+                      {t('app.uninstall')}
                     </button>
                   )}
                   <a href={`${app.repoUrl}/releases`} target="_blank" rel="noreferrer">
-                    Release-Notizen ↗
+                    {t('app.releaseNotes')} ↗
                   </a>
                 </div>
               )}

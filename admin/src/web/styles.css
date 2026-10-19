@@ -133,6 +133,37 @@ select {
   white-space: nowrap;
 }
 
+/* DE | EN in the top bar and on the login page */
+.lang-switch {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.lang-switch button {
+  padding: 3px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 700 11px var(--mono);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.lang-switch button + button {
+  border-left: 1px solid var(--line);
+}
+
+.lang-switch button:hover {
+  color: var(--text);
+}
+
+.lang-switch button.active {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
 main {
   max-width: 1500px;
   margin: 0 auto;
@@ -666,6 +697,13 @@ main {
   padding: 28px;
   background: var(--surface);
   border: 1px solid var(--line);
+}
+
+.login-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .login-box h1 {

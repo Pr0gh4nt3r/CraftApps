@@ -1,4 +1,5 @@
-import { USER_AGENT } from './util.js';
+import { msg } from '../shared/messages.js';
+import { MsgError, USER_AGENT } from './util.js';
 
 export interface Repo {
   name: string;
@@ -25,7 +26,7 @@ export type LatestRelease =
   | { kind: 'none' }
   | { kind: 'release'; release: Release; etag: string | null };
 
-export class GitHubLimitError extends Error {}
+export class GitHubLimitError extends MsgError {}
 
 /** Lean client for the public GitHub API (without a token: 60 requests per hour). */
 export class GitHub {
@@ -52,7 +53,7 @@ export class GitHub {
     }
     if ((res.status === 403 || res.status === 429) && remaining === '0') {
       const at = this.resetAt?.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-      throw new GitHubLimitError(`GitHub-API-Limit erreicht, wieder frei ab ${at} Uhr`);
+      throw new GitHubLimitError(msg('error.githubLimit', { time: at ?? '?' }));
     }
     return res;
   }
@@ -61,7 +62,7 @@ export class GitHub {
     const repos: Repo[] = [];
     for (let page = 1; ; page++) {
       const res = await this.request(`/users/${owner}/repos?per_page=100&page=${page}`);
-      if (!res.ok) throw new Error(`GitHub-API antwortet ${res.status} beim Auflisten der Repos`);
+      if (!res.ok) throw new MsgError(msg('error.githubRepos', { status: res.status }));
       const batch = (await res.json()) as Repo[];
       repos.push(...batch);
       if (batch.length < 100) return repos;
@@ -73,7 +74,7 @@ export class GitHub {
     const res = await this.request(`/repos/${owner}/${repo}/releases/latest`, etag);
     if (res.status === 304) return { kind: 'not-modified' };
     if (res.status === 404) return { kind: 'none' }; // Repo without any releases, e.g. AniCraft
-    if (!res.ok) throw new Error(`GitHub-API antwortet ${res.status} für ${repo}`);
+    if (!res.ok) throw new MsgError(msg('error.githubRelease', { status: res.status, repo }));
     return { kind: 'release', release: (await res.json()) as Release, etag: res.headers.get('etag') };
   }
 }

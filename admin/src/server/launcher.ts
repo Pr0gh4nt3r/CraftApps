@@ -6,7 +6,7 @@ import type { Repo } from './github.js';
 import type { SettingsStore } from './settings.js';
 import { APP_ID, DAY, USER_AGENT, errorText } from './util.js';
 
-// storytold maintains order, names, brand colors, German short descriptions and icons
+// storytold maintains order, names, brand colors, English and German short descriptions and icons
 // for the Craft Launcher – the admin takes them from there so it looks like the launcher.
 const LAUNCHER = 'https://raw.githubusercontent.com/storytold/craft-launcher/HEAD/';
 // An entry in catalog.rs: app("photocraft", "PhotoCraft", "Image editing",
@@ -15,7 +15,7 @@ const CATALOG_ENTRY =
   /app\(\s*"(?<id>[a-z0-9]+)",\s*"(?<name>[^"]+)",\s*"[^"]*",\s*[\w:]+,\s*\[\[0x(?<r>\w\w),\s*0x(?<g>\w\w),\s*0x(?<b>\w\w)\]/g;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
-export type LauncherInfo = Record<string, { name?: string; color?: string; desc?: string }>;
+export type LauncherInfo = Record<string, { name?: string; color?: string; desc?: string; descEn?: string }>;
 
 async function fetchText(url: string): Promise<string> {
   const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(30_000) });
@@ -24,7 +24,7 @@ async function fetchText(url: string): Promise<string> {
 }
 
 /**
- * Names, colors and German short descriptions in launcher order. Purely cosmetic, hence
+ * Names, colors and English and German short descriptions in launcher order. Purely cosmetic, hence
  * best effort: the launcher keeps its app list as Rust code. If it is unreachable or its
  * format changes, the last known state applies per field.
  */
@@ -46,10 +46,13 @@ export async function launcherInfo(settings: SettingsStore, log: FastifyBaseLogg
     const g = m.groups!;
     fresh[g.id] = { name: g.name, color: `#${g.r}${g.g}${g.b}` };
   }
-  // Lines like "figcraft<TAB>Interface design and prototyping<TAB>Interface-Design und Prototyping"
+  // Lines like "figcraft<TAB>Interface design and prototyping<TAB>Interface-Design und Prototyping":
+  // the English source text, then the German translation
   for (const row of taglines.split('\n')) {
     const cols = row.split('\t');
-    if (cols.length === 3 && APP_ID.test(cols[0])) (fresh[cols[0]] ??= {}).desc = cols[2].trim();
+    if (cols.length === 3 && APP_ID.test(cols[0])) {
+      Object.assign((fresh[cols[0]] ??= {}), { descEn: cols[1].trim(), desc: cols[2].trim() });
+    }
   }
   const merged: LauncherInfo = {};
   for (const id of new Set([...Object.keys(fresh), ...Object.keys(known)])) merged[id] = { ...known[id], ...fresh[id] };
@@ -57,8 +60,12 @@ export async function launcherInfo(settings: SettingsStore, log: FastifyBaseLogg
   return merged;
 }
 
-/** Name, description and color: from the launcher, otherwise derived from GitHub. */
-export function appMeta(id: string, repo: Repo, launcher: LauncherInfo): { name: string; description: string; color: string } {
+/** Name, descriptions and color: from the launcher, otherwise derived from GitHub. */
+export function appMeta(
+  id: string,
+  repo: Repo,
+  launcher: LauncherInfo,
+): { name: string; description: string; descriptionEn: string; color: string } {
   let about = repo.description ?? '';
   let name: string;
   const prefix = /^(\w+Craft):\s*/.exec(about); // "AniCraft: An open-source 2D animation editor ..."
@@ -75,6 +82,7 @@ export function appMeta(id: string, repo: Repo, launcher: LauncherInfo): { name:
   return {
     name: info.name ?? name,
     description: (info.desc ?? about).slice(0, 512),
+    descriptionEn: (info.descEn ?? about).slice(0, 512),
     color: info.color ?? `hsl(${hue}, 65%, 55%)`,
   };
 }

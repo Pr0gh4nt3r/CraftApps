@@ -1,21 +1,17 @@
-const date = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'short', year: 'numeric' });
-const dateTime = new Intl.DateTimeFormat('de-DE', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
-const relative = new Intl.RelativeTimeFormat('de-DE', { numeric: 'auto' });
+import { getLocale } from './i18n';
 
-export const formatDate = (iso: string | null) => (iso ? date.format(new Date(iso)) : '');
-export const formatDateTime = (iso: string | null) => (iso ? dateTime.format(new Date(iso)) : '–');
+const DATE: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+const DATE_TIME: Intl.DateTimeFormatOptions = { ...DATE, hour: '2-digit', minute: '2-digit' };
+
+export const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(getLocale(), DATE) : '');
+export const formatDateTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString(getLocale(), DATE_TIME) : '–');
 export const formatSize = (bytes: number | null) =>
-  bytes === null ? '' : `${Math.max(1, Math.round(bytes / 1e6)).toLocaleString('de-DE')} MB`;
+  bytes === null ? '' : `${Math.max(1, Math.round(bytes / 1e6)).toLocaleString(getLocale())} MB`;
 
-/** German relative time, e.g. "in 5 Stunden", "vor 3 Minuten" */
+/** Relative time in the UI's language, e.g. "in 5 Stunden" or "3 minutes ago" */
 export function formatRelative(iso: string | null): string {
   if (!iso) return '–';
+  const relative = new Intl.RelativeTimeFormat(getLocale(), { numeric: 'auto' });
   const minutes = Math.round((new Date(iso).getTime() - Date.now()) / 60_000);
   if (Math.abs(minutes) < 60) return relative.format(minutes, 'minute');
   const hours = Math.round(minutes / 60);

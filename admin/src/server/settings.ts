@@ -1,4 +1,5 @@
 import type { Pool, RowDataPacket } from 'mysql2/promise';
+import type { Lang } from '../shared/messages.js';
 
 export interface Settings {
   checkIntervalMinutes: number;
@@ -14,6 +15,8 @@ export interface Settings {
   notifyUpdateAvailable: boolean;
   notifyUpdated: boolean;
   notifyErrors: boolean;
+  /** Language of the Gotify notifications – the UI picks its own per browser */
+  notifyLanguage: Lang;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -28,6 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyUpdateAvailable: true,
   notifyUpdated: true,
   notifyErrors: true,
+  notifyLanguage: 'de',
 };
 
 const UPSERT = 'INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)';

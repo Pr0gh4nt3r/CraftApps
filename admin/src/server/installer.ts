@@ -7,7 +7,9 @@ import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 import { createGzip } from 'node:zlib';
 import yauzl from 'yauzl';
-import { APP_ID, USER_AGENT } from './util.js';
+import { msg } from '../shared/messages.js';
+import type { JobPhase } from '../shared/types.js';
+import { APP_ID, MsgError, USER_AGENT } from './util.js';
 
 export interface Asset {
   name: string;
@@ -16,34 +18,34 @@ export interface Asset {
   url: string;
 }
 
-export type OnProgress = (phase: string, fraction: number | null) => void;
+export type OnProgress = (phase: JobPhase, fraction: number | null) => void;
 
 /** Downloads a release asset and checks size and SHA-256 (GitHub provides the digest). */
 export async function download(asset: Asset, dest: string, onProgress: OnProgress): Promise<void> {
   const res = await fetch(asset.url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(30 * 60_000) });
-  if (!res.ok || !res.body) throw new Error(`Download von ${asset.name} fehlgeschlagen (HTTP ${res.status})`);
+  if (!res.ok || !res.body) throw new MsgError(msg('error.downloadFailed', { name: asset.name, status: res.status }));
   const hash = createHash('sha256');
   let received = 0;
   const meter = new Transform({
     transform(chunk: Buffer, _encoding, done) {
       hash.update(chunk);
       received += chunk.length;
-      onProgress('Lädt herunter', asset.size ? received / asset.size : null);
+      onProgress('downloading', asset.size ? received / asset.size : null);
       done(null, chunk);
     },
   });
   await pipeline(Readable.fromWeb(res.body as unknown as WebReadableStream), meter, createWriteStream(dest));
-  if (received !== asset.size) throw new Error(`${asset.name}: Download unvollständig`);
+  if (received !== asset.size) throw new MsgError(msg('error.downloadIncomplete', { name: asset.name }));
   const [algorithm, expected] = (asset.digest ?? '').split(':');
   if (algorithm === 'sha256' && hash.digest('hex') !== expected?.toLowerCase()) {
-    throw new Error(`${asset.name}: SHA-256 stimmt nicht, Datei verworfen`);
+    throw new MsgError(msg('error.checksum', { name: asset.name }));
   }
 }
 
 function openZip(file: string): Promise<yauzl.ZipFile> {
   return new Promise((resolve, reject) =>
     yauzl.open(file, { lazyEntries: true, autoClose: false, strictFileNames: true }, (err, zip) =>
-      err || !zip ? reject(err ?? new Error('Zip nicht lesbar')) : resolve(zip),
+      err || !zip ? reject(err ?? new MsgError(msg('error.zipUnreadable'))) : resolve(zip),
     ),
   );
 }
@@ -64,7 +66,7 @@ function listEntries(zip: yauzl.ZipFile): Promise<yauzl.Entry[]> {
 function openEntry(zip: yauzl.ZipFile, entry: yauzl.Entry): Promise<Readable> {
   return new Promise((resolve, reject) =>
     zip.openReadStream(entry, (err, stream) =>
-      err || !stream ? reject(err ?? new Error(`${entry.fileName} nicht lesbar`)) : resolve(stream),
+      err || !stream ? reject(err ?? new MsgError(msg('error.entryUnreadable', { file: entry.fileName }))) : resolve(stream),
     ),
   );
 }
@@ -79,7 +81,7 @@ async function gzipFile(src: string, dest: string): Promise<void> {
 }
 
 export function appDir(dataDir: string, id: string): string {
-  if (!APP_ID.test(id)) throw new Error(`Ungültige App-ID: ${id}`);
+  if (!APP_ID.test(id)) throw new MsgError(msg('error.invalidAppId', { id }));
   return path.join(dataDir, id);
 }
 
@@ -103,15 +105,15 @@ export async function deploy(dir: string, zipPath: string, onProgress: OnProgres
     for (const entry of entries) {
       const rel = entry.fileName.slice(prefix.length);
       if (rel.includes('\\') || rel.split('/').some((part) => part === '' || part === '.' || part === '..')) {
-        throw new Error(`Ungültiger Pfad im Zip: ${entry.fileName}`);
+        throw new MsgError(msg('error.invalidZipPath', { path: entry.fileName }));
       }
       files.set(rel, entry);
     }
-    if (!files.has('index.html')) throw new Error('Kein index.html im Zip');
+    if (!files.has('index.html')) throw new MsgError(msg('error.noIndex'));
 
     let done = 0;
     for (const [rel, entry] of files) {
-      onProgress('Entpackt', done++ / files.size);
+      onProgress('extracting', done++ / files.size);
       const target = path.join(dir, ...rel.split('/'));
       await fs.mkdir(path.dirname(target), { recursive: true });
       const tmp = hidden(target);
@@ -124,7 +126,7 @@ export async function deploy(dir: string, zipPath: string, onProgress: OnProgres
         await gzipFile(tmp, hidden(gzTarget));
       }
     }
-    onProgress('Schaltet um', null);
+    onProgress('switching', null);
     // index.html (and index.html.gz/.br, if any) last – from then on the new version is live
     const isIndex = (rel: string) => rel.startsWith('index.html');
     staged.sort((a, b) => Number(isIndex(a.rel)) - Number(isIndex(b.rel)));

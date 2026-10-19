@@ -10,7 +10,7 @@ the Craft Launcher:
   overview at `/`.
 - **The admin UI** (Node.js/TypeScript) lists all available apps, installs and removes
   them, applies updates automatically or at the push of a button and reports everything
-  via Gotify. Its user interface is in German.
+  via Gotify. Its user interface is in English and German.
 
 ## Contents
 
@@ -37,8 +37,9 @@ CraftApps\
 │   ├── public\                         Tab icons: admin UI, overview\ for the start page
 │   └── src\
 │       ├── server\                     API, login, installer, GitHub, Gotify
-│       ├── shared\                     Types shared by server and frontend
-│       └── web\                        Frontend
+│       ├── shared\                     Types and messages (German/English) for server and frontend
+│       └── web\                        Frontend, its texts in German and English in locales\
+├── dev.sh                              Starts MySQL, admin UI and start page for a local test
 ├── docker-compose.dev.yml              MySQL for local development
 ├── docker-compose.yml                  Stack for Portainer: nginx and admin UI
 ├── docs\images\                        Screenshots for this README
@@ -129,8 +130,8 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 
 ## What the admin UI can do
 
-- **Apps** in a grid like the Craft Launcher – with its icons, brand colors and German
-  texts: install, update, reinstall, uninstall, toggle automatic updates per app.
+- **Apps** in a grid like the Craft Launcher – with its icons, brand colors and short
+  descriptions: install, update, reinstall, uninstall, toggle automatic updates per app.
 - **New apps** it finds by itself: all storytold repos ending in `craft` whose latest
   release has a `<app>-web-*.zip`. New apps are reported and, if you like, installed
   automatically.
@@ -140,9 +141,31 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 - **Login** with users in MySQL, activity log, settings (check interval, Gotify,
   addresses) and user management.
 - **Push notifications** via Gotify, see [Notifications](#notifications).
+- **English and German:** the admin UI follows the browser's language and has a switch in
+  the top bar, the start page at `/` likewise. The Gotify notifications use the language set
+  in the settings.
 
 Data: users, settings and history live in MySQL, the apps in the volume `craftapps_data`,
 which nginx mounts read-only.
+
+### Screenshots
+
+**Apps:** one card per app – here installed, with an update waiting (automatic updates
+turned off) and not installed yet:
+
+![Admin UI: apps with their state, version and automatic updates](docs/images/admin-apps-en.png)
+
+**Activity:** what happened, automatically or by which user:
+
+![Admin UI: activity log with installations, an available update and changed settings](docs/images/admin-activity-en.png)
+
+**Settings:** check interval, addresses and Gotify:
+
+![Admin UI: settings for updates, addresses and notifications via Gotify](docs/images/admin-settings-en.png)
+
+**Start page** at `/`: the installed apps, served by nginx:
+
+![Start page: the installed apps with version and release date](docs/images/start-page-en.png)
 
 ## Setup
 
@@ -262,15 +285,15 @@ log says "Benutzer admin angelegt" (user admin created). If not, see
 ### 4. First login
 
 Open `http://<host>:8081` and log in with `admin` and the password from
-`CRAFTAPPS_ADMIN_PASSWORD`. Under **Einstellungen** (settings), enter:
+`CRAFTAPPS_ADMIN_PASSWORD`. Under **Settings**, enter:
 
-| Setting                                                       | Without reverse proxy | With reverse proxy       | Used for                            |
-| ------------------------------------------------------------- | --------------------- | ------------------------ | ----------------------------------- |
-| **Öffentliche Adresse der Apps** (public address of the apps) | `http://<host>:8080`  | `https://<apps-domain>`  | the "Öffnen" (open) buttons         |
-| **Adresse dieser Verwaltung** (address of this admin UI)      | `http://<host>:8081`  | `https://<admin-domain>` | opens when a notification is tapped |
+| Setting                        | Without reverse proxy | With reverse proxy       | Used for                            |
+| ------------------------------ | --------------------- | ------------------------ | ----------------------------------- |
+| **Public address of the apps** | `http://<host>:8080`  | `https://<apps-domain>`  | the **Open** buttons                |
+| **Address of this admin UI**   | `http://<host>:8081`  | `https://<admin-domain>` | opens when a notification is tapped |
 
-Then enter **Gotify-Server** and **App-Token** (see [Gotify](#gotify)) and click
-**Testnachricht senden** (send test message).
+Then enter **Gotify server** and **App token** (see [Gotify](#gotify)) and click
+**Send test message**.
 
 About ten seconds after the start, the admin UI queries GitHub for the first time and then
 shows all available apps. Finally, install an app and open it at `http://<host>:8080`.
@@ -442,8 +465,8 @@ and write access. Without **Workflows**, GitHub rejects every push that changes
 | Update applied (automatically or by button), new app installed automatically   | 4               |
 | Error – each error once, not again on every check                              | 8               |
 
-Each category can be turned off in the settings. Tapping a notification opens the admin
-UI.
+Each category can be turned off in the settings, where you also choose the language of the
+notifications: German or English. Tapping a notification opens the admin UI.
 
 ## Good to know
 
@@ -451,7 +474,7 @@ UI.
   per hour; for check intervals below about 20 minutes set `GITHUB_TOKEN` in
   `docker-compose.yml`.
 - Login: at most 10 attempts per 15 minutes and IP address.
-- The admin UI takes order, names, colors, German texts and icons from the
+- The admin UI takes order, names, colors, English and German texts and icons from the
   [Craft Launcher](https://github.com/storytold/craft-launcher). If it is unreachable, the
   last known state applies.
 - The admin container runs as user 1000 with a read-only file system and without Linux
@@ -466,6 +489,27 @@ system (not under `/mnt/c`), otherwise Vite doesn't reliably notice changes. Doc
 there either directly in the distribution or via Docker Desktop with WSL integration
 enabled for the distribution, but not both.
 
+One command in the main folder starts everything for a local test, **Ctrl+C** stops it all
+again:
+
+```bash
+./dev.sh
+```
+
+- **Admin UI** at `http://localhost:5173`: Vite shows changes to the frontend right away,
+  the server restarts on changes.
+- **Start page** at `http://localhost:8080`: nginx with `nginx.conf` as on the Pi, serving
+  `admin/data`. Another port: `START_PAGE_PORT=8090 ./dev.sh`.
+- Beforehand the script starts MySQL from `docker-compose.dev.yml` – and at the end stops it
+  only if it started it. It runs `npm ci` if the dependencies are missing or
+  `package-lock.json` changed, and creates `admin/.env` from `.env.example` if it's missing.
+
+Log in with `admin` and the password from `admin/.env`. Installed apps end up in
+`admin/data`. So that the **Open** buttons lead to the local start page, enter
+`http://localhost:8080` as **Public address of the apps** under **Settings**.
+
+The same step by step:
+
 ```bash
 docker compose -f docker-compose.dev.yml up -d   # MySQL for development
 cd admin
@@ -473,13 +517,18 @@ npm ci
 cp .env.example .env                       # once; matches docker-compose.dev.yml
 npm run dev:server                         # server, restarts on changes
 npm run dev:web                            # second terminal: UI at http://localhost:5173
+# third terminal, in the main folder: start page at http://localhost:8080
+docker run --rm -p 127.0.0.1:8080:80 \
+  -v "$PWD/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+  -v "$PWD/admin/data:/srv/craftapps:ro" nginx:alpine
 ```
 
-Log in with `admin` and the password from `.env`. Installed apps end up in `admin/data`.
-
-**Debugging in VS Code:** under **Run and Debug**, start "Server und Oberfläche" (server
-and frontend). That starts both; breakpoints work directly in the server's TypeScript.
-Debug the frontend with the browser's developer tools.
+**Debugging in VS Code:** open the `CraftApps` folder itself, not a folder above it –
+VS Code only reads the launch configurations from the opened folder's `.vscode`. Then start
+"Server und Oberfläche" (server and frontend) under **Run and Debug** instead of
+`./dev.sh`. That starts both, but not MySQL and the start page – see the steps above.
+Breakpoints work directly in the server's TypeScript. Debug the frontend with the browser's
+developer tools.
 
 **Checks** – must pass without errors before every commit:
 
@@ -874,7 +923,8 @@ on the go as well, add a proxy rule in Zoraxy for a domain of your own with the 
 
 ## Troubleshooting
 
-Sorted by where the problem shows up. The admin UI's messages are in German.
+Sorted by where the problem shows up. The admin UI shows its messages in its language, the
+log in German.
 
 ### In Portainer
 
@@ -905,12 +955,12 @@ Sorted by where the problem shows up. The admin UI's messages are in German.
 
 ### Admin UI
 
-| Symptom                                                                                                                                                  | Cause                                                                                          | Fix                                                                                                                                                                                   |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Log: `MySQL noch nicht erreichbar (connect ECONNREFUSED …)`, `(getaddrinfo ENOTFOUND …)` or `(connect ETIMEDOUT)`; after a minute the container restarts | `CRAFTAPPS_DB_HOST` is wrong, or MySQL isn't reachable from the container                      | [step 2](#2-make-the-database-reachable)                                                                                                                                              |
-| Log: `MySQL noch nicht erreichbar (Access denied for user 'craftapps'@…)`                                                                                | wrong password, or the user doesn't exist                                                      | [step 1](#1-create-the-database), `CRAFTAPPS_DB_PASSWORD`                                                                                                                             |
-| Login with the password from `CRAFTAPPS_ADMIN_PASSWORD`: `Benutzername oder Passwort falsch`                                                             | `admin` was created with an earlier password; the variable only applies while there is no user | the earlier password, or another user creates a new account under **Benutzer**. Without other users: `DELETE FROM users;` in the database `craftapps`, then restart `CraftApps-Admin` |
-| `Zu viele Versuche – bitte in ein paar Minuten noch einmal`                                                                                              | 10 failed logins within 15 minutes from this IP address                                        | wait 15 minutes                                                                                                                                                                       |
-| `Keine Schreibrechte auf /data – …`                                                                                                                      | the volume `craftapps_data` doesn't belong to user 1000                                        | `chown`, see [Good to know](#good-to-know)                                                                                                                                            |
-| `GitHub-API-Limit erreicht, wieder frei ab … Uhr`                                                                                                        | more than 60 requests per hour to GitHub                                                       | a longer check interval or `GITHUB_TOKEN`, see [Good to know](#good-to-know)                                                                                                          |
-| Apps run, but without WebGPU or clipboard                                                                                                                | no secure context via `http://`                                                                | HTTPS, see [step 5](#5-https-via-reverse-proxy-optional)                                                                                                                              |
+| Symptom                                                                                                                                                  | Cause                                                                                          | Fix                                                                                                                                                                                |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Log: `MySQL noch nicht erreichbar (connect ECONNREFUSED …)`, `(getaddrinfo ENOTFOUND …)` or `(connect ETIMEDOUT)`; after a minute the container restarts | `CRAFTAPPS_DB_HOST` is wrong, or MySQL isn't reachable from the container                      | [step 2](#2-make-the-database-reachable)                                                                                                                                           |
+| Log: `MySQL noch nicht erreichbar (Access denied for user 'craftapps'@…)`                                                                                | wrong password, or the user doesn't exist                                                      | [step 1](#1-create-the-database), `CRAFTAPPS_DB_PASSWORD`                                                                                                                          |
+| Login with the password from `CRAFTAPPS_ADMIN_PASSWORD`: `Wrong username or password`                                                                    | `admin` was created with an earlier password; the variable only applies while there is no user | the earlier password, or another user creates a new account under **Users**. Without other users: `DELETE FROM users;` in the database `craftapps`, then restart `CraftApps-Admin` |
+| `Too many attempts – please try again in a few minutes`                                                                                                  | 10 failed logins within 15 minutes from this IP address                                        | wait 15 minutes                                                                                                                                                                    |
+| `No write access to /data – …`                                                                                                                           | the volume `craftapps_data` doesn't belong to user 1000                                        | `chown`, see [Good to know](#good-to-know)                                                                                                                                         |
+| `GitHub API limit reached, available again at …`                                                                                                         | more than 60 requests per hour to GitHub                                                       | a longer check interval or `GITHUB_TOKEN`, see [Good to know](#good-to-know)                                                                                                       |
+| Apps run, but without WebGPU or clipboard                                                                                                                | no secure context via `http://`                                                                | HTTPS, see [step 5](#5-https-via-reverse-proxy-optional)                                                                                                                           |
