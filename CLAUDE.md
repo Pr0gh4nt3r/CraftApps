@@ -30,6 +30,12 @@ together – keep them up to date with every change. Screenshots in `docs/images
 example values such as `gitea.example.com` and the account `user`, never real domains or
 accounts.
 
+## Styles
+
+The admin UI's styles are SCSS in `admin/src/web/styles.scss`, compiled by Vite with `sass`.
+Colors stay CSS custom properties – React sets the app color `--c` at runtime. The start
+page's CSS sits inline in the HTML that `admin/src/server/overview.ts` generates.
+
 ## Icons
 
 `admin/public/icon.svg` (admin UI) and `admin/public/overview/icon.svg` (start page; the

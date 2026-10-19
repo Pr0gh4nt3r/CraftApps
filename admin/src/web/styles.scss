@@ -1,4 +1,20 @@
-/* Dark design in the style of the Craft Launcher */
+// Dark design in the style of the Craft Launcher
+// The colors stay CSS custom properties: React sets the app color (--c) at runtime
+
+// Below this width the top bar wraps and the tabs get a row of their own
+$narrow: 720px;
+
+// Small uppercase monospace labels: buttons, chips, table headings, links in the cards
+@mixin label($size, $spacing, $line-height: null) {
+  @if $line-height {
+    font: 700 #{$size}/#{$line-height} var(--mono);
+  } @else {
+    font: 700 $size var(--mono);
+  }
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+}
+
 :root {
   color-scheme: dark;
   --bg: #0d0f13;
@@ -68,7 +84,7 @@ select {
   text-align: right;
 }
 
-/* ---------------------------------------------------------- Header */
+// ---------------------------------------------------------- Header
 
 .topbar {
   position: sticky;
@@ -89,18 +105,16 @@ select {
   font-weight: 800;
   letter-spacing: -0.01em;
   white-space: nowrap;
-}
 
-.brand span {
-  color: var(--primary);
-}
+  span {
+    color: var(--primary);
+  }
 
-.brand small {
-  margin-left: 10px;
-  color: var(--muted);
-  font: 700 11px var(--mono);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  small {
+    margin-left: 10px;
+    color: var(--muted);
+    @include label(11px, 0.12em);
+  }
 }
 
 .tabs {
@@ -109,19 +123,19 @@ select {
   gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
-}
 
-.tabs a {
-  padding: 6px 12px;
-  color: var(--muted);
-  text-decoration: none;
-  white-space: nowrap;
-}
+  a {
+    padding: 6px 12px;
+    color: var(--muted);
+    text-decoration: none;
+    white-space: nowrap;
 
-.tabs a:hover,
-.tabs a.active {
-  color: var(--text);
-  background: var(--surface-2);
+    &:hover,
+    &.active {
+      color: var(--text);
+      background: var(--surface-2);
+    }
+  }
 }
 
 .user {
@@ -133,35 +147,35 @@ select {
   white-space: nowrap;
 }
 
-/* DE | EN in the top bar and on the login page */
+// DE | EN in the top bar and on the login page
 .lang-switch {
   display: inline-flex;
   border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;
-}
 
-.lang-switch button {
-  padding: 3px 8px;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font: 700 11px var(--mono);
-  letter-spacing: 0.08em;
-  cursor: pointer;
-}
+  button {
+    padding: 3px 8px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: 700 11px var(--mono);
+    letter-spacing: 0.08em;
+    cursor: pointer;
 
-.lang-switch button + button {
-  border-left: 1px solid var(--line);
-}
+    & + button {
+      border-left: 1px solid var(--line);
+    }
 
-.lang-switch button:hover {
-  color: var(--text);
-}
+    &:hover {
+      color: var(--text);
+    }
 
-.lang-switch button.active {
-  background: var(--surface-2);
-  color: var(--text);
+    &.active {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+  }
 }
 
 main {
@@ -170,7 +184,7 @@ main {
   padding: 28px 24px 64px;
 }
 
-/* ---------------------------------------------------------- Buttons */
+// ---------------------------------------------------------- Buttons
 
 .btn {
   display: inline-flex;
@@ -181,36 +195,34 @@ main {
   border: 1px solid var(--line-strong);
   background: transparent;
   color: var(--text);
-  font: 700 12px var(--mono);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  @include label(12px, 0.12em);
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
-}
 
-.btn:hover:not(:disabled) {
-  border-color: var(--text);
-}
+  &:hover:not(:disabled) {
+    border-color: var(--text);
+  }
 
-.btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 
-.btn.primary {
-  flex: 1;
-}
+  &.primary {
+    flex: 1;
+  }
 
-.btn.narrow {
-  flex: none;
-  min-width: 160px;
-}
+  &.narrow {
+    flex: none;
+    min-width: 160px;
+  }
 
-.btn.square {
-  width: 36px;
-  padding: 0;
-  letter-spacing: 0;
+  &.square {
+    width: 36px;
+    padding: 0;
+    letter-spacing: 0;
+  }
 }
 
 .link {
@@ -220,17 +232,17 @@ main {
   color: var(--muted);
   text-decoration: underline;
   cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &.danger {
+    color: var(--danger);
+  }
 }
 
-.link:hover {
-  color: var(--text);
-}
-
-.link.danger {
-  color: var(--danger);
-}
-
-/* ---------------------------------------------------------- Page header & notices */
+// ---------------------------------------------------------- Page header & notices
 
 .toolbar {
   display: flex;
@@ -239,11 +251,11 @@ main {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 20px;
-}
 
-.toolbar h1 {
-  font-size: 24px;
-  letter-spacing: -0.01em;
+  h1 {
+    font-size: 24px;
+    letter-spacing: -0.01em;
+  }
 }
 
 .toolbar-side {
@@ -259,21 +271,21 @@ main {
   border: 1px solid var(--line);
   background: var(--surface);
   font-size: 14px;
+
+  &.warn {
+    border-color: rgba(245, 165, 36, 0.5);
+    color: var(--warn);
+  }
+
+  &.error {
+    border-color: rgba(255, 107, 107, 0.5);
+    color: var(--danger);
+  }
 }
 
-.banner.warn {
-  border-color: rgba(245, 165, 36, 0.5);
-  color: var(--warn);
-}
+// ---------------------------------------------------------- App grid like in the launcher
 
-.banner.error {
-  border-color: rgba(255, 107, 107, 0.5);
-  color: var(--danger);
-}
-
-/* ---------------------------------------------------------- App grid like in the launcher */
-
-/* Hairlines via borders instead of background so empty grid cells stay empty */
+// Hairlines via borders instead of background so empty grid cells stay empty
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
@@ -307,18 +319,16 @@ main {
 .card-links {
   display: flex;
   gap: 16px;
-}
 
-.card-links a {
-  color: var(--muted);
-  font: 700 11px var(--mono);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  text-decoration: none;
-}
+  a {
+    color: var(--muted);
+    @include label(11px, 0.12em);
+    text-decoration: none;
 
-.card-links a:hover {
-  color: var(--text);
+    &:hover {
+      color: var(--text);
+    }
+  }
 }
 
 .card-body {
@@ -342,24 +352,24 @@ main {
   width: 56px;
   height: 56px;
   border-radius: 12px;
-}
 
-.icon.placeholder {
-  display: grid;
-  place-items: center;
-  background: var(--c);
-  color: #0b0d10;
-  font-size: 24px;
-  font-weight: 800;
+  &.placeholder {
+    display: grid;
+    place-items: center;
+    background: var(--c);
+    color: #0b0d10;
+    font-size: 24px;
+    font-weight: 800;
+  }
 }
 
 .card h2 {
   font-size: 22px;
   letter-spacing: -0.01em;
-}
 
-.card h2 span {
-  color: var(--c);
+  span {
+    color: var(--c);
+  }
 }
 
 .desc {
@@ -370,21 +380,19 @@ main {
 .chip {
   padding: 3px 6px;
   border: 1px solid currentColor;
-  font: 700 10.5px/1.3 var(--mono);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
+  @include label(10.5px, 0.1em, 1.3);
 
-.chip.ok {
-  color: var(--ok);
-}
+  &.ok {
+    color: var(--ok);
+  }
 
-.chip.warn {
-  color: var(--warn);
-}
+  &.warn {
+    color: var(--warn);
+  }
 
-.chip.muted {
-  color: var(--muted);
+  &.muted {
+    color: var(--muted);
+  }
 }
 
 .meta {
@@ -407,7 +415,7 @@ main {
   margin: 2px 0 0;
 }
 
-/* Progress of a running action */
+// Progress of a running action
 .progress {
   position: relative;
   flex: 1;
@@ -429,12 +437,10 @@ main {
   align-items: center;
   justify-content: center;
   height: 100%;
-  font: 700 12px var(--mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  @include label(12px, 0.08em);
 }
 
-/* "…" menu */
+// "…" menu
 .menu-wrap {
   position: relative;
 }
@@ -451,29 +457,28 @@ main {
   background: var(--surface-2);
   border: 1px solid var(--line-strong);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  a,
+  button {
+    padding: 8px 10px;
+    border: none;
+    background: none;
+    font-size: 14px;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--line);
+    }
+  }
+
+  .danger {
+    color: var(--danger);
+  }
 }
 
-.menu a,
-.menu button {
-  padding: 8px 10px;
-  border: none;
-  background: none;
-  font-size: 14px;
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.menu a:hover,
-.menu button:hover {
-  background: var(--line);
-}
-
-.menu .danger {
-  color: var(--danger);
-}
-
-/* ---------------------------------------------------------- Toggles */
+// ---------------------------------------------------------- Toggles
 
 .toggle {
   display: flex;
@@ -484,13 +489,13 @@ main {
   font-size: 14px;
   cursor: pointer;
   user-select: none;
-}
 
-.toggle input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
+  input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
 }
 
 .switch {
@@ -501,35 +506,38 @@ main {
   border-radius: 10px;
   background: var(--line-strong);
   transition: background 0.15s;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--text);
+    transition: transform 0.15s;
+  }
 }
 
-.switch::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--text);
-  transition: transform 0.15s;
+// The hidden checkbox drives the switch right after it
+.toggle input {
+  &:checked + .switch {
+    background: var(--ok);
+
+    &::after {
+      transform: translateX(14px);
+      background: #0b0d10;
+    }
+  }
+
+  &:focus-visible + .switch {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
 }
 
-.toggle input:checked + .switch {
-  background: var(--ok);
-}
-
-.toggle input:checked + .switch::after {
-  transform: translateX(14px);
-  background: #0b0d10;
-}
-
-.toggle input:focus-visible + .switch {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-/* ---------------------------------------------------------- Forms */
+// ---------------------------------------------------------- Forms
 
 .panel {
   max-width: 760px;
@@ -537,11 +545,11 @@ main {
   padding: 20px;
   background: var(--surface);
   border: 1px solid var(--line);
-}
 
-.panel h2 {
-  margin-bottom: 14px;
-  font-size: 16px;
+  h2 {
+    margin-bottom: 14px;
+    font-size: 16px;
+  }
 }
 
 .field {
@@ -550,21 +558,20 @@ main {
   gap: 6px;
   margin-bottom: 14px;
   font-size: 14px;
-}
 
-.field input,
-.field select {
-  height: 38px;
-  padding: 0 10px;
-  border: 1px solid var(--line-strong);
-  border-radius: 0;
-  background: var(--bg);
-}
+  input,
+  select {
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 0;
+    background: var(--bg);
 
-.field input:focus,
-.field select:focus {
-  outline: none;
-  border-color: var(--primary);
+    &:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+  }
 }
 
 .hint {
@@ -604,19 +611,19 @@ main {
   align-items: flex-end;
   gap: 12px;
   margin-top: 16px;
+
+  .field {
+    flex: 1;
+    min-width: 180px;
+    margin-bottom: 0;
+  }
+
+  .btn {
+    height: 38px;
+  }
 }
 
-.inline-form .field {
-  flex: 1;
-  min-width: 180px;
-  margin-bottom: 0;
-}
-
-.inline-form .btn {
-  height: 38px;
-}
-
-/* ---------------------------------------------------------- Tables */
+// ---------------------------------------------------------- Tables
 
 .table-wrap {
   overflow-x: auto;
@@ -628,21 +635,19 @@ main {
   background: var(--surface);
   border: 1px solid var(--line);
   font-size: 14px;
-}
 
-.table th,
-.table td {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  vertical-align: top;
-}
+  th,
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
 
-.table th {
-  color: var(--muted);
-  font: 700 11px var(--mono);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  th {
+    color: var(--muted);
+    @include label(11px, 0.1em);
+  }
 }
 
 .dot {
@@ -655,32 +660,30 @@ main {
 }
 
 .kind {
-  font: 700 10.5px var(--mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  @include label(10.5px, 0.08em);
+
+  &.ok {
+    color: var(--ok);
+  }
+
+  &.warn {
+    color: var(--warn);
+  }
+
+  &.error {
+    color: var(--danger);
+  }
+
+  &.info {
+    color: var(--primary);
+  }
+
+  &.muted {
+    color: var(--muted);
+  }
 }
 
-.kind.ok {
-  color: var(--ok);
-}
-
-.kind.warn {
-  color: var(--warn);
-}
-
-.kind.error {
-  color: var(--danger);
-}
-
-.kind.info {
-  color: var(--primary);
-}
-
-.kind.muted {
-  color: var(--muted);
-}
-
-/* ---------------------------------------------------------- Login */
+// ---------------------------------------------------------- Login
 
 .login {
   display: grid;
@@ -706,30 +709,32 @@ main {
   gap: 12px;
 }
 
-.login-box h1 {
-  font-size: 28px;
-  font-weight: 800;
+.login-box {
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+
+    span {
+      color: var(--primary);
+    }
+  }
+
+  > .muted {
+    margin-bottom: 16px;
+  }
+
+  .btn {
+    margin-top: 8px;
+  }
+
+  .form-error {
+    margin-bottom: 4px;
+  }
 }
 
-.login-box h1 span {
-  color: var(--primary);
-}
+// ---------------------------------------------------------- Narrow screens
 
-.login-box > .muted {
-  margin-bottom: 16px;
-}
-
-.login-box .btn {
-  margin-top: 8px;
-}
-
-.login-box .form-error {
-  margin-bottom: 4px;
-}
-
-/* ---------------------------------------------------------- Narrow screens */
-
-@media (max-width: 720px) {
+@media (max-width: $narrow) {
   .topbar {
     flex-wrap: wrap;
     gap: 8px 16px;
