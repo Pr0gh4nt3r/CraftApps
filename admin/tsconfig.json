@@ -1,0 +1,6 @@
+{
+  // For the editor: VS Code only looks for a tsconfig.json – this one points it to the two real
+  // configs for the UI and the server. "npm run build" uses those directly.
+  "files": [],
+  "references": [{ "path": "./tsconfig.web.json" }, { "path": "./tsconfig.server.json" }]
+}
