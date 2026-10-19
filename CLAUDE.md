@@ -30,6 +30,17 @@ together – keep them up to date with every change. Screenshots in `docs/images
 example values such as `gitea.example.com` and the account `user`, never real domains or
 accounts.
 
+## Styles
+
+The admin UI's styles are SCSS, compiled by Vite with `sass`. Each component keeps its partial
+in its own folder (`admin/src/web/App/`, `components/*/`, `pages/*/`); `admin/src/web/styles/`
+holds the global ones: `_shared.scss` with everything that recurs (colors, hairlines, the
+breakpoint, tone colors, the label mixin), plus base, buttons, page frame, forms and tables.
+`styles/index.scss` loads all partials – add new ones there; their order is the cascade order,
+so on equal specificity a later partial wins. Colors stay CSS custom properties – React sets
+the app color `--c` at runtime. The start page's CSS sits inline in the HTML that
+`admin/src/server/apps/overview.ts` generates.
+
 ## Icons
 
 `admin/public/icon.svg` (admin UI) and `admin/public/overview/icon.svg` (start page; the
@@ -47,8 +58,8 @@ language of the respective README, as do the screenshots of the admin UI and the
 (`docs/images/*-en.png` and `*-de.png`).
 
 The admin UI and the start page exist in German and English. UI texts live in
-`admin/src/web/locales/de.json` and `en.json`, messages the server generates (activity log,
-errors, job progress, Gotify notifications) in `admin/src/shared/messages.ts` as key +
+`admin/src/web/i18n/locales/de.json` and `en.json`, messages the server generates (activity
+log, errors, job progress, Gotify notifications) in `admin/src/shared/messages.ts` as key +
 parameters – add every new text in both languages. Log messages, the output of `dev.sh` and
 the workflows' step names stay German.
 

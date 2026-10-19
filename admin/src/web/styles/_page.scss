@@ -1,0 +1,57 @@
+// Frame of every page: content width, heading row with its actions (toolbar) and notices
+@use 'shared';
+
+main {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 28px 24px 64px;
+
+  @media (max-width: shared.$narrow) {
+    padding: 20px 16px 48px;
+  }
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  h1 {
+    font-size: 24px;
+    letter-spacing: -0.01em;
+  }
+}
+
+.toolbar-side {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: right;
+
+  @media (max-width: shared.$narrow) {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    text-align: left;
+  }
+}
+
+.banner {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: shared.$hairline;
+  background: var(--surface);
+  font-size: 14px;
+
+  &.warn {
+    border-color: rgba(245, 165, 36, 0.5);
+    color: var(--warn);
+  }
+
+  &.error {
+    border-color: rgba(255, 107, 107, 0.5);
+    color: var(--danger);
+  }
+}

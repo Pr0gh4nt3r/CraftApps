@@ -1,0 +1,18 @@
+// Marks in the activity log (ActivityPage); the table itself is global
+@use '../../styles/shared';
+
+// Color of the app
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--c, var(--muted));
+}
+
+// Kind of entry
+.kind {
+  @include shared.label(10.5px, 0.08em);
+  @include shared.tones(ok, warn, error, info, muted);
+}

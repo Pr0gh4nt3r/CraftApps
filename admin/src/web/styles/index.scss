@@ -1,0 +1,18 @@
+// Dark design in the style of the Craft Launcher. The global partials live here, the styles of
+// a component in its folder; everything that recurs is in _shared.scss. The order below is the
+// cascade order: on equal specificity a later partial wins over an earlier one.
+@use 'shared';
+@use 'base';
+@use '../App/topbar';
+@use '../components/LangSwitch/lang-switch';
+@use 'page';
+@use 'buttons';
+@use '../pages/AppsPage/apps-page';
+@use '../components/AppCard/app-card';
+@use '../components/AppCard/progress';
+@use '../components/AppCard/menu';
+@use '../components/Toggle/toggle';
+@use 'forms';
+@use 'tables';
+@use '../pages/ActivityPage/activity-page';
+@use '../pages/Login/login';

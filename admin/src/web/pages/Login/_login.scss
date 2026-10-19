@@ -1,0 +1,47 @@
+// Login page (Login)
+@use '../../styles/shared';
+
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.login-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: min(380px, 100%);
+  padding: 28px;
+  background: var(--surface);
+  border: shared.$hairline;
+
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+
+    span {
+      color: var(--primary);
+    }
+  }
+
+  > .muted {
+    margin-bottom: 16px;
+  }
+
+  .btn {
+    margin-top: 8px;
+  }
+
+  .form-error {
+    margin-bottom: 4px;
+  }
+}
+
+.login-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}

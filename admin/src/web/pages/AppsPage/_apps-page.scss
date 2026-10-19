@@ -1,0 +1,10 @@
+// Grid of the app cards (AppsPage). Hairlines via borders instead of background so empty grid
+// cells stay empty: the grid draws the top and left one, every card its right and bottom one
+@use '../../styles/shared';
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
+  border-top: shared.$hairline;
+  border-left: shared.$hairline;
+}

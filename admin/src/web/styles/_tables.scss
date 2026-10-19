@@ -1,0 +1,27 @@
+// Tables (ActivityPage, UsersPage)
+@use 'shared';
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: shared.$hairline;
+  font-size: 14px;
+
+  th,
+  td {
+    padding: 10px 14px;
+    border-bottom: shared.$hairline;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    color: var(--muted);
+    @include shared.label(11px, 0.1em);
+  }
+}

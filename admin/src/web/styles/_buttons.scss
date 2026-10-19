@@ -1,0 +1,58 @@
+// Buttons and links that look like text
+@use 'shared';
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: shared.$hairline-strong;
+  background: transparent;
+  color: var(--text);
+  @include shared.label(12px, 0.12em);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--text);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &.primary {
+    flex: 1;
+  }
+
+  &.narrow {
+    flex: none;
+    min-width: 160px;
+  }
+
+  &.square {
+    width: 36px;
+    padding: 0;
+    letter-spacing: 0;
+  }
+}
+
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &.danger {
+    color: var(--danger);
+  }
+}

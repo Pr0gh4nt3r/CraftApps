@@ -36,9 +36,21 @@ CraftApps\
 │   ├── Dockerfile
 │   ├── public\                         Tab icons: admin UI, overview\ for the start page
 │   └── src\
-│       ├── server\                     API, login, installer, GitHub, Gotify
+│       ├── server\                     Fastify server, main.ts starts it
+│       │   ├── api\                    Routes for the admin UI
+│       │   ├── apps\                   Find, install and update apps; start page
+│       │   ├── auth\                   Users, sessions, login
+│       │   ├── core\                   Configuration, database, helpers
+│       │   ├── notify\                 Notifications via Gotify
+│       │   └── settings\               Settings
 │       ├── shared\                     Types and messages (German/English) for server and frontend
-│       └── web\                        Frontend, its texts in German and English in locales\
+│       └── web\                        React frontend, main.tsx starts it
+│           ├── App\                    Top bar and tabs
+│           ├── components\             AppCard, LangSwitch, Toggle – each with its styles
+│           ├── i18n\                   Language and texts, German and English in locales\
+│           ├── lib\                    API calls and formatting
+│           ├── pages\                  Apps, activity, settings, users, login – each with its styles
+│           └── styles\                 Global SCSS; index.scss loads all styles
 ├── dev.sh                              Starts MySQL, admin UI and start page for a local test
 ├── docker-compose.dev.yml              MySQL for local development
 ├── docker-compose.yml                  Stack for Portainer: nginx and admin UI
