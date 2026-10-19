@@ -149,6 +149,25 @@ Registry-Eintrag.
 Daten: Benutzer, Einstellungen und Verlauf liegen in MySQL, die Apps im Volume
 `craftapps_data`, das nginx nur lesend einbindet.
 
+### Screenshots
+
+**Apps:** eine Karte je App – hier installiert, mit wartendem Update (automatische Updates
+aus) und noch nicht installiert:
+
+![Verwaltung: Apps mit Status, Version und automatischen Updates](docs/images/admin-apps-de.png)
+
+**Aktivität:** was passiert ist, automatisch oder durch welchen Benutzer:
+
+![Verwaltung: Aktivitätsverlauf mit Installationen, einem verfügbaren Update und geänderten Einstellungen](docs/images/admin-activity-de.png)
+
+**Einstellungen:** Prüfintervall, Adressen und Gotify:
+
+![Verwaltung: Einstellungen für Updates, Adressen und Benachrichtigungen über Gotify](docs/images/admin-settings-de.png)
+
+**Startseite** unter `/`: die installierten Apps, ausgeliefert von nginx:
+
+![Startseite: die installierten Apps mit Version und Release-Datum](docs/images/start-page-de.png)
+
 ## Einrichtung
 
 Die Schritte bauen aufeinander auf. Wie die einzelnen Container eingerichtet werden, steht

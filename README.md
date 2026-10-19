@@ -148,6 +148,25 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 Data: users, settings and history live in MySQL, the apps in the volume `craftapps_data`,
 which nginx mounts read-only.
 
+### Screenshots
+
+**Apps:** one card per app – here installed, with an update waiting (automatic updates
+turned off) and not installed yet:
+
+![Admin UI: apps with their state, version and automatic updates](docs/images/admin-apps-en.png)
+
+**Activity:** what happened, automatically or by which user:
+
+![Admin UI: activity log with installations, an available update and changed settings](docs/images/admin-activity-en.png)
+
+**Settings:** check interval, addresses and Gotify:
+
+![Admin UI: settings for updates, addresses and notifications via Gotify](docs/images/admin-settings-en.png)
+
+**Start page** at `/`: the installed apps, served by nginx:
+
+![Start page: the installed apps with version and release date](docs/images/start-page-en.png)
+
 ## Setup
 
 The steps build on each other. How each container is set up is collected under

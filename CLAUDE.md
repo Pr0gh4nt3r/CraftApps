@@ -43,7 +43,8 @@ together.
 Comments in code and configuration – including the code examples in the READMEs – always in
 English. The README exists in English (`README.md`, shown by default) and in German
 (`README.de.md`) – keep both in sync. The labels in the READMEs' Mermaid diagrams follow the
-language of the respective README.
+language of the respective README, as do the screenshots of the admin UI and the start page
+(`docs/images/*-en.png` and `*-de.png`).
 
 The admin UI and the start page exist in German and English. UI texts live in
 `admin/src/web/locales/de.json` and `en.json`, messages the server generates (activity log,
