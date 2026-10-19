@@ -484,9 +484,11 @@ npm run dev:web                            # second terminal: UI at http://local
 
 Anmelden mit `admin` und dem Passwort aus `.env`. Installierte Apps landen in `admin/data`.
 
-**Debuggen in VS Code:** unter **Ausführen und Debuggen** „Server und Oberfläche“ starten.
-Das startet beides; Breakpoints gehen direkt im TypeScript des Servers. Die Oberfläche
-debuggst du mit den Entwicklertools des Browsers.
+**Debuggen in VS Code:** den Ordner `CraftApps` selbst öffnen, nicht einen Ordner darüber –
+die Startkonfigurationen liest VS Code nur aus dem `.vscode` des geöffneten Ordners. Dann
+unter **Ausführen und Debuggen** „Server und Oberfläche“ starten. Das startet beides;
+Breakpoints gehen direkt im TypeScript des Servers. Die Oberfläche debuggst du mit den
+Entwicklertools des Browsers.
 
 **Prüfen** – muss vor jedem Commit fehlerfrei durchlaufen:
 

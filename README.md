@@ -480,9 +480,11 @@ npm run dev:web                            # second terminal: UI at http://local
 
 Log in with `admin` and the password from `.env`. Installed apps end up in `admin/data`.
 
-**Debugging in VS Code:** under **Run and Debug**, start "Server und Oberfläche" (server
-and frontend). That starts both; breakpoints work directly in the server's TypeScript.
-Debug the frontend with the browser's developer tools.
+**Debugging in VS Code:** open the `CraftApps` folder itself, not a folder above it –
+VS Code only reads the launch configurations from the opened folder's `.vscode`. Then start
+"Server und Oberfläche" (server and frontend) under **Run and Debug**. That starts both;
+breakpoints work directly in the server's TypeScript. Debug the frontend with the browser's
+developer tools.
 
 **Checks** – must pass without errors before every commit:
 
