@@ -20,8 +20,15 @@
   --mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
 }
 
-// Below this width the top bar wraps and the tabs get a row of their own
+// Phones: narrower margins, the side part of the toolbars below their heading
 $narrow: 720px;
+
+// Below this width the tabs fold into the burger menu, name and logout into the user menu –
+// in German the bar needs about 950px in one row
+$menu: 1000px;
+
+// Width of the pages with forms (notifications, settings, users) – a column in the middle
+$column: 760px;
 
 // Hairlines between areas, the stronger one around controls
 $hairline: 1px solid var(--line);

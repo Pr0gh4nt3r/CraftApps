@@ -6,6 +6,11 @@ main {
   margin: 0 auto;
   padding: 28px 24px 64px;
 
+  // Pages with forms: heading, panels and notices in a column in the middle (plus padding)
+  &.column {
+    max-width: calc(#{shared.$column} + 2 * 24px);
+  }
+
   @media (max-width: shared.$narrow) {
     padding: 20px 16px 48px;
   }

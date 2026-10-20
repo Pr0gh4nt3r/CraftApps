@@ -72,7 +72,7 @@ export function AppsPage() {
       ))}
       {!state.notificationsConfigured && (
         <p className="banner">
-          {t('apps.notifyMissing')} <a href="#einstellungen">{t('apps.notifyMissingLink')}</a>.
+          {t('apps.notifyMissing')} <a href="#benachrichtigungen">{t('apps.notifyMissingLink')}</a>.
         </p>
       )}
       {notice && <p className="banner error">{notice}</p>}

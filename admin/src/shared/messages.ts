@@ -1,6 +1,6 @@
 // Messages the server generates and stores – events, job progress, errors, notifications.
-// The server keeps them as key + parameters; the UI renders them in its language, Gotify
-// notifications in the language from the settings.
+// The server keeps them as key + parameters; the UI renders them in its language, each
+// notification channel in the language set for it.
 
 export type Lang = 'de' | 'en';
 
@@ -31,6 +31,13 @@ const de = {
   'event.autoUpdateOn': 'Automatische Updates eingeschaltet',
   'event.autoUpdateOff': 'Automatische Updates ausgeschaltet',
   'event.settingsChanged': 'Einstellungen geändert',
+  'event.channelCreated': 'Benachrichtigungskanal „{name}“ angelegt',
+  'event.channelChanged': 'Benachrichtigungskanal „{name}“ geändert',
+  'event.channelEnabled': 'Benachrichtigungskanal „{name}“ eingeschaltet',
+  'event.channelDisabled': 'Benachrichtigungskanal „{name}“ ausgeschaltet',
+  'event.channelDeleted': 'Benachrichtigungskanal „{name}“ gelöscht',
+  'event.channelFailed': 'Benachrichtigung über „{name}“ fehlgeschlagen: {error}',
+  // Only in activity entries from before the notification channels
   'event.notifyFailed': 'Benachrichtigung fehlgeschlagen: {error}',
 
   'error.appSearchFailed': 'App-Suche auf GitHub fehlgeschlagen: {error}',
@@ -51,8 +58,12 @@ const de = {
   'error.notInstalled': '{app} ist nicht installiert',
   'error.jobRunning': 'Für diese App läuft gerade schon eine andere Aktion',
   'error.noWriteAccess': 'Keine Schreibrechte auf {path} – das Daten-Volume muss dem Benutzer 1000 gehören (siehe README)',
+  'error.serviceResponse': '{service} antwortet {status}: {text}',
+  'error.serviceUnreachable': '{service} nicht erreichbar: {error}',
+  'error.channelInvalid': 'Die Angaben zum Kanal sind unvollständig oder ungültig',
+  'error.channelNameTaken': 'Einen Kanal mit diesem Namen gibt es schon',
+  // Only in activity entries from before the notification channels
   'error.gotify': 'Gotify antwortet {status}: {text}',
-  'error.gotifyMissing': 'Gotify-Adresse und App-Token angeben',
   'error.requestRejected': 'Anfrage abgelehnt',
   'error.notLoggedIn': 'Nicht angemeldet',
   'error.wrongLogin': 'Benutzername oder Passwort falsch',
@@ -84,6 +95,7 @@ const de = {
   'notify.error.titleGlobal': 'Craft Apps: Fehler',
   'notify.test.title': 'Craft Apps',
   'notify.test.body': 'Testnachricht – die Benachrichtigungen funktionieren.',
+  'notify.open': 'Verwaltung öffnen',
 } as const;
 
 export type MsgKey = keyof typeof de;
@@ -115,6 +127,12 @@ const en: Record<MsgKey, string> = {
   'event.autoUpdateOn': 'Automatic updates turned on',
   'event.autoUpdateOff': 'Automatic updates turned off',
   'event.settingsChanged': 'Settings changed',
+  'event.channelCreated': 'Notification channel "{name}" created',
+  'event.channelChanged': 'Notification channel "{name}" changed',
+  'event.channelEnabled': 'Notification channel "{name}" turned on',
+  'event.channelDisabled': 'Notification channel "{name}" turned off',
+  'event.channelDeleted': 'Notification channel "{name}" deleted',
+  'event.channelFailed': 'Notification via "{name}" failed: {error}',
   'event.notifyFailed': 'Notification failed: {error}',
 
   'error.appSearchFailed': 'App search on GitHub failed: {error}',
@@ -135,8 +153,11 @@ const en: Record<MsgKey, string> = {
   'error.notInstalled': '{app} is not installed',
   'error.jobRunning': 'Another action is already running for this app',
   'error.noWriteAccess': 'No write access to {path} – the data volume must belong to user 1000 (see README)',
+  'error.serviceResponse': '{service} responded {status}: {text}',
+  'error.serviceUnreachable': '{service} not reachable: {error}',
+  'error.channelInvalid': "The channel's details are incomplete or invalid",
+  'error.channelNameTaken': 'A channel with this name already exists',
   'error.gotify': 'Gotify responded {status}: {text}',
-  'error.gotifyMissing': 'Enter the Gotify address and the app token',
   'error.requestRejected': 'Request rejected',
   'error.notLoggedIn': 'Not logged in',
   'error.wrongLogin': 'Wrong username or password',
@@ -168,6 +189,7 @@ const en: Record<MsgKey, string> = {
   'notify.error.titleGlobal': 'Craft Apps: error',
   'notify.test.title': 'Craft Apps',
   'notify.test.body': 'Test message – notifications are working.',
+  'notify.open': 'Open the admin UI',
 };
 
 const CATALOG: Record<Lang, Record<MsgKey, string>> = { de, en };

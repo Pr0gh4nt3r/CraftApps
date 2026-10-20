@@ -3,16 +3,17 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Pool, RowDataPacket } from 'mysql2/promise';
+import type { NotifyEvent } from '../../shared/channels.js';
 import { msg, parseMsg, renderMsg, type Localized, type Msg } from '../../shared/messages.js';
 import type { AppView, JobKind, JobView, StateView } from '../../shared/types.js';
 import type { Config } from '../core/config.js';
 import { GitHubLimitError, findWebAsset, type GitHub, type Repo } from './github.js';
 import { appDir, deploy, download, prune, type Asset, type OnProgress } from './installer.js';
 import { appMeta, fetchIcon, launcherInfo, type LauncherInfo } from './launcher.js';
-import { sendGotify } from '../notify/notify.js';
+import type { Failure, Notifier } from '../notify/notify.js';
 import { writeOverview } from './overview.js';
 import type { Settings, SettingsStore } from '../settings/settings.js';
-import { APP_ID, MINUTE, MsgError, errorText, toMsg, version } from '../core/util.js';
+import { APP_ID, ConflictError, MINUTE, MsgError, NotFoundError, errorText, toMsg, version } from '../core/util.js';
 
 interface AppRow extends RowDataPacket {
   id: string;
@@ -39,16 +40,6 @@ interface Job extends JobView {
   finishedAt: number | null;
 }
 
-type NotifyCategory = 'notifyNewApps' | 'notifyUpdateAvailable' | 'notifyUpdated' | 'notifyErrors';
-
-export class NotFoundError extends MsgError {
-  readonly statusCode = 404;
-}
-
-export class ConflictError extends MsgError {
-  readonly statusCode = 409;
-}
-
 const jobLabel = (kind: JobKind): Msg => msg(`job.${kind}` as const);
 const parseAsset = (json: string | null): Asset | null => (json ? (JSON.parse(json) as Asset) : null);
 const parseFiles = (json: string | null): string[] => (json ? (JSON.parse(json) as string[]) : []);
@@ -70,6 +61,7 @@ export class Manager {
     private readonly db: Pool,
     private readonly cfg: Config,
     private readonly settings: SettingsStore,
+    private readonly notifier: Notifier,
     private readonly github: GitHub,
     private readonly log: FastifyBaseLogger,
   ) {}
@@ -167,7 +159,7 @@ export class Manager {
             const change = `${version(app.installed_tag)} → ${version(app.latest_tag)}`;
             await this.event('update-available', msg('event.updateAvailable', { change }), app.id);
             await this.notify(
-              'notifyUpdateAvailable',
+              'updateAvailable',
               msg('notify.updateAvailable.title', { app: app.name }),
               msg('notify.updateAvailable.body', { change }),
               5,
@@ -248,7 +240,7 @@ export class Manager {
     if (firstRun || apps.length > 3) {
       const list = apps.map((a) => `- **${a.name}** ${version(a.latest_tag)}`).join('\n');
       const all = msg(autoInstall ? 'notify.newApps.allAuto' : 'notify.newApps.allManual');
-      await this.notify('notifyNewApps', msg('notify.newApps.title', { count: apps.length }), msg('notify.newApps.body', { list, all }), 5);
+      await this.notify('newApps', msg('notify.newApps.title', { count: apps.length }), msg('notify.newApps.body', { list, all }), 5);
     } else {
       for (const a of apps) {
         const descriptionEn = a.description_en || a.description;
@@ -258,7 +250,7 @@ export class Manager {
           version: version(a.latest_tag),
           about,
         });
-        await this.notify('notifyNewApps', msg('notify.newApp.title', { app: a.name }), text, 5);
+        await this.notify('newApps', msg('notify.newApp.title', { app: a.name }), text, 5);
       }
     }
   }
@@ -316,7 +308,7 @@ export class Manager {
       this.log.warn(`${job.appId}: ${renderMsg('de', failed)}`);
       await this.event('error', failed, job.appId, job.username);
       const title = msg('notify.jobFailed.title', { app: app?.name ?? job.appId, job: jobLabel(job.kind) });
-      await this.notify('notifyErrors', title, job.error, 8);
+      await this.notify('errors', title, job.error, 8);
     } finally {
       job.finishedAt = Date.now();
       await this.refreshOverview();
@@ -358,11 +350,11 @@ export class Manager {
       const from = version(fromTag);
       await this.event('updated', msg('event.updated', { from, to }), app.id, job.username);
       const text = job.username ? msg('notify.updated.byUser', { from, to, user: job.username }) : msg('notify.updated.auto', { from, to });
-      await this.notify('notifyUpdated', msg('notify.updated.title', { app: app.name }), text, 4);
+      await this.notify('updated', msg('notify.updated.title', { app: app.name }), text, 4);
     } else {
       await this.event('installed', msg(fromTag ? 'event.reinstalled' : 'event.installed', { version: to }), app.id, job.username);
       if (!job.username) {
-        await this.notify('notifyUpdated', msg('notify.installed.title', { app: app.name }), msg('notify.installed.body', { version: to }), 4);
+        await this.notify('updated', msg('notify.installed.title', { app: app.name }), msg('notify.installed.body', { version: to }), 4);
       }
     }
   }
@@ -403,7 +395,7 @@ export class Manager {
         limit: this.github.limit,
         resetAt: this.github.resetAt?.toISOString() ?? null,
       },
-      notificationsConfigured: Boolean(settings.gotifyUrl && settings.gotifyToken),
+      notificationsConfigured: await this.notifier.configured(),
       warnings: this.warnings,
     };
   }
@@ -489,15 +481,20 @@ export class Manager {
     ]);
   }
 
-  private async notify(category: NotifyCategory, title: Msg, message: Msg, priority: number): Promise<void> {
-    const s = await this.settings.get();
-    if (!s[category] || !s.gotifyUrl || !s.gotifyToken) return;
-    const note = { title: renderMsg(s.notifyLanguage, title), message: renderMsg(s.notifyLanguage, message), priority };
+  /** To every channel that reports the event; channels that fail end up in the activity log */
+  private async notify(event: NotifyEvent, title: Msg, message: Msg, priority: number): Promise<void> {
+    let failures: Failure[];
     try {
-      await sendGotify(s.gotifyUrl, s.gotifyToken, note, s.adminBaseUrl);
+      failures = await this.notifier.notify(event, title, message, priority);
     } catch (err) {
-      this.log.warn(`Benachrichtigung fehlgeschlagen: ${errorText(err)}`);
-      await this.event('error', msg('event.notifyFailed', { error: toMsg(err) }));
+      // Notifications never get in the way of a check or an update
+      this.log.warn(`Benachrichtigungen nicht verschickt: ${errorText(err)}`);
+      return;
+    }
+    for (const { channel, error } of failures) {
+      const failed = msg('event.channelFailed', { name: channel, error });
+      this.log.warn(renderMsg('de', failed));
+      await this.event('error', failed);
     }
   }
 
@@ -516,7 +513,7 @@ export class Manager {
     }
     await this.event('error', message, app?.id ?? null);
     const title = app ? msg('notify.error.title', { app: app.name }) : msg('notify.error.titleGlobal');
-    await this.notify('notifyErrors', title, message, 8);
+    await this.notify('errors', title, message, 8);
   }
 
   private async refreshOverview(): Promise<void> {

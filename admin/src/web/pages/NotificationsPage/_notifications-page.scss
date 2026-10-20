@@ -1,0 +1,75 @@
+// List of the notification channels (NotificationsPage); the panel around it is global
+@use '../../styles/shared';
+
+.channels {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: shared.$hairline;
+}
+
+.channel {
+  padding: 12px 0;
+  border-bottom: shared.$hairline;
+
+  // Turned off: the name fades, the switch shows why
+  &.off strong {
+    color: var(--muted);
+  }
+}
+
+// Switch, name, type and the actions – on narrow screens the actions get a line of their own
+.channel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+
+  .toggle {
+    margin: 0;
+  }
+}
+
+.channel-type {
+  padding: 2px 5px;
+  border: 1px solid currentColor;
+  color: var(--muted);
+  @include shared.label(10px, 0.1em, 1.3);
+}
+
+.channel-actions {
+  display: inline-flex;
+  gap: 14px;
+  margin-left: auto;
+  font-size: 14px;
+
+  .link:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+// Below the name, indented by the width of the switch; a dot after each part, so that a
+// wrapped line doesn't start with one
+.channel-meta,
+.channel-error {
+  margin-top: 4px;
+  padding-left: 44px;
+  font-size: 13px;
+}
+
+.channel-meta {
+  display: flex;
+  flex-wrap: wrap;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+
+  span:not(:last-child)::after {
+    content: "·";
+    margin: 0 6px;
+  }
+}
+
+.channel-error {
+  color: var(--danger);
+}

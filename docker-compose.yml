@@ -4,7 +4,8 @@
 #  craftapps-web    nginx, serves the installed apps under /<app>/
 #                   (e.g. /photocraft/) plus an overview at /
 #  craftapps-admin  admin UI: installs and removes apps, automatic
-#                   updates per app, push notifications via Gotify
+#                   updates per app, notifications via Gotify, email,
+#                   ntfy, Telegram, Discord or webhook
 #
 #  Deploy: Portainer BE, stack from the Git repo with
 #  "Enable relative path volumes" – setup see README.md

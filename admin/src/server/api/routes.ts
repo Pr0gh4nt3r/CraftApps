@@ -1,21 +1,15 @@
 import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import type { Pool, RowDataPacket } from 'mysql2/promise';
-import { msg, parseMsg, renderMsg, type Lang } from '../../shared/messages.js';
-import type { EventView, SettingsUpdate, SettingsView } from '../../shared/types.js';
+import { msg, parseMsg } from '../../shared/messages.js';
+import type { EventView, SettingsUpdate } from '../../shared/types.js';
 import type { Config } from '../core/config.js';
 import type { Manager } from '../apps/manager.js';
-import { sendGotify } from '../notify/notify.js';
-import type { Settings, SettingsStore } from '../settings/settings.js';
-import { APP_ID, toMsg } from '../core/util.js';
+import type { SettingsStore } from '../settings/settings.js';
+import { APP_ID } from '../core/util.js';
 
 const URL_FIELD = { type: 'string', maxLength: 500, pattern: '^(https?://\\S+)?$' } as const;
 const BOOL = { type: 'boolean' } as const;
-const LANG = { type: 'string', enum: ['de', 'en'] } as const;
-
-function settingsView({ gotifyToken, ...rest }: Settings): SettingsView {
-  return { ...rest, gotifyTokenSet: gotifyToken !== '' };
-}
 
 export function registerRoutes(
   app: FastifyInstance,
@@ -70,7 +64,7 @@ export function registerRoutes(
     },
   );
 
-  app.get('/api/settings', async () => settingsView(await settings.get()));
+  app.get('/api/settings', () => settings.get());
 
   app.put<{ Body: SettingsUpdate }>(
     '/api/settings',
@@ -85,49 +79,20 @@ export function registerRoutes(
             defaultAutoUpdate: BOOL,
             appsBaseUrl: URL_FIELD,
             adminBaseUrl: URL_FIELD,
-            gotifyUrl: URL_FIELD,
-            gotifyToken: { type: 'string', maxLength: 200 },
-            notifyNewApps: BOOL,
-            notifyUpdateAvailable: BOOL,
-            notifyUpdated: BOOL,
-            notifyErrors: BOOL,
-            notifyLanguage: LANG,
           },
         },
       },
     },
     async (req) => {
       const before = await settings.get();
-      const patch: Partial<Settings> = { ...req.body };
-      if (!patch.gotifyToken) delete patch.gotifyToken; // empty = keep the stored token
-      for (const key of ['appsBaseUrl', 'adminBaseUrl', 'gotifyUrl'] as const) {
+      const patch: SettingsUpdate = { ...req.body };
+      for (const key of ['appsBaseUrl', 'adminBaseUrl'] as const) {
         if (patch[key] !== undefined) patch[key] = patch[key].trim().replace(/\/+$/, '');
       }
       const next = await settings.update(patch);
       if (next.checkIntervalMinutes !== before.checkIntervalMinutes) await manager.reschedule();
       await manager.event('setting', msg('event.settingsChanged'), null, req.user!.username);
-      return settingsView(next);
-    },
-  );
-
-  // Test message – optionally with the not yet saved values from the form
-  app.post<{ Body: { gotifyUrl?: string; gotifyToken?: string; notifyLanguage?: Lang } | undefined }>(
-    '/api/settings/test-notification',
-    async (req, reply) => {
-      const current = await settings.get();
-      const url = (req.body?.gotifyUrl ?? current.gotifyUrl).trim();
-      const token = req.body?.gotifyToken || current.gotifyToken;
-      const lang = req.body?.notifyLanguage === 'de' || req.body?.notifyLanguage === 'en' ? req.body.notifyLanguage : current.notifyLanguage;
-      if (!/^https?:\/\/\S+$/.test(url) || !token) {
-        return reply.code(400).send({ error: msg('error.gotifyMissing') });
-      }
-      try {
-        const note = { title: renderMsg(lang, msg('notify.test.title')), message: renderMsg(lang, msg('notify.test.body')), priority: 5 };
-        await sendGotify(url, token, note, current.adminBaseUrl);
-        return { ok: true };
-      } catch (err) {
-        return reply.code(502).send({ error: toMsg(err) });
-      }
+      return next;
     },
   );
 
