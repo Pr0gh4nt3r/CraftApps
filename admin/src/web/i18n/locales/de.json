@@ -9,6 +9,8 @@
   "tab.settings": "Einstellungen",
   "tab.users": "Benutzer",
   "app.logout": "Abmelden",
+  "app.menu": "Menü",
+  "app.userMenu": "Benutzermenü",
 
   "login.prompt": "Verwaltung – bitte anmelden",
   "login.username": "Benutzername",

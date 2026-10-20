@@ -1,4 +1,5 @@
-// Top bar with brand, tabs and user (App)
+// Top bar with brand, tabs, language and user (App). Below shared.$menu the tabs fold into a
+// burger menu, name and logout into a user menu; the language switch always stays in the bar.
 @use '../styles/shared';
 
 .topbar {
@@ -14,9 +15,14 @@
   backdrop-filter: blur(8px);
   border-bottom: shared.$hairline;
 
-  @media (max-width: shared.$narrow) {
+  // The open burger menu gets a row of its own below the bar
+  @media (max-width: shared.$menu) {
     flex-wrap: wrap;
-    gap: 8px 16px;
+    row-gap: 8px;
+  }
+
+  @media (max-width: shared.$narrow) {
+    column-gap: 16px;
     padding: 8px 16px;
   }
 }
@@ -35,6 +41,11 @@
     margin-left: 10px;
     color: var(--muted);
     @include shared.label(11px, 0.12em);
+
+    // Small phones: room for the language switch and both buttons
+    @media (max-width: 400px) {
+      display: none;
+    }
   }
 }
 
@@ -58,18 +69,150 @@
     }
   }
 
-  // A row of their own below brand and user
-  @media (max-width: shared.$narrow) {
+  // Burger menu: hidden until opened, then a row of its own with the tabs one below the other
+  @media (max-width: shared.$menu) {
+    display: none;
     order: 3;
     flex-basis: 100%;
+    flex-direction: column;
+    overflow-x: visible;
+    padding-bottom: 8px;
+
+    &.open {
+      display: flex;
+    }
+
+    a {
+      padding: 10px 12px;
+    }
   }
 }
 
-.user {
+// Language, user and the buttons for the menus
+.topbar-side {
   display: flex;
   align-items: center;
   gap: 12px;
+
+  @media (max-width: shared.$menu) {
+    gap: 8px;
+    margin-left: auto;
+  }
+}
+
+// Name and logout – below shared.$menu in the user menu, which opens below the bar like the
+// "…" menu of the cards
+.user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--muted);
   font-size: 13px;
   white-space: nowrap;
+
+  @media (max-width: shared.$menu) {
+    display: none;
+    position: absolute;
+    top: calc(100% + 1px);
+    right: 24px;
+    gap: 16px;
+    padding: 8px 8px 8px 14px;
+    background: var(--surface-2);
+    border: shared.$hairline-strong;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    color: var(--text);
+    font-size: 14px;
+
+    &.open {
+      display: flex;
+    }
+  }
+
+  @media (max-width: shared.$narrow) {
+    right: 16px;
+  }
+}
+
+// An icon; its name is the label and the tooltip
+.logout {
+  display: inline-flex;
+  padding: 4px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+  }
+}
+
+// Square buttons that open the menus, only below shared.$menu
+.bar-button {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: shared.$hairline-strong;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    border-color: var(--text);
+  }
+
+  @media (max-width: shared.$menu) {
+    display: inline-flex;
+  }
+}
+
+// Burger: three bars, an X while the menu is open. The span is the middle bar, ::before and
+// ::after the outer ones
+.menu-toggle {
+  span,
+  span::before,
+  span::after {
+    display: block;
+    width: 16px;
+    height: 2px;
+    background: var(--text);
+    transition:
+      transform 0.15s,
+      background 0.15s;
+  }
+
+  span {
+    position: relative;
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      left: 0;
+    }
+
+    &::before {
+      top: -5px;
+    }
+
+    &::after {
+      top: 5px;
+    }
+  }
+
+  &[aria-expanded="true"] span {
+    background: transparent;
+
+    &::before {
+      transform: translateY(5px) rotate(45deg);
+    }
+
+    &::after {
+      transform: translateY(-5px) rotate(-45deg);
+    }
+  }
 }

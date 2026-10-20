@@ -35,7 +35,7 @@ accounts.
 The admin UI's styles are SCSS, compiled by Vite with `sass`. Each component keeps its partial
 in its own folder (`admin/src/web/App/`, `components/*/`, `pages/*/`); `admin/src/web/styles/`
 holds the global ones: `_shared.scss` with everything that recurs (colors, hairlines, the
-breakpoint, tone colors, the label mixin), plus base, buttons, page frame, forms and tables.
+breakpoints, tone colors, the label mixin), plus base, buttons, page frame, forms and tables.
 `styles/index.scss` loads all partials – add new ones there; their order is the cascade order,
 so on equal specificity a later partial wins. Colors stay CSS custom properties – React sets
 the app color `--c` at runtime. The start page's CSS sits inline in the HTML that

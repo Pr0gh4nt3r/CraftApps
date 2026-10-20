@@ -46,7 +46,7 @@ CraftApps\
 │       │   └── settings\               Einstellungen
 │       ├── shared\                     Typen und Meldungen (Deutsch/Englisch) für Server und Oberfläche
 │       └── web\                        React-Oberfläche, main.tsx startet sie
-│           ├── App\                    Kopfzeile und Tabs
+│           ├── App\                    Kopfzeile; auf schmalen Bildschirmen mit Burger- und Benutzermenü
 │           ├── components\             AppCard, ChannelForm, LangSwitch, Toggle – jeweils mit ihren Styles
 │           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
 │           ├── lib\                    API-Aufrufe und Formatierung

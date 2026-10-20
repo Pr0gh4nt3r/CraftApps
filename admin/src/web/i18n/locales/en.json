@@ -9,6 +9,8 @@
   "tab.settings": "Settings",
   "tab.users": "Users",
   "app.logout": "Log out",
+  "app.menu": "Menu",
+  "app.userMenu": "User menu",
 
   "login.prompt": "Admin – please log in",
   "login.username": "Username",
