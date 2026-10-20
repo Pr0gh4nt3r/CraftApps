@@ -184,9 +184,22 @@ Gotify-Kanals – sein gespeicherter Token bleibt auf dem Server:
 
 ![Verwaltung: Einstellungen für Updates und Adressen](docs/images/admin-settings-de.png)
 
-**Startseite** unter `/`: die installierten Apps, ausgeliefert von nginx:
+**Benutzer:** alle mit denselben Rechten – eigenes Passwort ändern, Konten anlegen und
+löschen:
+
+![Verwaltung: eigenes Passwort ändern, die Liste der Benutzer und das Formular für einen neuen](docs/images/admin-users-de.png)
+
+**Auf dem Handy:** Bis 1000 px Breite wandern die Tabs ins Burgermenü, Name und Abmelden ins
+Benutzermenü daneben; der Sprachumschalter bleibt in der Leiste:
+
+![Verwaltung auf dem Handy: Apps, das offene Burgermenü und die Benachrichtigungskanäle mit offenem Benutzermenü](docs/images/admin-mobile-de.png)
+
+**Startseite** unter `/`: die installierten Apps, ausgeliefert von nginx – am Rechner und auf
+dem Handy:
 
 ![Startseite: die installierten Apps mit Version und Release-Datum](docs/images/start-page-de.png)
+
+![Startseite auf dem Handy: die installierten Apps untereinander](docs/images/start-page-mobile-de.png)
 
 ## Einrichtung
 

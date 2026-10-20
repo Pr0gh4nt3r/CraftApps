@@ -183,9 +183,22 @@ its saved token stays on the server:
 
 ![Admin UI: settings for updates and addresses](docs/images/admin-settings-en.png)
 
-**Start page** at `/`: the installed apps, served by nginx:
+**Users:** all with the same permissions – change your own password, create and delete
+accounts:
+
+![Admin UI: change your own password, the list of users and the form for a new one](docs/images/admin-users-en.png)
+
+**On the phone:** up to 1000 px wide, the tabs fold into the burger menu, name and logout into
+the user menu next to it; the language switch stays in the bar:
+
+![Admin UI on the phone: apps, the open burger menu and the notification channels with the open user menu](docs/images/admin-mobile-en.png)
+
+**Start page** at `/`: the installed apps, served by nginx – on the computer and on the
+phone:
 
 ![Start page: the installed apps with version and release date](docs/images/start-page-en.png)
+
+![Start page on the phone: the installed apps one below the other](docs/images/start-page-mobile-en.png)
 
 ## Setup
 
