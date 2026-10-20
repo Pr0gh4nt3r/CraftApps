@@ -1,8 +1,8 @@
-// Panels and form fields (SettingsPage, UsersPage, Login)
+// Panels and form fields (NotificationsPage, ChannelForm, SettingsPage, UsersPage, Login)
 @use 'shared';
 
 .panel {
-  max-width: 760px;
+  max-width: shared.$column;
   margin-bottom: 20px;
   padding: 20px;
   background: var(--surface);
@@ -52,7 +52,7 @@
 .sticky-actions {
   position: sticky;
   bottom: 0;
-  max-width: 760px;
+  max-width: shared.$column;
   padding: 12px 0;
   background: var(--bg);
 }

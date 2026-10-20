@@ -11,13 +11,14 @@ import { NotificationsPage } from '../pages/NotificationsPage/NotificationsPage'
 import { SettingsPage } from '../pages/SettingsPage/SettingsPage';
 import { UsersPage } from '../pages/UsersPage/UsersPage';
 
-// The ids end up in the URL (#einstellungen) and stay the same in every language
+// The ids end up in the URL (#einstellungen) and stay the same in every language. Pages with
+// forms are a narrow column in the middle of the screen, the others use its width.
 const TABS = [
-  { id: 'apps', label: 'tab.apps' },
-  { id: 'aktivitaet', label: 'tab.activity' },
-  { id: 'benachrichtigungen', label: 'tab.notifications' },
-  { id: 'einstellungen', label: 'tab.settings' },
-  { id: 'benutzer', label: 'tab.users' },
+  { id: 'apps', label: 'tab.apps', column: false },
+  { id: 'aktivitaet', label: 'tab.activity', column: false },
+  { id: 'benachrichtigungen', label: 'tab.notifications', column: true },
+  { id: 'einstellungen', label: 'tab.settings', column: true },
+  { id: 'benutzer', label: 'tab.users', column: true },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -143,7 +144,7 @@ export function App() {
           </button>
         </div>
       </header>
-      <main>
+      <main className={TABS.find((entry) => entry.id === tab)?.column ? 'column' : undefined}>
         {tab === 'apps' && <AppsPage />}
         {tab === 'aktivitaet' && <ActivityPage />}
         {tab === 'benachrichtigungen' && <NotificationsPage />}
