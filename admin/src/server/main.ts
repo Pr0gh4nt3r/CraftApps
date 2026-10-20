@@ -10,7 +10,10 @@ import { loadConfig } from './core/config.js';
 import { connectDb, migrate } from './core/db.js';
 import { GitHub } from './apps/github.js';
 import { Manager } from './apps/manager.js';
+import { registerChannelRoutes } from './api/channels.js';
 import { registerRoutes } from './api/routes.js';
+import { ChannelStore } from './notify/channels.js';
+import { Notifier } from './notify/notify.js';
 import { SettingsStore } from './settings/settings.js';
 
 const cfg = loadConfig();
@@ -20,7 +23,9 @@ const db = await connectDb(cfg.db, app.log);
 await migrate(db);
 await ensureInitialAdmin(db, cfg.initialAdmin, app.log);
 const settings = new SettingsStore(db);
-const manager = new Manager(db, cfg, settings, new GitHub(cfg.githubToken), app.log);
+const channels = new ChannelStore(db);
+const notifier = new Notifier(channels, settings);
+const manager = new Manager(db, cfg, settings, notifier, new GitHub(cfg.githubToken), app.log);
 
 await app.register(helmet, {
   hsts: false, // left to the reverse proxy
@@ -77,6 +82,7 @@ await app.register(async (api) => {
     secured.addHook('onRequest', sessionGuard(db));
     registerAccount(secured, db);
     registerRoutes(secured, { manager, settings, db, cfg });
+    registerChannelRoutes(secured, { channels, notifier, manager });
   });
 });
 

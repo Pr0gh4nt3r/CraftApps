@@ -18,6 +18,19 @@ export class MsgError extends Error {
   }
 }
 
+// The error handler answers with statusCode
+export class BadRequestError extends MsgError {
+  readonly statusCode = 400;
+}
+
+export class NotFoundError extends MsgError {
+  readonly statusCode = 404;
+}
+
+export class ConflictError extends MsgError {
+  readonly statusCode = 409;
+}
+
 /** Message for the UI – with a hint if write access to the data volume is missing. */
 export function toMsg(err: unknown): Msg {
   if (err instanceof MsgError) return err.msg;

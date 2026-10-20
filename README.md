@@ -10,7 +10,8 @@ the Craft Launcher:
   overview at `/`.
 - **The admin UI** (Node.js/TypeScript) lists all available apps, installs and removes
   them, applies updates automatically or at the push of a button and reports everything
-  via Gotify. Its user interface is in English and German.
+  via Gotify, email, ntfy, Telegram, Discord or a webhook. Its user interface is in English
+  and German.
 
 ## Contents
 
@@ -41,15 +42,15 @@ CraftApps\
 │       │   ├── apps\                   Find, install and update apps; start page
 │       │   ├── auth\                   Users, sessions, login
 │       │   ├── core\                   Configuration, database, helpers
-│       │   ├── notify\                 Notifications via Gotify
+│       │   ├── notify\                 Notification channels: Gotify, email, ntfy, webhook, Telegram, Discord
 │       │   └── settings\               Settings
 │       ├── shared\                     Types and messages (German/English) for server and frontend
 │       └── web\                        React frontend, main.tsx starts it
 │           ├── App\                    Top bar and tabs
-│           ├── components\             AppCard, LangSwitch, Toggle – each with its styles
+│           ├── components\             AppCard, ChannelForm, LangSwitch, Toggle – each with its styles
 │           ├── i18n\                   Language and texts, German and English in locales\
 │           ├── lib\                    API calls and formatting
-│           ├── pages\                  Apps, activity, settings, users, login – each with its styles
+│           ├── pages\                  Apps, activity, notifications, settings, users, login – each with its styles
 │           └── styles\                 Global SCSS; index.scss loads all styles
 ├── dev.sh                              Starts MySQL, admin UI and start page for a local test
 ├── docker-compose.dev.yml              MySQL for local development
@@ -91,7 +92,7 @@ flowchart LR
   admin -->|"installs apps"| data[("Volume<br/>craftapps_data")]
   data -->|"read-only"| web
   admin -->|"users, settings"| mysql[("MySQL")]
-  admin -->|"push notifications"| gotify["Gotify"]
+  admin -->|"notifications"| notify["Gotify, email, ntfy,<br/>webhook, Telegram, Discord"]
 ```
 
 - By default, apps and admin UI are only reachable in the local network via the Pi's
@@ -150,15 +151,17 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 - **Updates without interruption:** new files go next to the old ones, `index.html` is
   switched last, the previous version stays until the next update. Every download is
   verified via SHA-256.
-- **Login** with users in MySQL, activity log, settings (check interval, Gotify,
-  addresses) and user management.
-- **Push notifications** via Gotify, see [Notifications](#notifications).
+- **Login** with users in MySQL, activity log, settings (check interval, addresses) and
+  user management.
+- **Notifications** via Gotify, email, ntfy, Telegram, Discord or a webhook – as many
+  channels as you like, each with its own events and language, see
+  [Notifications](#notifications).
 - **English and German:** the admin UI follows the browser's language and has a switch in
-  the top bar, the start page at `/` likewise. The Gotify notifications use the language set
-  in the settings.
+  the top bar, the start page at `/` likewise. Each notification channel uses the language
+  set for it.
 
-Data: users, settings and history live in MySQL, the apps in the volume `craftapps_data`,
-which nginx mounts read-only.
+Data: users, settings, notification channels and history live in MySQL, the apps in the
+volume `craftapps_data`, which nginx mounts read-only.
 
 ### Screenshots
 
@@ -171,9 +174,14 @@ turned off) and not installed yet:
 
 ![Admin UI: activity log with installations, an available update and changed settings](docs/images/admin-activity-en.png)
 
-**Settings:** check interval, addresses and Gotify:
+**Notifications:** the channels with their events, here with the form of a Gotify channel –
+its saved token stays on the server:
 
-![Admin UI: settings for updates, addresses and notifications via Gotify](docs/images/admin-settings-en.png)
+![Admin UI: notification channels for Gotify, email, a webhook and Telegram, below the form of the Gotify channel](docs/images/admin-notifications-en.png)
+
+**Settings:** check interval and addresses:
+
+![Admin UI: settings for updates and addresses](docs/images/admin-settings-en.png)
 
 **Start page** at `/`: the installed apps, served by nginx:
 
@@ -210,7 +218,7 @@ and [step 6](#6-deploy-after-the-build-optional), the last three only if you
 | [1](#1-create-the-database)              | Create the database and its user           | MySQL                       | yes      |
 | [2](#2-make-the-database-reachable)      | Decide how the admin UI reaches MySQL      | MySQL, `docker-compose.yml` | yes      |
 | [3](#3-create-the-stack-in-portainer)    | Add the repo as a source, create the stack | Portainer                   | yes      |
-| [4](#4-first-login)                      | Log in, enter addresses and Gotify         | admin UI                    | yes      |
+| [4](#4-first-login)                      | Log in, enter addresses, add notifications | admin UI                    | yes      |
 | [5](#5-https-via-reverse-proxy-optional) | Your own domains with HTTPS                | reverse proxy               | optional |
 | [6](#6-deploy-after-the-build-optional)  | Deploy right after the build               | Portainer, repo             | optional |
 
@@ -304,8 +312,8 @@ Open `http://<host>:8081` and log in with `admin` and the password from
 | **Public address of the apps** | `http://<host>:8080`  | `https://<apps-domain>`  | the **Open** buttons                |
 | **Address of this admin UI**   | `http://<host>:8081`  | `https://<admin-domain>` | opens when a notification is tapped |
 
-Then enter **Gotify server** and **App token** (see [Gotify](#gotify)) and click
-**Send test message**.
+Then add a channel under **Notifications**, e.g. Gotify (see [Gotify](#gotify)) or email,
+and click **Send test message**.
 
 About ten seconds after the start, the admin UI queries GitHub for the first time and then
 shows all available apps. Finally, install an app and open it at `http://<host>:8080`.
@@ -470,15 +478,54 @@ and write access. Without **Workflows**, GitHub rejects every push that changes
 
 ## Notifications
 
-| Event                                                                          | Gotify priority |
-| ------------------------------------------------------------------------------ | --------------- |
-| New app available (on the very first start and as a summary from four at once) | 5               |
-| Update available – only for apps with automatic updates turned off             | 5               |
-| Update applied (automatically or by button), new app installed automatically   | 4               |
-| Error – each error once, not again on every check                              | 8               |
+Under **Notifications** you add as many channels as you like. Each one reports in its own
+language, German or English, and only the events chosen for it. **Test** sends a test
+message, the switch in the list turns a channel off without losing its settings.
 
-Each category can be turned off in the settings, where you also choose the language of the
-notifications: German or English. Tapping a notification opens the admin UI.
+| Channel  | What it needs                                                                                                     | Good to know                                                                  |
+| -------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Gotify   | server address and app token, see [Gotify](#gotify)                                                               | push notifications to the phone                                               |
+| Email    | SMTP server, port, encryption (STARTTLS, TLS or none), sender and recipients; username and password for a login   | several recipients separated by commas                                        |
+| ntfy     | server, e.g. `https://ntfy.sh`, and topic; an access token for protected topics                                   | on ntfy.sh anyone who knows the topic can read along – pick one hard to guess |
+| Webhook  | URL, optionally an `Authorization` header                                                                         | JSON via `POST`, see below – e.g. for Home Assistant, n8n or Node-RED         |
+| Telegram | bot token from [@BotFather](https://t.me/BotFather) and chat ID: your own, a group's (with a minus) or `@channel` | send `/start` to the bot first – bots can't start a conversation              |
+| Discord  | webhook URL, in Discord under **Edit Channel → Integrations → Webhooks**                                          |                                                                               |
+
+The events and their priority:
+
+| Event                                                                          | Gotify | ntfy        |
+| ------------------------------------------------------------------------------ | ------ | ----------- |
+| New app available (on the very first start and as a summary from four at once) | 5      | 3 (default) |
+| Update available – only for apps with automatic updates turned off             | 5      | 3 (default) |
+| Update applied (automatically or by button), new app installed automatically   | 4      | 3 (default) |
+| Error – each error once, not again on every check                              | 8      | 4 (high)    |
+
+Emails about errors are marked as important, Discord shows them in red. Tapping a
+notification opens the admin UI – emails, Telegram and Discord link to it.
+
+- **Secrets** – tokens, passwords and the URLs of webhooks and Discord – are stored in
+  MySQL and never go back to the browser: the form only shows that they are saved. Left
+  empty when saving, they stay as they are; optional ones can be removed.
+- **The list** shows when each channel last sent something, or why the last attempt failed.
+  The activity log notes every failed notification as well.
+- **Updating from a version without channels:** the Gotify settings become the channel
+  "Gotify" on the first start, with the same events and language.
+
+**Webhook:** each notification arrives as JSON via `POST`:
+
+```json
+{
+  "event": "updated",
+  "title": "PhotoCraft updated",
+  "message": "**0.9.0 → 0.10.0** (automatically)",
+  "priority": 4,
+  "url": "https://craft-admin.example.com"
+}
+```
+
+`event` is `newApps`, `updateAvailable`, `updated`, `errors` or `test`, `message` is
+Markdown, `priority` follows the Gotify scale from 0 to 10, and `url` is the address of the
+admin UI or `null`.
 
 ## Good to know
 
@@ -905,8 +952,8 @@ ACME (Let's Encrypt).
 ### Gotify
 
 **What CraftApps needs:** an app token. In Gotify under **Apps → Create Application**,
-create an application `CraftApps` and enter the token together with the server's address in
-the admin UI's settings, see [step 4](#4-first-login).
+create an application `CraftApps` and enter the token together with the server's address as
+a channel under **Notifications**, see [Notifications](#notifications).
 
 **If it's missing:** stack `gotify` with the **Web editor**, the password for the account
 `admin` under **Environment variables** as `GOTIFY_ADMIN_PASSWORD`:
@@ -967,12 +1014,16 @@ log in German.
 
 ### Admin UI
 
-| Symptom                                                                                                                                                  | Cause                                                                                          | Fix                                                                                                                                                                                |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Log: `MySQL noch nicht erreichbar (connect ECONNREFUSED …)`, `(getaddrinfo ENOTFOUND …)` or `(connect ETIMEDOUT)`; after a minute the container restarts | `CRAFTAPPS_DB_HOST` is wrong, or MySQL isn't reachable from the container                      | [step 2](#2-make-the-database-reachable)                                                                                                                                           |
-| Log: `MySQL noch nicht erreichbar (Access denied for user 'craftapps'@…)`                                                                                | wrong password, or the user doesn't exist                                                      | [step 1](#1-create-the-database), `CRAFTAPPS_DB_PASSWORD`                                                                                                                          |
-| Login with the password from `CRAFTAPPS_ADMIN_PASSWORD`: `Wrong username or password`                                                                    | `admin` was created with an earlier password; the variable only applies while there is no user | the earlier password, or another user creates a new account under **Users**. Without other users: `DELETE FROM users;` in the database `craftapps`, then restart `CraftApps-Admin` |
-| `Too many attempts – please try again in a few minutes`                                                                                                  | 10 failed logins within 15 minutes from this IP address                                        | wait 15 minutes                                                                                                                                                                    |
-| `No write access to /data – …`                                                                                                                           | the volume `craftapps_data` doesn't belong to user 1000                                        | `chown`, see [Good to know](#good-to-know)                                                                                                                                         |
-| `GitHub API limit reached, available again at …`                                                                                                         | more than 60 requests per hour to GitHub                                                       | a longer check interval or `GITHUB_TOKEN`, see [Good to know](#good-to-know)                                                                                                       |
-| Apps run, but without WebGPU or clipboard                                                                                                                | no secure context via `http://`                                                                | HTTPS, see [step 5](#5-https-via-reverse-proxy-optional)                                                                                                                           |
+| Symptom                                                                                                                                                  | Cause                                                                                           | Fix                                                                                                                                                                                |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Log: `MySQL noch nicht erreichbar (connect ECONNREFUSED …)`, `(getaddrinfo ENOTFOUND …)` or `(connect ETIMEDOUT)`; after a minute the container restarts | `CRAFTAPPS_DB_HOST` is wrong, or MySQL isn't reachable from the container                       | [step 2](#2-make-the-database-reachable)                                                                                                                                           |
+| Log: `MySQL noch nicht erreichbar (Access denied for user 'craftapps'@…)`                                                                                | wrong password, or the user doesn't exist                                                       | [step 1](#1-create-the-database), `CRAFTAPPS_DB_PASSWORD`                                                                                                                          |
+| Login with the password from `CRAFTAPPS_ADMIN_PASSWORD`: `Wrong username or password`                                                                    | `admin` was created with an earlier password; the variable only applies while there is no user  | the earlier password, or another user creates a new account under **Users**. Without other users: `DELETE FROM users;` in the database `craftapps`, then restart `CraftApps-Admin` |
+| `Too many attempts – please try again in a few minutes`                                                                                                  | 10 failed logins within 15 minutes from this IP address                                         | wait 15 minutes                                                                                                                                                                    |
+| `No write access to /data – …`                                                                                                                           | the volume `craftapps_data` doesn't belong to user 1000                                         | `chown`, see [Good to know](#good-to-know)                                                                                                                                         |
+| `GitHub API limit reached, available again at …`                                                                                                         | more than 60 requests per hour to GitHub                                                        | a longer check interval or `GITHUB_TOKEN`, see [Good to know](#good-to-know)                                                                                                       |
+| Activity: `Notification via "…" failed: Gotify responded 401: …`                                                                                         | the app token is wrong or was deleted in Gotify                                                 | a new app token, under **Notifications → Edit**                                                                                                                                    |
+| `Telegram responded 400: Bad Request: chat not found` or `403: Forbidden: bot can't initiate conversation with a user`                                   | the chat ID is wrong, or the bot doesn't know the chat yet                                      | send `/start` to the bot or add it to the group, check the chat ID                                                                                                                 |
+| Email: `Invalid login: 535 …`                                                                                                                            | wrong username or password; many providers want an app password instead of the account password | the SMTP credentials of your provider                                                                                                                                              |
+| `… not reachable: connect ECONNREFUSED …` or `… not reachable: getaddrinfo ENOTFOUND …`                                                                  | wrong address, or the service isn't reachable from the container                                | check the address – in the container `localhost` is the admin UI itself                                                                                                            |
+| Apps run, but without WebGPU or clipboard                                                                                                                | no secure context via `http://`                                                                 | HTTPS, see [step 5](#5-https-via-reverse-proxy-optional)                                                                                                                           |

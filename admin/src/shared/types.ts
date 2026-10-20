@@ -1,5 +1,6 @@
 // Shared types for server and UI (types only, no runtime code)
 
+import type { ChannelType, ChannelValues, NotifyEvent } from './channels.js';
 import type { Lang, Msg } from './messages.js';
 
 export type AppStatus = 'not-installed' | 'installed' | 'update-available';
@@ -50,6 +51,7 @@ export interface StateView {
   lastCheckAt: string | null;
   nextCheckAt: string | null;
   github: { remaining: number | null; limit: number | null; resetAt: string | null };
+  /** At least one notification channel is turned on */
   notificationsConfigured: boolean;
   warnings: Msg[];
 }
@@ -71,18 +73,50 @@ export interface SettingsView {
   defaultAutoUpdate: boolean;
   appsBaseUrl: string;
   adminBaseUrl: string;
-  gotifyUrl: string;
-  gotifyTokenSet: boolean;
-  notifyNewApps: boolean;
-  notifyUpdateAvailable: boolean;
-  notifyUpdated: boolean;
-  notifyErrors: boolean;
-  /** Language of the Gotify notifications */
-  notifyLanguage: Lang;
 }
 
-/** Empty gotifyToken = leave unchanged */
-export type SettingsUpdate = Partial<Omit<SettingsView, 'gotifyTokenSet'>> & { gotifyToken?: string };
+export type SettingsUpdate = Partial<SettingsView>;
+
+export interface ChannelView {
+  id: number;
+  name: string;
+  type: ChannelType;
+  enabled: boolean;
+  /** Language of the notifications on this channel */
+  language: Lang;
+  events: NotifyEvent[];
+  /** Settings without the secrets */
+  config: ChannelValues;
+  /** Secrets that have a stored value */
+  secretsSet: string[];
+  /** Target without secrets, e.g. the host or the recipients */
+  target: string;
+  lastSentAt: string | null;
+  /** Why the last notification didn't get through – null if it did */
+  lastError: Msg | null;
+}
+
+/** Changes a channel – an empty secret keeps the stored value, null removes it */
+export interface ChannelInput {
+  name: string;
+  enabled: boolean;
+  language: Lang;
+  events: NotifyEvent[];
+  config: Record<string, string | number | null>;
+}
+
+/** Creates a channel; its type can't be changed later */
+export interface NewChannel extends ChannelInput {
+  type: ChannelType;
+}
+
+/** Test message with the values from the form; id fills in the stored secrets */
+export interface ChannelTest {
+  id?: number;
+  type: ChannelType;
+  language: Lang;
+  config: ChannelInput['config'];
+}
 
 export interface MeView {
   id: number;

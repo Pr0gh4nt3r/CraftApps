@@ -59,9 +59,18 @@ language of the respective README, as do the screenshots of the admin UI and the
 
 The admin UI and the start page exist in German and English. UI texts live in
 `admin/src/web/i18n/locales/de.json` and `en.json`, messages the server generates (activity
-log, errors, job progress, Gotify notifications) in `admin/src/shared/messages.ts` as key +
+log, errors, job progress, notifications) in `admin/src/shared/messages.ts` as key +
 parameters – add every new text in both languages. Log messages, the output of `dev.sh` and
 the workflows' step names stay German.
+
+## Notification channels
+
+The channel types and their fields are defined once in `admin/src/shared/channels.ts`: the
+server checks and sends with them (`admin/src/server/notify/`), the UI builds its form from
+them. A new type needs an entry there, a driver in `notify/drivers.ts` and its texts in both
+locales – `channels.type.<type>`, `channels.field.<type>.<key>` and optionally
+`channels.hint.<type>.<key>`; a missing label fails the build. Secret fields never go back to
+the UI.
 
 ## Push
 

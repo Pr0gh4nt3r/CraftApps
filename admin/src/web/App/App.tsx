@@ -6,6 +6,7 @@ import { AppsPage } from '../pages/AppsPage/AppsPage';
 import { t, useLang } from '../i18n/i18n';
 import { LangSwitch } from '../components/LangSwitch/LangSwitch';
 import { Login } from '../pages/Login/Login';
+import { NotificationsPage } from '../pages/NotificationsPage/NotificationsPage';
 import { SettingsPage } from '../pages/SettingsPage/SettingsPage';
 import { UsersPage } from '../pages/UsersPage/UsersPage';
 
@@ -13,6 +14,7 @@ import { UsersPage } from '../pages/UsersPage/UsersPage';
 const TABS = [
   { id: 'apps', label: 'tab.apps' },
   { id: 'aktivitaet', label: 'tab.activity' },
+  { id: 'benachrichtigungen', label: 'tab.notifications' },
   { id: 'einstellungen', label: 'tab.settings' },
   { id: 'benutzer', label: 'tab.users' },
 ] as const;
@@ -76,6 +78,7 @@ export function App() {
       <main>
         {tab === 'apps' && <AppsPage />}
         {tab === 'aktivitaet' && <ActivityPage />}
+        {tab === 'benachrichtigungen' && <NotificationsPage />}
         {tab === 'einstellungen' && <SettingsPage />}
         {tab === 'benutzer' && <UsersPage me={me} />}
       </main>

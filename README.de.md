@@ -9,8 +9,9 @@ des Craft Launchers:
 - **nginx** liefert die installierten Apps aus (`/photocraft/`, `/vectorcraft/`, …) und
   zeigt unter `/` eine Übersicht.
 - **Die Verwaltung** (Node.js/TypeScript) zeigt alle verfügbaren Apps, installiert und
-  entfernt sie, spielt Updates automatisch oder per Knopf ein und meldet alles über Gotify.
-  Ihre Oberfläche gibt es auf Deutsch und Englisch.
+  entfernt sie, spielt Updates automatisch oder per Knopf ein und meldet alles über Gotify,
+  E-Mail, ntfy, Telegram, Discord oder einen Webhook. Ihre Oberfläche gibt es auf Deutsch
+  und Englisch.
 
 ## Inhalt
 
@@ -41,15 +42,15 @@ CraftApps\
 │       │   ├── apps\                   Apps finden, installieren und aktualisieren; Startseite
 │       │   ├── auth\                   Benutzer, Sitzungen, Anmeldung
 │       │   ├── core\                   Konfiguration, Datenbank, Hilfsfunktionen
-│       │   ├── notify\                 Benachrichtigungen über Gotify
+│       │   ├── notify\                 Benachrichtigungskanäle: Gotify, E-Mail, ntfy, Webhook, Telegram, Discord
 │       │   └── settings\               Einstellungen
 │       ├── shared\                     Typen und Meldungen (Deutsch/Englisch) für Server und Oberfläche
 │       └── web\                        React-Oberfläche, main.tsx startet sie
 │           ├── App\                    Kopfzeile und Tabs
-│           ├── components\             AppCard, LangSwitch, Toggle – jeweils mit ihren Styles
+│           ├── components\             AppCard, ChannelForm, LangSwitch, Toggle – jeweils mit ihren Styles
 │           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
 │           ├── lib\                    API-Aufrufe und Formatierung
-│           ├── pages\                  Apps, Aktivität, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles
+│           ├── pages\                  Apps, Aktivität, Benachrichtigungen, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles
 │           └── styles\                 Globales SCSS; index.scss lädt alle Styles
 ├── dev.sh                              Startet MySQL, Verwaltung und Startseite für einen lokalen Test
 ├── docker-compose.dev.yml              MySQL für die lokale Entwicklung
@@ -91,7 +92,7 @@ flowchart LR
   admin -->|"installiert Apps"| data[("Volume<br/>craftapps_data")]
   data -->|"nur lesend"| web
   admin -->|"Benutzer, Einstellungen"| mysql[("MySQL")]
-  admin -->|"Push-Nachrichten"| gotify["Gotify"]
+  admin -->|"Benachrichtigungen"| notify["Gotify, E-Mail, ntfy,<br/>Webhook, Telegram, Discord"]
 ```
 
 - Standardmäßig sind Apps und Verwaltung nur im lokalen Netz über die Ports des Pi
@@ -152,14 +153,16 @@ Registry-Eintrag.
   zuletzt umgeschaltet, die Vorversion bleibt bis zum nächsten Update liegen. Jeder
   Download wird per SHA-256 geprüft.
 - **Anmeldung** mit Benutzern in MySQL, Aktivitätsverlauf, Einstellungen (Prüfintervall,
-  Gotify, Adressen) und Benutzerverwaltung.
-- **Push-Nachrichten** über Gotify, siehe [Benachrichtigungen](#benachrichtigungen).
+  Adressen) und Benutzerverwaltung.
+- **Benachrichtigungen** über Gotify, E-Mail, ntfy, Telegram, Discord oder einen Webhook –
+  beliebig viele Kanäle, jeder mit eigenen Ereignissen und eigener Sprache, siehe
+  [Benachrichtigungen](#benachrichtigungen).
 - **Deutsch und Englisch:** Die Verwaltung richtet sich nach der Sprache des Browsers und
-  hat oben einen Umschalter, ebenso die Startseite unter `/`. Die Gotify-Nachrichten folgen
-  der Sprache aus den Einstellungen.
+  hat oben einen Umschalter, ebenso die Startseite unter `/`. Jeder Benachrichtigungskanal
+  schreibt in der Sprache, die für ihn eingestellt ist.
 
-Daten: Benutzer, Einstellungen und Verlauf liegen in MySQL, die Apps im Volume
-`craftapps_data`, das nginx nur lesend einbindet.
+Daten: Benutzer, Einstellungen, Benachrichtigungskanäle und Verlauf liegen in MySQL, die
+Apps im Volume `craftapps_data`, das nginx nur lesend einbindet.
 
 ### Screenshots
 
@@ -172,9 +175,14 @@ aus) und noch nicht installiert:
 
 ![Verwaltung: Aktivitätsverlauf mit Installationen, einem verfügbaren Update und geänderten Einstellungen](docs/images/admin-activity-de.png)
 
-**Einstellungen:** Prüfintervall, Adressen und Gotify:
+**Benachrichtigungen:** die Kanäle mit ihren Ereignissen, hier mit dem Formular eines
+Gotify-Kanals – sein gespeicherter Token bleibt auf dem Server:
 
-![Verwaltung: Einstellungen für Updates, Adressen und Benachrichtigungen über Gotify](docs/images/admin-settings-de.png)
+![Verwaltung: Benachrichtigungskanäle für Gotify, E-Mail, einen Webhook und Telegram, darunter das Formular des Gotify-Kanals](docs/images/admin-notifications-de.png)
+
+**Einstellungen:** Prüfintervall und Adressen:
+
+![Verwaltung: Einstellungen für Updates und Adressen](docs/images/admin-settings-de.png)
 
 **Startseite** unter `/`: die installierten Apps, ausgeliefert von nginx:
 
@@ -207,14 +215,14 @@ Die Domains brauchst du nur für
 
 ### Überblick
 
-| Schritt                                  | Was du tust                                  | Wo                          | Nötig    |
-| ---------------------------------------- | -------------------------------------------- | --------------------------- | -------- |
-| [1](#1-datenbank-anlegen)                | Datenbank und Benutzer anlegen               | MySQL                       | ja       |
-| [2](#2-datenbank-erreichbar-machen)      | Festlegen, wie die Verwaltung MySQL erreicht | MySQL, `docker-compose.yml` | ja       |
-| [3](#3-stack-in-portainer-anlegen)       | Repo als Source anlegen, Stack anlegen       | Portainer                   | ja       |
-| [4](#4-erste-anmeldung)                  | Anmelden, Adressen und Gotify eintragen      | Verwaltung                  | ja       |
-| [5](#5-https-mit-reverse-proxy-optional) | Eigene Domains mit HTTPS                     | Reverse Proxy               | optional |
-| [6](#6-deploy-nach-dem-build-optional)   | Direkt nach dem Build deployen               | Portainer, Repo             | optional |
+| Schritt                                  | Was du tust                                         | Wo                          | Nötig    |
+| ---------------------------------------- | --------------------------------------------------- | --------------------------- | -------- |
+| [1](#1-datenbank-anlegen)                | Datenbank und Benutzer anlegen                      | MySQL                       | ja       |
+| [2](#2-datenbank-erreichbar-machen)      | Festlegen, wie die Verwaltung MySQL erreicht        | MySQL, `docker-compose.yml` | ja       |
+| [3](#3-stack-in-portainer-anlegen)       | Repo als Source anlegen, Stack anlegen              | Portainer                   | ja       |
+| [4](#4-erste-anmeldung)                  | Anmelden, Adressen und Benachrichtigungen eintragen | Verwaltung                  | ja       |
+| [5](#5-https-mit-reverse-proxy-optional) | Eigene Domains mit HTTPS                            | Reverse Proxy               | optional |
+| [6](#6-deploy-nach-dem-build-optional)   | Direkt nach dem Build deployen                      | Portainer, Repo             | optional |
 
 ### Voraussetzungen
 
@@ -307,8 +315,8 @@ steht „Benutzer admin angelegt“. Falls nicht, siehe [Fehlersuche](#fehlersuc
 | **Öffentliche Adresse der Apps** | `http://<host>:8080` | `https://<apps-domain>`  | die „Öffnen“-Knöpfe                              |
 | **Adresse dieser Verwaltung**    | `http://<host>:8081` | `https://<admin-domain>` | öffnet sich beim Antippen einer Benachrichtigung |
 
-Dann **Gotify-Server** und **App-Token** eintragen (siehe [Gotify](#gotify)) und auf
-**Testnachricht senden** klicken.
+Dann unter **Benachrichtigungen** einen Kanal anlegen, etwa Gotify (siehe [Gotify](#gotify))
+oder E-Mail, und auf **Testnachricht senden** klicken.
 
 Etwa zehn Sekunden nach dem Start fragt die Verwaltung zum ersten Mal GitHub ab und zeigt
 dann alle verfügbaren Apps. Zum Abschluss eine App installieren und unter
@@ -474,15 +482,56 @@ Mirror-Token braucht **Contents** und **Workflows**, jeweils mit Lesen und Schre
 
 ## Benachrichtigungen
 
-| Ereignis                                                                             | Gotify-Priorität |
-| ------------------------------------------------------------------------------------ | ---------------- |
-| Neue App verfügbar (beim allerersten Start und ab vier auf einmal als Sammelmeldung) | 5                |
-| Update verfügbar – nur für Apps, deren automatische Updates aus sind                 | 5                |
-| Update eingespielt (automatisch oder per Knopf), neue App automatisch installiert    | 4                |
-| Fehler – jeder Fehler einmal, nicht bei jeder Prüfung erneut                         | 8                |
+Unter **Benachrichtigungen** legst du beliebig viele Kanäle an. Jeder meldet in seiner
+eigenen Sprache, Deutsch oder Englisch, und nur die Ereignisse, die für ihn gewählt sind.
+**Testen** schickt eine Testnachricht, der Schalter in der Liste schaltet einen Kanal ab,
+ohne dass seine Einstellungen verloren gehen.
 
-Jede Kategorie lässt sich in den Einstellungen abschalten; dort wählst du auch die Sprache
-der Nachrichten, Deutsch oder Englisch. Antippen öffnet die Verwaltung.
+| Kanal    | Was er braucht                                                                                                                      | Gut zu wissen                                                                    |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Gotify   | Adresse des Servers und App-Token, siehe [Gotify](#gotify)                                                                          | Push-Nachrichten aufs Handy                                                      |
+| E-Mail   | SMTP-Server, Port, Verschlüsselung (STARTTLS, TLS oder keine), Absender und Empfänger; für eine Anmeldung Benutzername und Passwort | mehrere Empfänger durch Kommas getrennt                                          |
+| ntfy     | Server, z.B. `https://ntfy.sh`, und Thema; für geschützte Themen ein Zugangs-Token                                                  | auf ntfy.sh liest jeder mit, der das Thema kennt – nimm ein schwer zu erratendes |
+| Webhook  | Adresse, optional ein `Authorization`-Header                                                                                        | JSON per `POST`, siehe unten – etwa für Home Assistant, n8n oder Node-RED        |
+| Telegram | Bot-Token von [@BotFather](https://t.me/BotFather) und Chat-ID: deine eigene, die einer Gruppe (mit Minus) oder `@kanal`            | schick dem Bot vorher `/start` – Bots können kein Gespräch beginnen              |
+| Discord  | Webhook-Adresse, in Discord unter **Kanal bearbeiten → Integrationen → Webhooks**                                                   |                                                                                  |
+
+Die Ereignisse und ihre Priorität:
+
+| Ereignis                                                                             | Gotify | ntfy         |
+| ------------------------------------------------------------------------------------ | ------ | ------------ |
+| Neue App verfügbar (beim allerersten Start und ab vier auf einmal als Sammelmeldung) | 5      | 3 (Standard) |
+| Update verfügbar – nur für Apps, deren automatische Updates aus sind                 | 5      | 3 (Standard) |
+| Update eingespielt (automatisch oder per Knopf), neue App automatisch installiert    | 4      | 3 (Standard) |
+| Fehler – jeder Fehler einmal, nicht bei jeder Prüfung erneut                         | 8      | 4 (hoch)     |
+
+E-Mails zu Fehlern sind als wichtig markiert, Discord zeigt sie rot. Antippen einer
+Benachrichtigung öffnet die Verwaltung – E-Mails, Telegram und Discord verlinken sie.
+
+- **Geheimes** – Tokens, Passwörter und die Adressen von Webhooks und Discord – liegt in
+  MySQL und geht nie zurück an den Browser: Das Formular zeigt nur, dass es gespeichert ist.
+  Bleibt so ein Feld beim Speichern leer, bleibt der Wert; optionale lassen sich entfernen.
+- **Die Liste** zeigt, wann jeder Kanal zuletzt etwas geschickt hat oder warum der letzte
+  Versand fehlgeschlagen ist. Jede fehlgeschlagene Benachrichtigung steht außerdem im
+  Aktivitätsverlauf.
+- **Update von einer Version ohne Kanäle:** Die Gotify-Einstellungen werden beim ersten
+  Start zum Kanal „Gotify“, mit denselben Ereignissen und derselben Sprache.
+
+**Webhook:** Jede Benachrichtigung kommt als JSON per `POST`:
+
+```json
+{
+  "event": "updated",
+  "title": "PhotoCraft aktualisiert",
+  "message": "**0.9.0 → 0.10.0** (automatisch)",
+  "priority": 4,
+  "url": "https://craft-admin.example.com"
+}
+```
+
+`event` ist `newApps`, `updateAvailable`, `updated`, `errors` oder `test`, `message` ist
+Markdown, `priority` folgt der Gotify-Skala von 0 bis 10, und `url` ist die Adresse der
+Verwaltung oder `null`.
 
 ## Gut zu wissen
 
@@ -915,7 +964,8 @@ Zertifikate per ACME (Let's Encrypt) holen.
 
 **Was CraftApps braucht:** einen App-Token. In Gotify unter **Apps → Create Application**
 eine Anwendung `CraftApps` anlegen und den Token zusammen mit der Adresse des Servers in
-den Einstellungen der Verwaltung eintragen, siehe [Schritt 4](#4-erste-anmeldung).
+der Verwaltung als Kanal unter **Benachrichtigungen** eintragen, siehe
+[Benachrichtigungen](#benachrichtigungen).
 
 **Falls es fehlt:** Stack `gotify` mit dem **Web editor**, das Passwort für das Konto
 `admin` unter **Environment variables** als `GOTIFY_ADMIN_PASSWORD`:
@@ -984,4 +1034,8 @@ hier so, wie sie auf Deutsch erscheinen.
 | `Zu viele Versuche – bitte in ein paar Minuten noch einmal`                                                                                                      | 10 fehlgeschlagene Anmeldungen innerhalb von 15 Minuten von dieser IP-Adresse                              | 15 Minuten warten                                                                                                                                                                                        |
 | `Keine Schreibrechte auf /data – …`                                                                                                                              | das Volume `craftapps_data` gehört nicht dem Benutzer 1000                                                 | `chown`, siehe [Gut zu wissen](#gut-zu-wissen)                                                                                                                                                           |
 | `GitHub-API-Limit erreicht, wieder frei ab … Uhr`                                                                                                                | mehr als 60 Anfragen pro Stunde an GitHub                                                                  | ein längeres Prüfintervall oder `GITHUB_TOKEN`, siehe [Gut zu wissen](#gut-zu-wissen)                                                                                                                    |
+| Aktivität: `Benachrichtigung über „…“ fehlgeschlagen: Gotify antwortet 401: …`                                                                                   | der App-Token stimmt nicht oder wurde in Gotify gelöscht                                                   | einen neuen App-Token, unter **Benachrichtigungen → Bearbeiten**                                                                                                                                         |
+| `Telegram antwortet 400: Bad Request: chat not found` oder `403: Forbidden: bot can't initiate conversation with a user`                                         | die Chat-ID stimmt nicht, oder der Bot kennt den Chat noch nicht                                           | dem Bot `/start` schicken oder ihn in die Gruppe aufnehmen, die Chat-ID prüfen                                                                                                                           |
+| E-Mail: `Invalid login: 535 …`                                                                                                                                   | Benutzername oder Passwort falsch; viele Anbieter wollen ein App-Passwort statt des Kontopassworts         | die SMTP-Zugangsdaten deines Anbieters                                                                                                                                                                   |
+| `… nicht erreichbar: connect ECONNREFUSED …` oder `… nicht erreichbar: getaddrinfo ENOTFOUND …`                                                                  | falsche Adresse, oder der Dienst ist vom Container aus nicht erreichbar                                    | die Adresse prüfen – im Container ist `localhost` die Verwaltung selbst                                                                                                                                  |
 | Apps laufen, aber ohne WebGPU oder Zwischenablage                                                                                                                | kein sicherer Kontext über `http://`                                                                       | HTTPS, siehe [Schritt 5](#5-https-mit-reverse-proxy-optional)                                                                                                                                            |

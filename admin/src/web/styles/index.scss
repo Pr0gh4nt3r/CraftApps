@@ -15,4 +15,6 @@
 @use 'forms';
 @use 'tables';
 @use '../pages/ActivityPage/activity-page';
+@use '../pages/NotificationsPage/notifications-page';
+@use '../components/ChannelForm/channel-form';
 @use '../pages/Login/login';

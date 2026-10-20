@@ -6,12 +6,6 @@ import { Toggle } from '../../components/Toggle/Toggle';
 
 const INTERVALS = [30, 60, 180, 360, 720, 1440] as const;
 
-// Each language under its own name, like in the language switch
-const NOTIFY_LANGUAGES = [
-  { id: 'de', name: 'Deutsch' },
-  { id: 'en', name: 'English' },
-] as const;
-
 type Message = { tone: 'ok' | 'error'; text: string } | null;
 
 const intervalLabel = (minutes: number) =>
@@ -21,7 +15,6 @@ const intervalLabel = (minutes: number) =>
 
 export function SettingsPage() {
   const [form, setForm] = useState<SettingsView | null>(null);
-  const [token, setToken] = useState('');
   const [message, setMessage] = useState<Message>(null);
   const [saving, setSaving] = useState(false);
 
@@ -42,29 +35,12 @@ export function SettingsPage() {
     setSaving(true);
     setMessage(null);
     try {
-      const { gotifyTokenSet: _, ...values } = form;
-      setForm(await api<SettingsView>('PUT', '/api/settings', { ...values, ...(token ? { gotifyToken: token } : {}) }));
-      setToken('');
+      setForm(await api<SettingsView>('PUT', '/api/settings', form));
       setMessage({ tone: 'ok', text: t('settings.saved') });
     } catch (err) {
       setMessage({ tone: 'error', text: (err as Error).message });
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function sendTest() {
-    if (!form) return;
-    setMessage(null);
-    try {
-      await api('POST', '/api/settings/test-notification', {
-        gotifyUrl: form.gotifyUrl,
-        notifyLanguage: form.notifyLanguage,
-        ...(token ? { gotifyToken: token } : {}),
-      });
-      setMessage({ tone: 'ok', text: t('settings.testSent') });
-    } catch (err) {
-      setMessage({ tone: 'error', text: (err as Error).message });
     }
   }
 
@@ -120,57 +96,6 @@ export function SettingsPage() {
           />
           <span className="hint">{t('settings.adminBaseUrlHint')}</span>
         </label>
-      </section>
-
-      <section className="panel">
-        <h2>{t('settings.gotify')}</h2>
-        <label className="field">
-          {t('settings.gotifyUrl')}
-          <input
-            type="url"
-            placeholder="https://gotify.example.com"
-            value={form.gotifyUrl}
-            onChange={(e) => set('gotifyUrl', e.target.value)}
-          />
-        </label>
-        <label className="field">
-          {t('settings.gotifyToken')}
-          <input
-            type="password"
-            autoComplete="off"
-            placeholder={form.gotifyTokenSet ? t('settings.gotifyTokenSet') : t('settings.gotifyTokenNew')}
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          {t('settings.notifyLanguage')}
-          <select value={form.notifyLanguage} onChange={(e) => set('notifyLanguage', e.target.value === 'en' ? 'en' : 'de')}>
-            {NOTIFY_LANGUAGES.map((l) => (
-              <option key={l.id} value={l.id} lang={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="muted small">{t('settings.notifyAbout')}</p>
-        <Toggle checked={form.notifyNewApps} onChange={(v) => set('notifyNewApps', v)}>
-          {t('settings.notifyNewApps')}
-        </Toggle>
-        <Toggle checked={form.notifyUpdateAvailable} onChange={(v) => set('notifyUpdateAvailable', v)}>
-          {t('settings.notifyUpdateAvailable')}
-        </Toggle>
-        <Toggle checked={form.notifyUpdated} onChange={(v) => set('notifyUpdated', v)}>
-          {t('settings.notifyUpdated')}
-        </Toggle>
-        <Toggle checked={form.notifyErrors} onChange={(v) => set('notifyErrors', v)}>
-          {t('settings.notifyErrors')}
-        </Toggle>
-        <div className="form-actions">
-          <button type="button" className="btn" onClick={sendTest}>
-            {t('settings.sendTest')}
-          </button>
-        </div>
       </section>
 
       <div className="form-actions sticky-actions">

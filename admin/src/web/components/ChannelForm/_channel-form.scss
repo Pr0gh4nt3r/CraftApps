@@ -1,0 +1,18 @@
+// Form of a notification channel (ChannelForm); panel and fields are global (forms)
+@use '../../styles/shared';
+
+.channel-form {
+  // Scrolls into view below the sticky top bar, which takes several rows on narrow screens
+  scroll-margin-top: 80px;
+
+  @media (max-width: shared.$narrow) {
+    scroll-margin-top: 130px;
+  }
+
+  // Hint and "Remove" of a stored secret side by side
+  .hint {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

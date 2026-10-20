@@ -57,6 +57,9 @@ export function useLang(): Lang {
   }, getLang);
 }
 
+/** Whether there is a text for this key – for optional texts such as hints */
+export const hasText = (key: string): key is UiKey => key in de;
+
 /** UI text in the current language; {name} placeholders are filled from params */
 export function t(key: UiKey, params: Record<string, string | number> = {}): string {
   return TEXTS[current][key].replace(/\{(\w+)\}/g, (placeholder, name: string) => String(params[name] ?? placeholder));
