@@ -16,6 +16,10 @@ For the changed files, each without errors:
 - **`dev.sh`:** `bash -n dev.sh` and shellcheck, e.g.
   `docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable dev.sh`.
 
+`.gitea/workflows/checks.yaml` runs the same checks on every pull request to `main` – keep
+it in line with this list. Its status `Prüfen / checks (pull_request)` is what the branch
+protection of `main` requires before a merge.
+
 ## Running locally
 
 `./dev.sh` starts MySQL from `docker-compose.dev.yml`, server and Vite in `admin/` and nginx

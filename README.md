@@ -31,6 +31,7 @@ the Craft Launcher:
 ```text
 CraftApps\
 ├── .gitea\workflows\admin-image.yaml   Also builds the image in Gitea (optional)
+├── .gitea\workflows\checks.yaml        Checks every pull request: lint, build, Compose, nginx, YAML, dev.sh
 ├── .github\workflows\admin-image.yaml  Builds the admin image (ARM64) to ghcr.io when admin\ changes
 ├── .vscode\                            Launch and debug in VS Code, recommended extensions
 ├── admin\                              Admin UI: Fastify server and React frontend
@@ -617,6 +618,17 @@ npm run lint    # ESLint, warnings count as errors
 npm run build   # tsc for UI and server, Vite build as in CI
 ```
 
+In Gitea the [runner](#gitea-runner) runs them on every pull request to `main`, together
+with the checks for both Compose files, `nginx.conf`, the workflows and `dev.sh`
+([.gitea/workflows/checks.yaml](.gitea/workflows/checks.yaml)). The pull request shows the
+result as the status **Prüfen / checks (pull_request)**. So that a pull request can only be
+merged once it has passed, add a rule for `main` in the repo under **Settings → Branches**:
+
+| Setting                 | Value                                          |
+| ----------------------- | ---------------------------------------------- |
+| **Enable Status Check** | on, with the pattern `Prüfen / *`              |
+| **Disable Push**        | on, so that `main` only changes through merges |
+
 ## Containers
 
 All containers run on the Pi and are created in Portainer as stacks. `CraftApps` and
@@ -792,7 +804,8 @@ Watchtower needs the credentials separately, see [Watchtower](#watchtower).
 
 ### Gitea runner
 
-Only for the [image in Gitea](#in-gitea): the runner builds it whenever `admin\` changes.
+For the [image in Gitea](#in-gitea) and the [checks on pull requests](#development): the
+runner builds the image whenever `admin\` changes and checks every pull request to `main`.
 On the Pi it builds natively for ARM64; on another machine the workflow emulates ARM64 via
 QEMU, which takes considerably longer.
 
