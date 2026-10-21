@@ -31,6 +31,7 @@ des Craft Launchers:
 ```text
 CraftApps\
 ├── .gitea\workflows\admin-image.yaml   Baut das Image zusätzlich in Gitea (optional)
+├── .gitea\workflows\checks.yaml        Prüft jeden Pull Request: Lint, Build, Compose, nginx, YAML, dev.sh
 ├── .github\workflows\admin-image.yaml  Baut das Image der Verwaltung (ARM64) nach ghcr.io, wenn sich admin\ ändert
 ├── .vscode\                            Starten und Debuggen in VS Code, empfohlene Erweiterungen
 ├── admin\                              Verwaltung: Fastify-Server und React-Oberfläche
@@ -616,6 +617,18 @@ npm run lint    # ESLint, warnings count as errors
 npm run build   # tsc for UI and server, Vite build as in CI
 ```
 
+In Gitea führt der [Runner](#gitea-runner) sie bei jedem Pull Request nach `main` aus,
+zusammen mit den Prüfungen für beide Compose-Dateien, `nginx.conf`, die Workflows und
+`dev.sh` ([.gitea/workflows/checks.yaml](.gitea/workflows/checks.yaml)). Das Ergebnis zeigt
+der Pull Request als Status **Prüfen / checks (pull_request)**. Damit ein Pull Request erst
+gemergt werden kann, wenn er bestanden ist, im Repo unter **Einstellungen → Branches** eine
+Regel für `main` anlegen:
+
+| Einstellung                    | Wert                                          |
+| ------------------------------ | --------------------------------------------- |
+| **Statusprüfungen aktivieren** | an, mit dem Muster `Prüfen / *`               |
+| **Push deaktivieren**          | an, damit sich `main` nur durch Merges ändert |
+
 ## Container
 
 Alle Container laufen auf dem Pi und werden in Portainer als Stack angelegt. `CraftApps`
@@ -792,7 +805,8 @@ nichts. Watchtower braucht die Zugangsdaten getrennt, siehe [Watchtower](#watcht
 
 ### Gitea-Runner
 
-Nur für das [Image in Gitea](#in-gitea): Der Runner baut es, sobald sich `admin\` ändert.
+Für das [Image in Gitea](#in-gitea) und die [Prüfungen bei Pull Requests](#entwicklung): Der
+Runner baut das Image, wenn sich `admin\` ändert, und prüft jeden Pull Request nach `main`.
 Auf dem Pi baut er nativ für ARM64; auf einem anderen Rechner emuliert der Workflow ARM64
 per QEMU, das dauert deutlich länger.
 

@@ -1,0 +1,64 @@
+# Runs the checks from CLAUDE.md on every pull request to main: ESLint and the build of the
+# admin UI, both Compose files, nginx.conf, the workflows and dev.sh. The branch protection
+# of main can require its status "Prüfen / checks (pull_request)" before a merge (see
+# README.md). That's why there is no path filter: a required status that never shows up
+# would block the merge.
+#
+# Runs on the same runner as admin-image.yaml. Its jobs use the Pi's Docker via the socket,
+# but the checked-out files aren't on the Pi – so the checks in containers get them via
+# stdin instead of a volume.
+name: Prüfen
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quellen holen
+        uses: actions/checkout@v4
+
+      # docker-compose.yml requires these variables – placeholders are enough here
+      - name: Compose-Dateien prüfen
+        env:
+          CRAFTAPPS_DB_HOST: db.example
+          CRAFTAPPS_DB_PASSWORD: placeholder
+          CRAFTAPPS_ADMIN_PASSWORD: placeholder
+        run: |
+          docker compose -f docker-compose.yml config -q
+          docker compose -f docker-compose.dev.yml config -q
+
+      - name: nginx.conf prüfen
+        run: |
+          docker run --rm -i nginx:alpine \
+            sh -c 'cat > /etc/nginx/conf.d/default.conf && nginx -t' < nginx.conf
+
+      # Only errors such as broken syntax or duplicate keys, no style rules
+      - name: Workflows prüfen
+        run: |
+          pipx run --spec 'yamllint~=1.38' yamllint --no-warnings -d relaxed \
+            .gitea/workflows .github/workflows
+
+      - name: dev.sh prüfen
+        run: |
+          bash -n dev.sh
+          docker run --rm -i koalaman/shellcheck:stable - < dev.sh
+
+      - name: Node einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Abhängigkeiten installieren
+        working-directory: admin
+        run: npm ci
+
+      - name: ESLint
+        working-directory: admin
+        run: npm run lint
+
+      - name: Bauen
+        working-directory: admin
+        run: npm run build
