@@ -73,9 +73,12 @@ export interface SettingsView {
   defaultAutoUpdate: boolean;
   appsBaseUrl: string;
   adminBaseUrl: string;
+  /** Where the GitHub token in use comes from – the token itself stays on the server */
+  githubTokenSource: 'settings' | 'env' | null;
 }
 
-export type SettingsUpdate = Partial<SettingsView>;
+/** Changes settings – githubToken replaces the saved token, null removes it */
+export type SettingsUpdate = Partial<Omit<SettingsView, 'githubTokenSource'> & { githubToken: string | null }>;
 
 export interface ChannelView {
   id: number;

@@ -4,16 +4,19 @@ import type { Pool, RowDataPacket } from 'mysql2/promise';
 import { msg, parseMsg } from '../../shared/messages.js';
 import type { EventView, SettingsUpdate } from '../../shared/types.js';
 import type { Config } from '../core/config.js';
+import { GitHubTokenError, type GitHub } from '../apps/github.js';
 import type { Manager } from '../apps/manager.js';
-import type { SettingsStore } from '../settings/settings.js';
-import { APP_ID } from '../core/util.js';
+import { settingsView, type Settings, type SettingsStore } from '../settings/settings.js';
+import { APP_ID, toMsg } from '../core/util.js';
 
 const URL_FIELD = { type: 'string', maxLength: 500, pattern: '^(https?://\\S+)?$' } as const;
 const BOOL = { type: 'boolean' } as const;
+// Ends up in an HTTP header – printable ASCII only; null removes the saved token
+const TOKEN = { type: ['string', 'null'], maxLength: 255, pattern: '^[\\x21-\\x7E]+$' } as const;
 
 export function registerRoutes(
   app: FastifyInstance,
-  { manager, settings, db, cfg }: { manager: Manager; settings: SettingsStore; db: Pool; cfg: Config },
+  { manager, settings, github, db, cfg }: { manager: Manager; settings: SettingsStore; github: GitHub; db: Pool; cfg: Config },
 ): void {
   // The UI polls the state every few seconds – don't write each request to the log
   app.get('/api/state', { logLevel: 'warn' }, () => manager.state());
@@ -64,7 +67,7 @@ export function registerRoutes(
     },
   );
 
-  app.get('/api/settings', () => settings.get());
+  app.get('/api/settings', async () => settingsView(await settings.get(), cfg.githubToken));
 
   app.put<{ Body: SettingsUpdate }>(
     '/api/settings',
@@ -79,20 +82,32 @@ export function registerRoutes(
             defaultAutoUpdate: BOOL,
             appsBaseUrl: URL_FIELD,
             adminBaseUrl: URL_FIELD,
+            githubToken: TOKEN,
           },
         },
       },
     },
-    async (req) => {
+    async (req, reply) => {
       const before = await settings.get();
-      const patch: SettingsUpdate = { ...req.body };
+      const { githubToken, ...rest } = req.body;
+      const patch: Partial<Settings> = rest;
       for (const key of ['appsBaseUrl', 'adminBaseUrl'] as const) {
         if (patch[key] !== undefined) patch[key] = patch[key].trim().replace(/\/+$/, '');
       }
+      if (githubToken) {
+        try {
+          await github.verifyToken(githubToken);
+        } catch (err) {
+          // Nothing is saved: GitHub rejects the token or can't be reached right now
+          return reply.code(err instanceof GitHubTokenError ? 400 : 502).send({ error: toMsg(err) });
+        }
+      }
+      // null removes the saved token – then GITHUB_TOKEN applies again, if set
+      if (githubToken !== undefined) patch.githubToken = githubToken ?? '';
       const next = await settings.update(patch);
       if (next.checkIntervalMinutes !== before.checkIntervalMinutes) await manager.reschedule();
       await manager.event('setting', msg('event.settingsChanged'), null, req.user!.username);
-      return next;
+      return settingsView(next, cfg.githubToken);
     },
   );
 

@@ -68,8 +68,8 @@ services:
       # First account – only created while there is no user yet
       - INITIAL_ADMIN_USER=admin
       - INITIAL_ADMIN_PASSWORD=${CRAFTAPPS_ADMIN_PASSWORD:?in Portainer unter Environment variables setzen}
-      # Optional: GitHub token, only needed for check intervals below ~20 minutes
-      # - GITHUB_TOKEN=github_pat_...
+      # A token for GitHub (against its limit of 60 requests per hour) belongs in the admin
+      # UI under Settings → GitHub – not in this file, which lives in the Git repo
     volumes:
       - data:/data
     # May be reachable from the internet and downloads files – as few privileges as possible

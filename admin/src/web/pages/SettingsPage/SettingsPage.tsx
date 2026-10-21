@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import type { SettingsView } from '../../../shared/types';
+import type { SettingsUpdate, SettingsView } from '../../../shared/types';
 import { api } from '../../lib/api';
 import { t } from '../../i18n/i18n';
 import { Toggle } from '../../components/Toggle/Toggle';
@@ -13,8 +13,19 @@ const intervalLabel = (minutes: number) =>
     ? t(`settings.interval.${minutes as (typeof INTERVALS)[number]}`)
     : t('settings.interval.custom', { minutes });
 
+/** The empty token field tells where the token in use comes from */
+function tokenPlaceholder(source: SettingsView['githubTokenSource'], removing: boolean): string {
+  if (removing) return t('settings.githubTokenRemoved');
+  if (source === 'settings') return t('settings.githubTokenSaved');
+  if (source === 'env') return t('settings.githubTokenEnv');
+  return 'github_pat_…';
+}
+
 export function SettingsPage() {
   const [form, setForm] = useState<SettingsView | null>(null);
+  // A new GitHub token – it only goes to the server; empty keeps the saved one
+  const [token, setToken] = useState('');
+  const [removeToken, setRemoveToken] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const [saving, setSaving] = useState(false);
 
@@ -34,8 +45,15 @@ export function SettingsPage() {
     if (!form) return;
     setSaving(true);
     setMessage(null);
+    const { githubTokenSource: _, ...values } = form;
+    const update: SettingsUpdate = values;
+    // The token only goes along when it changes: a new one, or null to remove the saved one
+    if (token) update.githubToken = token;
+    else if (removeToken) update.githubToken = null;
     try {
-      setForm(await api<SettingsView>('PUT', '/api/settings', form));
+      setForm(await api<SettingsView>('PUT', '/api/settings', update));
+      setToken('');
+      setRemoveToken(false);
       setMessage({ tone: 'ok', text: t('settings.saved') });
     } catch (err) {
       setMessage({ tone: 'error', text: (err as Error).message });
@@ -72,6 +90,32 @@ export function SettingsPage() {
         <Toggle checked={form.autoInstallNew} onChange={(v) => set('autoInstallNew', v)}>
           {t('settings.autoInstallNew')}
         </Toggle>
+      </section>
+
+      <section className="panel">
+        <h2>{t('settings.github')}</h2>
+        <div className="field">
+          <label htmlFor="github-token">{t('settings.githubToken')}</label>
+          <input
+            id="github-token"
+            type="password"
+            value={token}
+            pattern="[\x21-\x7E]+"
+            maxLength={255}
+            placeholder={tokenPlaceholder(form.githubTokenSource, removeToken)}
+            // Keeps the browser from filling in the login password
+            autoComplete="new-password"
+            onChange={(e) => setToken(e.target.value)}
+          />
+          <span className="hint">
+            {t('settings.githubTokenHint')}
+            {form.githubTokenSource === 'settings' && !removeToken && (
+              <button type="button" className="link" onClick={() => setRemoveToken(true)}>
+                {t('settings.githubTokenRemove')}
+              </button>
+            )}
+          </span>
+        </div>
       </section>
 
       <section className="panel">

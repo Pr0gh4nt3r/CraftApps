@@ -25,7 +25,9 @@ await ensureInitialAdmin(db, cfg.initialAdmin, app.log);
 const settings = new SettingsStore(db);
 const channels = new ChannelStore(db);
 const notifier = new Notifier(channels, settings);
-const manager = new Manager(db, cfg, settings, notifier, new GitHub(cfg.githubToken), app.log);
+// A token saved in the settings takes precedence over GITHUB_TOKEN
+const github = new GitHub(async () => (await settings.get()).githubToken || cfg.githubToken);
+const manager = new Manager(db, cfg, settings, notifier, github, app.log);
 
 await app.register(helmet, {
   hsts: false, // left to the reverse proxy
@@ -81,7 +83,7 @@ await app.register(async (api) => {
   await api.register(async (secured) => {
     secured.addHook('onRequest', sessionGuard(db));
     registerAccount(secured, db);
-    registerRoutes(secured, { manager, settings, db, cfg });
+    registerRoutes(secured, { manager, settings, github, db, cfg });
     registerChannelRoutes(secured, { channels, notifier, manager });
   });
 });
