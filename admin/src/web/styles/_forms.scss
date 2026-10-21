@@ -36,7 +36,12 @@
   }
 }
 
+// A button such as "Remove" of a stored secret follows the text, on the next line if it doesn't
+// fit (ChannelForm, SettingsPage)
 .hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   color: var(--muted);
   font-size: 12px;
 }

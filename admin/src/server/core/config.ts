@@ -13,6 +13,7 @@ export interface Config {
   dataDir: string;
   webDir: string;
   owner: string;
+  /** GITHUB_TOKEN – applies while no token is saved in the settings */
   githubToken: string | undefined;
   trustProxy: string;
   db: DbConfig;

@@ -153,7 +153,7 @@ Registry-Eintrag.
   zuletzt umgeschaltet, die Vorversion bleibt bis zum nächsten Update liegen. Jeder
   Download wird per SHA-256 geprüft.
 - **Anmeldung** mit Benutzern in MySQL, Aktivitätsverlauf, Einstellungen (Prüfintervall,
-  Adressen) und Benutzerverwaltung.
+  GitHub-Token, Adressen) und Benutzerverwaltung.
 - **Benachrichtigungen** über Gotify, E-Mail, ntfy, Telegram, Discord oder einen Webhook –
   beliebig viele Kanäle, jeder mit eigenen Ereignissen und eigener Sprache, siehe
   [Benachrichtigungen](#benachrichtigungen).
@@ -180,9 +180,10 @@ Gotify-Kanals – sein gespeicherter Token bleibt auf dem Server:
 
 ![Verwaltung: Benachrichtigungskanäle für Gotify, E-Mail, einen Webhook und Telegram, darunter das Formular des Gotify-Kanals](docs/images/admin-notifications-de.png)
 
-**Einstellungen:** Prüfintervall und Adressen:
+**Einstellungen:** Prüfintervall, GitHub-Token und Adressen – der gespeicherte Token bleibt
+auf dem Server:
 
-![Verwaltung: Einstellungen für Updates und Adressen](docs/images/admin-settings-de.png)
+![Verwaltung: Einstellungen für Updates, den GitHub-Token und Adressen](docs/images/admin-settings-de.png)
 
 **Benutzer:** alle mit denselben Rechten – eigenes Passwort ändern, Konten anlegen und
 löschen:
@@ -266,7 +267,7 @@ fertigen Image gar keine. Gib jedem Token nur die Rechte aus dieser Tabelle.
 | Mirror-Token           | Gitea spiegelt das Repo nach GitHub                                               | Fine-grained, **Contents** und **Workflows: Read and write** | GitHub: **Settings → Developer settings → Personal access tokens** | Gitea-Repo: **Einstellungen → Mirror-Einstellungen**                                 |
 | `PORTAINER_WEBHOOK`    | der Workflow stößt den Deploy an                                                  | –                                                            | Portainer: Stack → **GitOps updates → Copy link**                  | Secret im Repo, siehe [Schritt 6](#6-deploy-nach-dem-build-optional)                 |
 | Registrierungstoken    | der [Gitea-Runner](#gitea-runner) registriert sich einmalig                       | –                                                            | Gitea-Repo: **Einstellungen → Actions → Runner**                   | Stack `gitea-runner`, danach wieder entfernen                                        |
-| `GITHUB_TOKEN`         | die Verwaltung prüft öfter als etwa alle 20 Minuten auf Updates                   | Fine-grained, **Public repositories (read-only)**            | GitHub: **Settings → Developer settings → Personal access tokens** | `docker-compose.yml`, siehe [Gut zu wissen](#gut-zu-wissen)                          |
+| GitHub-Token           | die Verwaltung soll nicht ins Limit der GitHub-API laufen                         | Fine-grained, **Public repositories (read-only)**            | GitHub: **Settings → Developer settings → Personal access tokens** | Verwaltung: **Einstellungen → GitHub**, siehe [Gut zu wissen](#gut-zu-wissen)        |
 
 Repo-Token und Registry-Token für Gitea können auch ein einziger Token mit
 **repository: Lesen**, **user: Lesen** und **package: Lesen** sein.
@@ -549,8 +550,15 @@ Verwaltung oder `null`.
 ## Gut zu wissen
 
 - Pro Prüfung braucht die Verwaltung etwa 16 Anfragen an die GitHub-API. Ohne Token erlaubt
-  GitHub 60 pro Stunde; für Prüfintervalle unter etwa 20 Minuten in `docker-compose.yml`
-  `GITHUB_TOKEN` setzen.
+  GitHub 60 pro Stunde und IP-Adresse – für alles hinter dieser Adresse zusammen, etwa auch
+  ein laufendes `./dev.sh`. Ein Token hebt das Limit auf 5.000: auf GitHub unter
+  **Settings → Developer settings → Personal access tokens** einen Fine-grained Token mit
+  **Public repositories (read-only)** anlegen und in der Verwaltung unter
+  **Einstellungen → GitHub** eintragen.
+- Den Token prüft die Verwaltung beim Speichern bei GitHub. Er bleibt auf dem Server, das
+  Formular zeigt nur, dass einer gespeichert ist. Ist er abgelaufen oder widerrufen, steht
+  das in der **Aktivität** – dann einen neuen eintragen. Ohne gespeicherten Token gilt die
+  Umgebungsvariable `GITHUB_TOKEN`, falls gesetzt.
 - Anmeldung: höchstens 10 Versuche pro 15 Minuten und IP-Adresse.
 - Reihenfolge, Namen, Farben, deutsche und englische Texte und Icons übernimmt die
   Verwaltung aus dem [Craft Launcher](https://github.com/storytold/craft-launcher). Ist der
@@ -729,8 +737,8 @@ Dann **Deploy the stack**.
   `admin` nur an, solange es noch keinen Benutzer gibt.
 - Sie läuft als Benutzer 1000 mit schreibgeschütztem Dateisystem, ohne Linux-Capabilities
   und mit `no-new-privileges`. Ob sie läuft, prüft Docker über `/healthz`.
-- Optional `GITHUB_TOKEN` für Prüfintervalle unter etwa 20 Minuten, siehe
-  [Gut zu wissen](#gut-zu-wissen).
+- Einen Token für GitHub enthält `docker-compose.yml` nicht – der gehört in die
+  Einstellungen der Verwaltung, siehe [Gut zu wissen](#gut-zu-wissen).
 
 ### Registry in Portainer (optional)
 
@@ -1046,7 +1054,8 @@ hier so, wie sie auf Deutsch erscheinen.
 | Anmeldung mit dem Passwort aus `CRAFTAPPS_ADMIN_PASSWORD`: `Benutzername oder Passwort falsch`                                                                   | `admin` wurde mit einem früheren Passwort angelegt; die Variable gilt nur, solange es keinen Benutzer gibt | das frühere Passwort, oder ein anderer Benutzer legt unter **Benutzer** ein neues Konto an. Ohne weitere Benutzer: `DELETE FROM users;` in der Datenbank `craftapps`, dann `CraftApps-Admin` neu starten |
 | `Zu viele Versuche – bitte in ein paar Minuten noch einmal`                                                                                                      | 10 fehlgeschlagene Anmeldungen innerhalb von 15 Minuten von dieser IP-Adresse                              | 15 Minuten warten                                                                                                                                                                                        |
 | `Keine Schreibrechte auf /data – …`                                                                                                                              | das Volume `craftapps_data` gehört nicht dem Benutzer 1000                                                 | `chown`, siehe [Gut zu wissen](#gut-zu-wissen)                                                                                                                                                           |
-| `GitHub-API-Limit erreicht, wieder frei ab … Uhr`                                                                                                                | mehr als 60 Anfragen pro Stunde an GitHub                                                                  | ein längeres Prüfintervall oder `GITHUB_TOKEN`, siehe [Gut zu wissen](#gut-zu-wissen)                                                                                                                    |
+| `GitHub-API-Limit erreicht, wieder frei ab … Uhr`                                                                                                                | mehr als 60 Anfragen pro Stunde an GitHub                                                                  | ein Token unter **Einstellungen → GitHub**, siehe [Gut zu wissen](#gut-zu-wissen)                                                                                                                        |
+| `GitHub lehnt den Token ab – …`                                                                                                                                  | der Token für GitHub ist abgelaufen, wurde widerrufen oder ist unvollständig                               | einen neuen Token unter **Einstellungen → GitHub**                                                                                                                                                       |
 | Aktivität: `Benachrichtigung über „…“ fehlgeschlagen: Gotify antwortet 401: …`                                                                                   | der App-Token stimmt nicht oder wurde in Gotify gelöscht                                                   | einen neuen App-Token, unter **Benachrichtigungen → Bearbeiten**                                                                                                                                         |
 | `Telegram antwortet 400: Bad Request: chat not found` oder `403: Forbidden: bot can't initiate conversation with a user`                                         | die Chat-ID stimmt nicht, oder der Bot kennt den Chat noch nicht                                           | dem Bot `/start` schicken oder ihn in die Gruppe aufnehmen, die Chat-ID prüfen                                                                                                                           |
 | E-Mail: `Invalid login: 535 …`                                                                                                                                   | Benutzername oder Passwort falsch; viele Anbieter wollen ein App-Passwort statt des Kontopassworts         | die SMTP-Zugangsdaten deines Anbieters                                                                                                                                                                   |

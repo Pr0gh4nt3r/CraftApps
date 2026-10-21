@@ -151,8 +151,8 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 - **Updates without interruption:** new files go next to the old ones, `index.html` is
   switched last, the previous version stays until the next update. Every download is
   verified via SHA-256.
-- **Login** with users in MySQL, activity log, settings (check interval, addresses) and
-  user management.
+- **Login** with users in MySQL, activity log, settings (check interval, GitHub token,
+  addresses) and user management.
 - **Notifications** via Gotify, email, ntfy, Telegram, Discord or a webhook – as many
   channels as you like, each with its own events and language, see
   [Notifications](#notifications).
@@ -179,9 +179,10 @@ its saved token stays on the server:
 
 ![Admin UI: notification channels for Gotify, email, a webhook and Telegram, below the form of the Gotify channel](docs/images/admin-notifications-en.png)
 
-**Settings:** check interval and addresses:
+**Settings:** check interval, GitHub token and addresses – the saved token stays on the
+server:
 
-![Admin UI: settings for updates and addresses](docs/images/admin-settings-en.png)
+![Admin UI: settings for updates, the GitHub token and addresses](docs/images/admin-settings-en.png)
 
 **Users:** all with the same permissions – change your own password, create and delete
 accounts:
@@ -263,7 +264,7 @@ image, none at all. Give each token only the permissions listed here.
 | Mirror token           | Gitea mirrors the repo to GitHub                                       | fine-grained, **Contents** and **Workflows: Read and write** | GitHub: **Settings → Developer settings → Personal access tokens** | Gitea repo: **Settings → Mirror Settings**                                           |
 | `PORTAINER_WEBHOOK`    | the workflow triggers the deploy                                       | –                                                            | Portainer: stack → **GitOps updates → Copy link**                  | repo secret, see [step 6](#6-deploy-after-the-build-optional)                        |
 | Registration token     | the [Gitea runner](#gitea-runner) registers once                       | –                                                            | Gitea repo: **Settings → Actions → Runners**                       | stack `gitea-runner`, remove it afterwards                                           |
-| `GITHUB_TOKEN`         | the admin UI checks for updates more often than about every 20 minutes | fine-grained, **Public repositories (read-only)**            | GitHub: **Settings → Developer settings → Personal access tokens** | `docker-compose.yml`, see [Good to know](#good-to-know)                              |
+| GitHub token           | the admin UI shouldn't run into the GitHub API's limit                 | fine-grained, **Public repositories (read-only)**            | GitHub: **Settings → Developer settings → Personal access tokens** | admin UI: **Settings → GitHub**, see [Good to know](#good-to-know)                   |
 
 The repo token and the registry token for Gitea can also be one token with
 **repository: Read**, **user: Read** and **package: Read**.
@@ -543,8 +544,15 @@ admin UI or `null`.
 ## Good to know
 
 - Each check needs about 16 requests to the GitHub API. Without a token GitHub allows 60
-  per hour; for check intervals below about 20 minutes set `GITHUB_TOKEN` in
-  `docker-compose.yml`.
+  per hour and IP address – for everything behind that address together, e.g. a running
+  `./dev.sh` as well. A token raises the limit to 5,000: on GitHub, create a fine-grained
+  token with **Public repositories (read-only)** under
+  **Settings → Developer settings → Personal access tokens** and enter it in the admin UI
+  under **Settings → GitHub**.
+- The admin UI checks the token with GitHub when saving. It stays on the server; the form
+  only shows that one is saved. If it has expired or was revoked, the **Activity** says
+  so – then enter a new one. Without a saved token, the environment variable
+  `GITHUB_TOKEN` applies, if set.
 - Login: at most 10 attempts per 15 minutes and IP address.
 - The admin UI takes order, names, colors, English and German texts and icons from the
   [Craft Launcher](https://github.com/storytold/craft-launcher). If it is unreachable, the
@@ -722,8 +730,8 @@ Then **Deploy the stack**.
   `admin` while there is no user yet.
 - It runs as user 1000 with a read-only file system, without Linux capabilities and with
   `no-new-privileges`. Docker checks via `/healthz` whether it is running.
-- Optionally `GITHUB_TOKEN` for check intervals below about 20 minutes, see
-  [Good to know](#good-to-know).
+- `docker-compose.yml` contains no token for GitHub – it belongs in the admin UI's
+  settings, see [Good to know](#good-to-know).
 
 ### Registry in Portainer (optional)
 
@@ -1034,7 +1042,8 @@ log in German.
 | Login with the password from `CRAFTAPPS_ADMIN_PASSWORD`: `Wrong username or password`                                                                    | `admin` was created with an earlier password; the variable only applies while there is no user  | the earlier password, or another user creates a new account under **Users**. Without other users: `DELETE FROM users;` in the database `craftapps`, then restart `CraftApps-Admin` |
 | `Too many attempts – please try again in a few minutes`                                                                                                  | 10 failed logins within 15 minutes from this IP address                                         | wait 15 minutes                                                                                                                                                                    |
 | `No write access to /data – …`                                                                                                                           | the volume `craftapps_data` doesn't belong to user 1000                                         | `chown`, see [Good to know](#good-to-know)                                                                                                                                         |
-| `GitHub API limit reached, available again at …`                                                                                                         | more than 60 requests per hour to GitHub                                                        | a longer check interval or `GITHUB_TOKEN`, see [Good to know](#good-to-know)                                                                                                       |
+| `GitHub API limit reached, available again at …`                                                                                                         | more than 60 requests per hour to GitHub                                                        | a token under **Settings → GitHub**, see [Good to know](#good-to-know)                                                                                                             |
+| `GitHub rejects the token – …`                                                                                                                           | the GitHub token has expired, was revoked or is incomplete                                      | a new token under **Settings → GitHub**                                                                                                                                            |
 | Activity: `Notification via "…" failed: Gotify responded 401: …`                                                                                         | the app token is wrong or was deleted in Gotify                                                 | a new app token, under **Notifications → Edit**                                                                                                                                    |
 | `Telegram responded 400: Bad Request: chat not found` or `403: Forbidden: bot can't initiate conversation with a user`                                   | the chat ID is wrong, or the bot doesn't know the chat yet                                      | send `/start` to the bot or add it to the group, check the chat ID                                                                                                                 |
 | Email: `Invalid login: 535 …`                                                                                                                            | wrong username or password; many providers want an app password instead of the account password | the SMTP credentials of your provider                                                                                                                                              |

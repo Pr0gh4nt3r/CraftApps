@@ -27,23 +27,27 @@ export type LatestRelease =
   | { kind: 'release'; release: Release; etag: string | null };
 
 export class GitHubLimitError extends MsgError {}
+export class GitHubTokenError extends MsgError {}
 
-/** Lean client for the public GitHub API (without a token: 60 requests per hour). */
+/** Lean client for the public GitHub API (without a token 60 requests per hour, with one 5,000). */
 export class GitHub {
   remaining: number | null = null;
   limit: number | null = null;
   resetAt: Date | null = null;
 
-  constructor(private readonly token: string | undefined) {}
+  /** currentToken: the token in use – the one saved in the settings, otherwise GITHUB_TOKEN */
+  constructor(private readonly currentToken: () => Promise<string | undefined>) {}
 
-  private async request(path: string, etag?: string | null): Promise<Response> {
+  /** token: instead of the current one, e.g. to check a new one */
+  private async request(path: string, etag?: string | null, token?: string): Promise<Response> {
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': USER_AGENT,
     };
     if (etag) headers['If-None-Match'] = etag;
-    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    const auth = token ?? (await this.currentToken());
+    if (auth) headers.Authorization = `Bearer ${auth}`;
     const res = await fetch(`https://api.github.com${path}`, { headers, signal: AbortSignal.timeout(60_000) });
     const remaining = res.headers.get('x-ratelimit-remaining');
     if (remaining !== null) {
@@ -55,7 +59,22 @@ export class GitHub {
       const at = this.resetAt?.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
       throw new GitHubLimitError(msg('error.githubLimit', { time: at ?? '?' }));
     }
+    // Without a token GitHub doesn't answer 401 – so it's the token: wrong, expired or revoked
+    if (res.status === 401) throw new GitHubTokenError(msg('error.githubToken'));
     return res;
+  }
+
+  /** Before a token is saved: GitHub has to accept it. Asking for the limit doesn't count against it. */
+  async verifyToken(token: string): Promise<void> {
+    try {
+      await this.request('/rate_limit', null, token);
+    } catch (err) {
+      if (err instanceof MsgError) throw err;
+      // fetch itself only says "fetch failed", the reason is in cause
+      const cause = (err as { cause?: unknown }).cause;
+      const error = cause instanceof Error ? cause.message : (err as Error).message;
+      throw new MsgError(msg('error.serviceUnreachable', { service: 'GitHub', error }));
+    }
   }
 
   async listRepos(owner: string): Promise<Repo[]> {
