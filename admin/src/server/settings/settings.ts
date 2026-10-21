@@ -1,4 +1,5 @@
 import type { Pool, RowDataPacket } from 'mysql2/promise';
+import type { SettingsView } from '../../shared/types.js';
 
 export interface Settings {
   checkIntervalMinutes: number;
@@ -8,6 +9,8 @@ export interface Settings {
   appsBaseUrl: string;
   /** Address of this admin UI – notifications link to it */
   adminBaseUrl: string;
+  /** Token for the GitHub API, '' = none; takes precedence over GITHUB_TOKEN */
+  githubToken: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -16,7 +19,13 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultAutoUpdate: true,
   appsBaseUrl: '',
   adminBaseUrl: '',
+  githubToken: '',
 };
+
+/** For the UI: the token stays on the server, the UI only learns where the one in use comes from */
+export function settingsView({ githubToken, ...settings }: Settings, envToken: string | undefined): SettingsView {
+  return { ...settings, githubTokenSource: githubToken ? 'settings' : envToken ? 'env' : null };
+}
 
 const UPSERT = 'INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)';
 
