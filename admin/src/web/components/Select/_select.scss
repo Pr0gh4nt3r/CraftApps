@@ -1,0 +1,39 @@
+// Drop-down for a single choice (Select): the browser's select without its own arrow, with the
+// one of MultiSelect instead. Height, border and background come from the form fields.
+@use '../../styles/shared';
+
+.select {
+  position: relative;
+  display: flex;
+
+  select {
+    flex: 1;
+    min-width: 0;
+    padding-right: shared.$chevron-space;
+    appearance: none;
+    cursor: pointer;
+
+    // As the button of MultiSelect
+    &:hover:not(:disabled) {
+      border-color: var(--text);
+    }
+
+    &:focus,
+    &:focus:hover {
+      border-color: var(--primary);
+    }
+  }
+
+  &::after {
+    @include shared.chevron;
+  }
+
+  // E.g. the type of a saved notification channel, which can't change
+  &:has(select:disabled) {
+    opacity: 0.6;
+
+    select {
+      cursor: not-allowed;
+    }
+  }
+}

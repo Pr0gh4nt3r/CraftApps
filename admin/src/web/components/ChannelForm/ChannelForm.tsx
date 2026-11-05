@@ -13,6 +13,7 @@ import type { ChannelInput, ChannelView, NewChannel } from '../../../shared/type
 import { api } from '../../lib/api';
 import { getLang, hasText, t } from '../../i18n/i18n';
 import { Toggle } from '../Toggle/Toggle';
+import { Select } from '../Select/Select';
 
 // Each language under its own name, like in the language switch
 const LANGUAGES = [
@@ -141,13 +142,13 @@ export function ChannelForm({
       <h2>{channel ? t('channels.editTitle', { name: channel.name }) : t('channels.new')}</h2>
       <label className="field">
         {t('channels.type')}
-        <select value={type} disabled={channel !== null} onChange={(e) => changeType(e.target.value as ChannelType)}>
+        <Select value={type} disabled={channel !== null} onChange={(e) => changeType(e.target.value as ChannelType)}>
           {CHANNEL_TYPES.map((id) => (
             <option key={id} value={id}>
               {t(`channels.type.${id}`)}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <label className="field">
         {t('channels.name')}
@@ -167,13 +168,13 @@ export function ChannelForm({
           <div className="field" key={`${type}.${field.key}`}>
             <label htmlFor={id}>{fieldLabel(type, field)}</label>
             {field.input === 'select' ? (
-              <select id={id} value={values[field.key]} onChange={(e) => set(field.key, e.target.value)}>
+              <Select id={id} value={values[field.key]} onChange={(e) => set(field.key, e.target.value)}>
                 {field.options?.map((option) => (
                   <option key={option} value={option}>
                     {optionLabel(type, field, option)}
                   </option>
                 ))}
-              </select>
+              </Select>
             ) : (
               <input
                 id={id}
@@ -206,13 +207,13 @@ export function ChannelForm({
 
       <label className="field">
         {t('channels.language')}
-        <select value={language} onChange={(e) => setLanguage(e.target.value === 'en' ? 'en' : 'de')}>
+        <Select value={language} onChange={(e) => setLanguage(e.target.value === 'en' ? 'en' : 'de')}>
           {LANGUAGES.map((l) => (
             <option key={l.id} value={l.id} lang={l.id}>
               {l.name}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <p className="muted small">{t('channels.notifyAbout')}</p>
       {NOTIFY_EVENTS.map((event) => (

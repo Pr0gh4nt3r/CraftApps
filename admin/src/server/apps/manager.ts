@@ -4,14 +4,17 @@ import path from 'node:path';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Pool, RowDataPacket } from 'mysql2/promise';
 import type { NotifyEvent } from '../../shared/channels.js';
-import { msg, parseMsg, renderMsg, type Localized, type Msg } from '../../shared/messages.js';
-import type { AppView, JobKind, JobView, StateView } from '../../shared/types.js';
+import { countMsg, msg, parseMsg, renderMsg, type Localized, type Msg } from '../../shared/messages.js';
+import { nextRun } from '../../shared/schedule.js';
+import type { AppView, EventKind, JobKind, JobView, StateView } from '../../shared/types.js';
+import { logEvent } from '../core/activity.js';
 import type { Config } from '../core/config.js';
-import { GitHubLimitError, findWebAsset, type GitHub, type Repo } from './github.js';
+import { GitHubLimitError, type GitHub, type Repo } from './github.js';
 import { appDir, deploy, download, prune, type Asset, type OnProgress } from './installer.js';
 import { appMeta, fetchIcon, launcherInfo, type LauncherInfo } from './launcher.js';
 import type { Failure, Notifier } from '../notify/notify.js';
 import { writeOverview } from './overview.js';
+import { isNewer, pickRelease, releaseCandidates, sortChannels, type Candidate } from './releases.js';
 import type { Settings, SettingsStore } from '../settings/settings.js';
 import { APP_ID, ConflictError, MINUTE, MsgError, NotFoundError, errorText, toMsg, version } from '../core/util.js';
 
@@ -27,6 +30,7 @@ interface AppRow extends RowDataPacket {
   latest_published_at: Date | null;
   latest_asset: string | null;
   latest_etag: string | null;
+  release_candidates: string | null;
   installed_tag: string | null;
   installed_published_at: Date | null;
   installed_files: string | null;
@@ -43,6 +47,10 @@ interface Job extends JobView {
 const jobLabel = (kind: JobKind): Msg => msg(`job.${kind}` as const);
 const parseAsset = (json: string | null): Asset | null => (json ? (JSON.parse(json) as Asset) : null);
 const parseFiles = (json: string | null): string[] => (json ? (JSON.parse(json) as string[]) : []);
+const parseCandidates = (json: string | null): Candidate[] => (json ? (JSON.parse(json) as Candidate[]) : []);
+
+// setTimeout waits at most ~24.8 days – a monthly or quarterly check is planned in steps
+const MAX_TIMEOUT = 2 ** 31 - 1;
 
 /** Finds apps, checks releases, installs/updates/removes them one at a time and notifies. */
 export class Manager {
@@ -82,7 +90,7 @@ export class Manager {
   }
 
   start(): void {
-    this.schedule(10_000); // first check shortly after startup
+    void this.planFirstCheck().catch((err) => this.log.error(err));
     this.housekeeping = setInterval(() => void this.cleanup(), 60 * MINUTE);
   }
 
@@ -91,13 +99,33 @@ export class Manager {
     clearInterval(this.housekeeping);
   }
 
-  async reschedule(): Promise<void> {
-    this.schedule((await this.settings.get()).checkIntervalMinutes * MINUTE);
+  /**
+   * After the start, check shortly if there is nothing yet or a planned check was missed while
+   * the admin UI was down – otherwise at the next planned time, so a restart (e.g. after an
+   * update of the image) doesn't check outside the schedule.
+   */
+  private async planFirstCheck(): Promise<void> {
+    const { checkSchedule } = await this.settings.get();
+    const missed = !this.lastCheckAt || (nextRun(checkSchedule, this.lastCheckAt)?.getTime() ?? 0) <= Date.now();
+    if (missed || (await this.apps()).length === 0) this.scheduleAt(new Date(Date.now() + 10_000));
+    else await this.reschedule();
   }
 
-  private schedule(delay: number): void {
+  /** Plans the next check by the schedule in the settings */
+  async reschedule(): Promise<void> {
+    const { checkSchedule } = await this.settings.get();
+    // Only an invalid schedule has no next time – the settings don't let one through
+    this.scheduleAt(nextRun(checkSchedule, new Date()) ?? new Date(Date.now() + 360 * MINUTE));
+  }
+
+  private scheduleAt(at: Date): void {
     clearTimeout(this.timer);
-    this.nextCheckAt = new Date(Date.now() + delay);
+    this.nextCheckAt = at;
+    const delay = Math.max(0, at.getTime() - Date.now());
+    if (delay > MAX_TIMEOUT) {
+      this.timer = setTimeout(() => this.scheduleAt(at), MAX_TIMEOUT);
+      return;
+    }
     this.timer = setTimeout(async () => {
       await this.check().catch((err) => this.log.error(err));
       await this.reschedule().catch((err) => this.log.error(err));
@@ -115,7 +143,10 @@ export class Manager {
 
   // ------------------------------------------------------------ Checks
 
-  /** Looks for new apps and releases, applies automatic updates and notifies. */
+  /**
+   * Looks for new apps and releases, applies automatic updates and notifies. Every check ends
+   * up in the activity log – with what it found, or as an error if it couldn't search.
+   */
   async check(username: string | null = null): Promise<void> {
     if (this.checking) return;
     this.checking = true;
@@ -127,19 +158,21 @@ export class Manager {
         repos = await this.github.listRepos(this.cfg.owner);
         this.lastGlobalError = null;
       } catch (err) {
-        await this.failure(null, msg('error.appSearchFailed', { error: toMsg(err) }));
+        await this.failure(null, msg('error.appSearchFailed', { error: toMsg(err) }), username);
         return;
       }
       await this.syncCatalog(repos, await launcherInfo(this.settings, this.log), settings);
-      if (username) await this.event('check', msg('event.checked'), null, username);
 
       const fresh: AppRow[] = [];
+      let updates = 0;
+      let errors = 0;
       for (const app of await this.apps()) {
         if (!app.in_catalog) continue;
         await fetchIcon(this.cfg.dataDir, app.id);
         try {
-          await this.refreshRelease(app);
+          await this.refreshRelease(app, settings.updateChannel);
         } catch (err) {
+          errors++;
           await this.failure(app, msg('error.checkFailed', { error: toMsg(err) }));
           if (err instanceof GitHubLimitError) break; // the remaining ones would fail the same way
           continue;
@@ -151,10 +184,12 @@ export class Manager {
         }
         if (!parseAsset(app.latest_asset) || !app.latest_tag) continue;
         if (installed) {
-          if (app.latest_tag === app.installed_tag) continue;
+          if (!isNewer(app.latest_tag, app.installed_tag)) continue;
           if (app.auto_update) {
+            updates++;
             this.queueQuietly('update', app.id);
           } else if (app.notified_tag !== app.latest_tag) {
+            updates++;
             await this.markNotified(app);
             const change = `${version(app.installed_tag)} → ${version(app.latest_tag)}`;
             await this.event('update-available', msg('event.updateAvailable', { change }), app.id);
@@ -172,6 +207,13 @@ export class Manager {
         }
       }
       if (fresh.length) await this.announce(fresh, firstRun, settings.autoInstallNew);
+      const found = [
+        ...(fresh.length ? [countMsg('newApps', fresh.length)] : []),
+        ...(updates ? [countMsg('updates', updates)] : []),
+        ...(errors ? [countMsg('errors', errors)] : []),
+      ];
+      const result = found.length ? found : [msg('event.checkNothing')];
+      await this.event('check', msg('event.checkResult', { result }), null, username);
       this.lastCheckAt = new Date();
       await this.settings.setInternal('lastCheckAt', this.lastCheckAt.toISOString());
     } finally {
@@ -210,28 +252,38 @@ export class Manager {
     if (ids.length) await this.db.query('UPDATE apps SET in_catalog = 0 WHERE id NOT IN (?)', [ids]);
   }
 
-  private async refreshRelease(app: AppRow): Promise<void> {
-    const res = await this.github.latestRelease(this.cfg.owner, app.repo, app.latest_tag ? app.latest_etag : null);
-    if (res.kind === 'none') {
-      Object.assign(app, { latest_tag: null, latest_published_at: null, latest_asset: null, latest_etag: null });
-    } else if (res.kind === 'release') {
-      const asset = findWebAsset(app.id, res.release);
-      Object.assign(app, {
-        latest_tag: res.release.tag_name,
-        latest_published_at: res.release.published_at ? new Date(res.release.published_at) : null,
-        latest_asset: asset
-          ? JSON.stringify({ name: asset.name, size: asset.size, digest: asset.digest ?? null, url: asset.browser_download_url } satisfies Asset)
-          : null,
-        // Without a web zip, don't remember the ETag – the release pipeline may still be uploading it
-        latest_etag: asset ? res.etag : null,
-      });
+  /** Fetches the releases in question and picks the newest one the update channel takes. */
+  private async refreshRelease(app: AppRow, channel: string): Promise<void> {
+    const etag = app.release_candidates === null ? null : app.latest_etag;
+    const res = await this.github.releases(this.cfg.owner, app.repo, etag);
+    if (res.kind === 'list') {
+      const candidates = releaseCandidates(app.id, res.releases);
+      app.release_candidates = JSON.stringify(candidates);
+      // Without every web zip, don't remember the ETag – the release pipeline may still be uploading one
+      app.latest_etag = candidates.every((c) => c.asset) ? res.etag : null;
     }
-    app.last_error = null;
+    // Also after "304 Not Modified": the channel may have changed since
+    const pick = pickRelease(parseCandidates(app.release_candidates), channel);
+    Object.assign(app, {
+      latest_tag: pick?.tag ?? null,
+      latest_published_at: pick?.publishedAt ? new Date(pick.publishedAt) : null,
+      latest_asset: pick?.asset ? JSON.stringify(pick.asset satisfies Asset) : null,
+      last_error: null,
+    });
     await this.db.query(
-      `UPDATE apps SET latest_tag = ?, latest_published_at = ?, latest_asset = ?, latest_etag = ?,
+      `UPDATE apps SET latest_tag = ?, latest_published_at = ?, latest_asset = ?, latest_etag = ?, release_candidates = ?,
          checked_at = CURRENT_TIMESTAMP(3), last_error = NULL WHERE id = ?`,
-      [app.latest_tag, app.latest_published_at, app.latest_asset, app.latest_etag, app.id],
+      [app.latest_tag, app.latest_published_at, app.latest_asset, app.latest_etag, app.release_candidates, app.id],
     );
+  }
+
+  /** The update channels the apps currently have releases in – stable always */
+  async releaseChannels(): Promise<string[]> {
+    const channels = ['stable'];
+    for (const app of await this.apps()) {
+      if (app.in_catalog) channels.push(...parseCandidates(app.release_candidates).map((c) => c.channel));
+    }
+    return sortChannels(channels);
   }
 
   private async announce(apps: AppRow[], firstRun: boolean, autoInstall: boolean): Promise<void> {
@@ -319,10 +371,10 @@ export class Manager {
   private async install(app: AppRow, job: Job, progress: OnProgress): Promise<void> {
     const fromTag = this.isInstalled(app) ? app.installed_tag : null;
     progress('checking', null);
-    await this.refreshRelease(app);
+    await this.refreshRelease(app, (await this.settings.get()).updateChannel);
     const asset = parseAsset(app.latest_asset);
     if (!asset || !app.latest_tag) throw new MsgError(msg('error.noWebVersion'));
-    if (job.kind === 'update' && fromTag === app.latest_tag) return; // already up to date by now
+    if (job.kind === 'update' && !isNewer(app.latest_tag, fromTag)) return; // already up to date by now
 
     const dir = appDir(this.cfg.dataDir, app.id);
     const tmpDir = path.join(this.cfg.dataDir, '.tmp');
@@ -371,7 +423,7 @@ export class Manager {
     await this.db.query('UPDATE apps SET auto_update = ? WHERE id = ?', [Number(enabled), appId]);
     await this.event('setting', msg(enabled ? 'event.autoUpdateOn' : 'event.autoUpdateOff'), appId, username);
     // If an update is already pending, apply it right away
-    if (enabled && this.isInstalled(app) && parseAsset(app.latest_asset) && app.latest_tag !== app.installed_tag) {
+    if (enabled && this.isInstalled(app) && parseAsset(app.latest_asset) && isNewer(app.latest_tag, app.installed_tag)) {
       this.queueQuietly('update', appId);
     }
   }
@@ -409,7 +461,7 @@ export class Manager {
     const job =
       this.activeJob(app.id) ??
       this.jobs.findLast((j) => j.appId === app.id && j.state === 'failed' && (j.finishedAt ?? 0) > recent);
-    const updatable = installed && asset !== null && app.latest_tag !== app.installed_tag;
+    const updatable = installed && asset !== null && isNewer(app.latest_tag, app.installed_tag);
     return {
       id: app.id,
       name: app.name,
@@ -470,15 +522,9 @@ export class Manager {
     await this.db.query('UPDATE apps SET notified_tag = ? WHERE id = ?', [app.latest_tag, app.id]);
   }
 
-  /** Activity log entry: the message as JSON for the UI, plus the German text */
-  async event(kind: string, message: Msg, appId: string | null = null, username: string | null = null): Promise<void> {
-    await this.db.query('INSERT INTO events (app_id, kind, message, msg, username) VALUES (?, ?, ?, ?, ?)', [
-      appId,
-      kind,
-      renderMsg('de', message).slice(0, 1024),
-      JSON.stringify(message),
-      username,
-    ]);
+  /** Activity log entry, see logEvent */
+  event(kind: EventKind, message: Msg, appId: string | null = null, username: string | null = null): Promise<void> {
+    return logEvent(this.db, kind, message, appId, username);
   }
 
   /** To every channel that reports the event; channels that fail end up in the activity log */
@@ -498,8 +544,12 @@ export class Manager {
     }
   }
 
-  /** Logs and reports errors – each error only once, not again on every check. */
-  private async failure(app: AppRow | null, message: Msg): Promise<void> {
+  /**
+   * Logs and reports errors – each error only once, not again on every check. A failed search
+   * for apps ends the check, so it shows up in the activity log every time, as the result of
+   * that check (username: who started it); the notification still goes out only once.
+   */
+  private async failure(app: AppRow | null, message: Msg, username: string | null = null): Promise<void> {
     const text = renderMsg('de', message);
     this.log.warn(app ? `${app.id}: ${text}` : text);
     const stored = JSON.stringify(message);
@@ -507,11 +557,12 @@ export class Manager {
       if (app.last_error === stored) return;
       app.last_error = stored;
       await this.db.query('UPDATE apps SET last_error = ?, checked_at = CURRENT_TIMESTAMP(3) WHERE id = ?', [stored, app.id]);
+      await this.event('error', message, app.id);
     } else {
+      await this.event('error', message, null, username);
       if (this.lastGlobalError === stored) return;
       this.lastGlobalError = stored;
     }
-    await this.event('error', message, app?.id ?? null);
     const title = app ? msg('notify.error.title', { app: app.name }) : msg('notify.error.titleGlobal');
     await this.notify('errors', title, message, 8);
   }

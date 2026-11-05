@@ -19,6 +19,7 @@ const de = {
   'phase.done': 'Fertig',
   'phase.failed': 'Fehlgeschlagen',
 
+  // Only in activity entries from before the check results
   'event.checked': 'Nach Updates gesucht',
   'event.filesMissing': 'Dateien fehlen im Volume – als nicht installiert markiert',
   'event.updateAvailable': 'Update verfügbar: {change}',
@@ -30,6 +31,7 @@ const de = {
   'event.uninstalled': 'Deinstalliert',
   'event.autoUpdateOn': 'Automatische Updates eingeschaltet',
   'event.autoUpdateOff': 'Automatische Updates ausgeschaltet',
+  // Only in activity entries from before the list of changed settings
   'event.settingsChanged': 'Einstellungen geändert',
   'event.channelCreated': 'Benachrichtigungskanal „{name}“ angelegt',
   'event.channelChanged': 'Benachrichtigungskanal „{name}“ geändert',
@@ -39,6 +41,34 @@ const de = {
   'event.channelFailed': 'Benachrichtigung über „{name}“ fehlgeschlagen: {error}',
   // Only in activity entries from before the notification channels
   'event.notifyFailed': 'Benachrichtigung fehlgeschlagen: {error}',
+  'event.checkResult': 'Nach Updates gesucht: {result}',
+  'event.checkNothing': 'nichts Neues',
+  'event.settingsChangedFields': 'Einstellungen geändert: {fields}',
+  'event.channelTested': 'Testnachricht über „{name}“ verschickt',
+  'event.channelTestFailed': 'Testnachricht über „{name}“ fehlgeschlagen: {error}',
+  'event.loggedIn': 'Angemeldet',
+  'event.loggedOut': 'Abgemeldet',
+  'event.passwordChanged': 'Eigenes Passwort geändert',
+  'event.userCreated': 'Benutzer „{name}“ angelegt',
+  'event.userDeleted': 'Benutzer „{name}“ gelöscht',
+  'event.initialAdmin': 'Benutzer „{name}“ aus INITIAL_ADMIN_USER angelegt',
+  'event.started': 'Verwaltung gestartet',
+
+  'count.newApps.one': '1 neue App',
+  'count.newApps.other': '{count} neue Apps',
+  'count.updates.one': '1 Update',
+  'count.updates.other': '{count} Updates',
+  'count.errors.one': '1 Fehler',
+  'count.errors.other': '{count} Fehler',
+
+  'setting.checkSchedule': 'Zeitplan der Prüfungen',
+  'setting.updateChannel': 'Update-Kanal',
+  'setting.autoInstallNew': 'neue Apps automatisch installieren',
+  'setting.defaultAutoUpdate': 'neu installierte Apps automatisch aktualisieren',
+  'setting.appsBaseUrl': 'öffentliche Adresse der Apps',
+  'setting.adminBaseUrl': 'Adresse dieser Verwaltung',
+  'setting.githubToken': 'GitHub-Token',
+  'setting.activityView': 'Standardansicht der Aktivität',
 
   'error.appSearchFailed': 'App-Suche auf GitHub fehlgeschlagen: {error}',
   'error.checkFailed': 'Prüfung fehlgeschlagen: {error}',
@@ -63,6 +93,10 @@ const de = {
   'error.serviceUnreachable': '{service} nicht erreichbar: {error}',
   'error.channelInvalid': 'Die Angaben zum Kanal sind unvollständig oder ungültig',
   'error.channelNameTaken': 'Einen Kanal mit diesem Namen gibt es schon',
+  'error.timeZone': 'Unbekannte Zeitzone: {zone}',
+  'error.scheduleTimes': 'Mindestens eine gültige Uhrzeit angeben',
+  'error.scheduleWeekdays': 'Mindestens einen Wochentag wählen',
+  'error.scheduleGap': 'Zwischen zwei Prüfungen müssen mindestens {minutes} Minuten liegen',
   // Only in activity entries from before the notification channels
   'error.gotify': 'Gotify antwortet {status}: {text}',
   'error.requestRejected': 'Anfrage abgelehnt',
@@ -135,6 +169,34 @@ const en: Record<MsgKey, string> = {
   'event.channelDeleted': 'Notification channel "{name}" deleted',
   'event.channelFailed': 'Notification via "{name}" failed: {error}',
   'event.notifyFailed': 'Notification failed: {error}',
+  'event.checkResult': 'Checked for updates: {result}',
+  'event.checkNothing': 'nothing new',
+  'event.settingsChangedFields': 'Settings changed: {fields}',
+  'event.channelTested': 'Test message via "{name}" sent',
+  'event.channelTestFailed': 'Test message via "{name}" failed: {error}',
+  'event.loggedIn': 'Logged in',
+  'event.loggedOut': 'Logged out',
+  'event.passwordChanged': 'Changed own password',
+  'event.userCreated': 'User "{name}" created',
+  'event.userDeleted': 'User "{name}" deleted',
+  'event.initialAdmin': 'User "{name}" created from INITIAL_ADMIN_USER',
+  'event.started': 'Admin UI started',
+
+  'count.newApps.one': '1 new app',
+  'count.newApps.other': '{count} new apps',
+  'count.updates.one': '1 update',
+  'count.updates.other': '{count} updates',
+  'count.errors.one': '1 error',
+  'count.errors.other': '{count} errors',
+
+  'setting.checkSchedule': 'check schedule',
+  'setting.updateChannel': 'update channel',
+  'setting.autoInstallNew': 'install new apps automatically',
+  'setting.defaultAutoUpdate': 'update newly installed apps automatically',
+  'setting.appsBaseUrl': 'public address of the apps',
+  'setting.adminBaseUrl': 'address of this admin UI',
+  'setting.githubToken': 'GitHub token',
+  'setting.activityView': 'default view of the activity',
 
   'error.appSearchFailed': 'App search on GitHub failed: {error}',
   'error.checkFailed': 'Check failed: {error}',
@@ -159,6 +221,10 @@ const en: Record<MsgKey, string> = {
   'error.serviceUnreachable': '{service} not reachable: {error}',
   'error.channelInvalid': "The channel's details are incomplete or invalid",
   'error.channelNameTaken': 'A channel with this name already exists',
+  'error.timeZone': 'Unknown time zone: {zone}',
+  'error.scheduleTimes': 'Enter at least one valid time',
+  'error.scheduleWeekdays': 'Choose at least one weekday',
+  'error.scheduleGap': 'There must be at least {minutes} minutes between two checks',
   'error.gotify': 'Gotify responded {status}: {text}',
   'error.requestRejected': 'Request rejected',
   'error.notLoggedIn': 'Not logged in',
@@ -202,7 +268,8 @@ export interface Localized {
   en: string;
 }
 
-export type MsgParam = string | number | Msg | Localized;
+/** A list of messages is rendered comma-separated, e.g. "2 updates, 1 error" */
+export type MsgParam = string | number | Msg | Msg[] | Localized;
 
 export interface Msg {
   key: MsgKey;
@@ -210,6 +277,10 @@ export interface Msg {
 }
 
 export const msg = (key: MsgKey, params?: Record<string, MsgParam>): Msg => (params ? { key, params } : { key });
+
+/** A count with its noun: count.<noun>.one for 1, count.<noun>.other otherwise */
+export const countMsg = (noun: 'newApps' | 'updates' | 'errors', count: number): Msg =>
+  count === 1 ? msg(`count.${noun}.one`) : msg(`count.${noun}.other`, { count });
 
 export function renderMsg(lang: Lang, m: Msg): string {
   // Unknown key, e.g. from an older or newer version: show the text if there is one
@@ -219,6 +290,7 @@ export function renderMsg(lang: Lang, m: Msg): string {
     const value = m.params?.[name];
     if (value === undefined) return placeholder;
     if (typeof value !== 'object') return String(value);
+    if (Array.isArray(value)) return value.map((item) => renderMsg(lang, item)).join(', ');
     return 'key' in value ? renderMsg(lang, value) : value[lang];
   });
 }

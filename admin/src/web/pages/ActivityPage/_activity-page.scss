@@ -1,4 +1,5 @@
-// Marks in the activity log (ActivityPage); the table itself is global
+// Marks and paging of the activity log (ActivityPage); the table and the filter (MultiSelect)
+// have styles of their own
 @use '../../styles/shared';
 
 // Color of the app
@@ -15,4 +16,43 @@
 .kind {
   @include shared.label(10.5px, 0.08em);
   @include shared.tones(ok, warn, error, info, muted);
+}
+
+// Below the subtitle while the user has an own view: a note and "Back to default"
+.own-view {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+// Kinds, columns and "Refresh" – on phones both drop-downs share the first row, "Refresh"
+// goes below; the left drop-down opens to the right so it stays on the screen
+.activity-controls {
+  @media (max-width: shared.$narrow) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+
+    .multi-select {
+      flex: 1 1 140px;
+    }
+
+    .multi-select-button {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .multi-select:first-child .multi-select-panel {
+      right: auto;
+      left: 0;
+    }
+  }
+}
+
+// "Load older entries" below the table
+.load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
 }

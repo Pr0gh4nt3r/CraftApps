@@ -42,13 +42,13 @@ CraftApps\
 │       │   ├── api\                    Routes for the admin UI
 │       │   ├── apps\                   Find, install and update apps; start page
 │       │   ├── auth\                   Users, sessions, login
-│       │   ├── core\                   Configuration, database, helpers
+│       │   ├── core\                   Configuration, database, activity log, helpers
 │       │   ├── notify\                 Notification channels: Gotify, email, ntfy, webhook, Telegram, Discord
 │       │   └── settings\               Settings
-│       ├── shared\                     Types and messages (German/English) for server and frontend
+│       ├── shared\                     Types, messages (German/English), check schedule and activity view for server and frontend
 │       └── web\                        React frontend, main.tsx starts it
 │           ├── App\                    Top bar; on narrow screens with a burger and a user menu
-│           ├── components\             AppCard, ChannelForm, LangSwitch, Toggle – each with its styles
+│           ├── components\             ActivityFilters, AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, Toggle – each with its styles
 │           ├── i18n\                   Language and texts, German and English in locales\
 │           ├── lib\                    API calls and formatting
 │           ├── pages\                  Apps, activity, notifications, settings, users, login – each with its styles
@@ -146,14 +146,18 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 
 - **Apps** in a grid like the Craft Launcher – with its icons, brand colors and short
   descriptions: install, update, reinstall, uninstall, toggle automatic updates per app.
-- **New apps** it finds by itself: all storytold repos ending in `craft` whose latest
-  release has a `<app>-web-*.zip`. New apps are reported and, if you like, installed
-  automatically.
+- **New apps** it finds by itself: all storytold repos ending in `craft` whose newest
+  release in the update channel has a `<app>-web-*.zip`. New apps are reported and, if you
+  like, installed automatically.
+- **Checks on schedule:** from every 30 minutes to quarterly, at fixed times in your time
+  zone – e.g. daily at 04:00, or weekly on Monday and Thursday at 00:00 and 12:00. The
+  update channel decides between stable versions and pre-releases (rc, beta, alpha), as far
+  as the apps publish them.
 - **Updates without interruption:** new files go next to the old ones, `index.html` is
   switched last, the previous version stays until the next update. Every download is
   verified via SHA-256.
-- **Login** with users in MySQL, activity log, settings (check interval, GitHub token,
-  addresses) and user management.
+- **Login** with users in MySQL, activity log, settings (check schedule, update channel,
+  default view of the activity log, GitHub token, addresses) and user management.
 - **Notifications** via Gotify, email, ntfy, Telegram, Discord or a webhook – as many
   channels as you like, each with its own events and language, see
   [Notifications](#notifications).
@@ -171,17 +175,25 @@ turned off) and not installed yet:
 
 ![Admin UI: apps with their state, version and automatic updates](docs/images/admin-apps-en.png)
 
-**Activity:** what happened, automatically or by which user:
+**Activity:** what happened, automatically or by which user – every check with its result,
+installations and updates, changes to settings, channels and users, logins and test messages.
+**Load older entries** goes back up to 180 days:
 
-![Admin UI: activity log with installations, an available update and changed settings](docs/images/admin-activity-en.png)
+![Admin UI: activity log with checks, installations, an available update and changed settings](docs/images/admin-activity-en.png)
+
+In the two drop-downs at the top you tick the kinds and the columns to show – **All entries**
+ticks or unticks all kinds at once. The admin UI saves the choice for each user, on every
+device; **Back to default** returns to the default from the settings:
+
+![Admin UI: activity log with only checks and errors, the open column choice without the app column and the note that the choice is saved](docs/images/admin-activity-filter-en.png)
 
 **Notifications:** the channels with their events, here with the form of a Gotify channel –
 its saved token stays on the server:
 
 ![Admin UI: notification channels for Gotify, email, a webhook and Telegram, below the form of the Gotify channel](docs/images/admin-notifications-en.png)
 
-**Settings:** check interval, GitHub token and addresses – the saved token stays on the
-server:
+**Settings:** check schedule with a preview of the next checks, update channel, the default
+view of the activity log, GitHub token and addresses – the saved token stays on the server:
 
 ![Admin UI: settings for updates, the GitHub token and addresses](docs/images/admin-settings-en.png)
 
@@ -554,6 +566,26 @@ admin UI or `null`.
   only shows that one is saved. If it has expired or was revoked, the **Activity** says
   so – then enter a new one. Without a saved token, the environment variable
   `GITHUB_TOKEN` applies, if set.
+- **Check schedule:** the times apply in the time zone below them – at first the server's
+  (in the container UTC); the settings page offers the browser's. With every 30 minutes and
+  hourly only the minute counts, from 3 to 12 hours the times are starting points: every 6
+  hours from 04:00 checks at 04:00, 10:00, 16:00 and 22:00. Monthly on the 31st means the
+  last day in shorter months, quarterly runs in January, April, July and October. An empty
+  time becomes the current one when saving; at least 15 minutes must lie between two
+  checks. After a restart the admin UI only checks right away if it missed a planned check
+  meanwhile – otherwise it waits for the next one. An update from an earlier version turns
+  the check interval into a schedule with the same rhythm, from the minute of the update.
+- **Update channels:** the list only offers channels with releases newer than the newest
+  stable one – at the moment the apps only publish stable versions. The channel comes from
+  the tag (`1.2.0-beta.1` → beta); a release GitHub marks as pre-release without such a name
+  counts as **Pre-release**. A channel also takes everything more mature: rc also stable,
+  beta also rc and stable, alpha everything. Going back to a more mature channel never
+  downgrades: an installed `0.17.0-beta.2` stays until `0.17.0` is out – **Reinstall**
+  switches to the channel's version right away.
+- **Database updates:** at startup the admin UI brings its database up to date by itself. If
+  an update is interrupted, the next start continues where it stopped; several instances on the
+  same database wait for each other. A backup of the database before an update doesn't hurt
+  anyway.
 - Login: at most 10 attempts per 15 minutes and IP address.
 - The admin UI takes order, names, colors, English and German texts and icons from the
   [Craft Launcher](https://github.com/storytold/craft-launcher). If it is unreachable, the
@@ -618,16 +650,26 @@ npm run lint    # ESLint, warnings count as errors
 npm run build   # tsc for UI and server, Vite build as in CI
 ```
 
-In Gitea the [runner](#gitea-runner) runs them on every pull request to `main`, together
-with the checks for both Compose files, `nginx.conf`, the workflows and `dev.sh`
-([.gitea/workflows/checks.yaml](.gitea/workflows/checks.yaml)). The pull request shows the
-result as the status **Prüfen / checks (pull_request)**. So that a pull request can only be
-merged once it has passed, add a rule for `main` in the repo under **Settings → Branches**:
+**Branches:** changes are made on feature branches, their pull requests go to `dev`. Once
+`dev` is ready for production, a pull request from `dev` to `main` brings it there. Only a
+push to `main` builds the image and deploys it; `dev` builds nothing and creates no release –
+releases are tagged on `main`.
 
-| Setting                 | Value                                          |
-| ----------------------- | ---------------------------------------------- |
-| **Enable Status Check** | on, with the pattern `Prüfen / *`              |
-| **Disable Push**        | on, so that `main` only changes through merges |
+In Gitea the [runner](#gitea-runner) runs the checks on every pull request to `dev` and
+`main`, together with the checks for both Compose files, `nginx.conf`, the workflows and
+`dev.sh` ([.gitea/workflows/checks.yaml](.gitea/workflows/checks.yaml)). The pull request
+shows the result as the status **Prüfen / checks (pull_request)**. So that a pull request
+can only be merged once it has passed, add a rule each for `main` and `dev` in the repo under
+**Settings → Branches**:
+
+| Setting                 | Value                                              |
+| ----------------------- | -------------------------------------------------- |
+| **Enable Status Check** | on, with the pattern `Prüfen / *`                  |
+| **Disable Push**        | on, so that the branch only changes through merges |
+
+Gitea takes the workflow from the pull request's branch: a branch created before `dev` was
+added to the workflow gets its check once it is updated from `dev` (**Update branch** in the
+pull request).
 
 ## Containers
 
@@ -805,9 +847,9 @@ Watchtower needs the credentials separately, see [Watchtower](#watchtower).
 ### Gitea runner
 
 For the [image in Gitea](#in-gitea) and the [checks on pull requests](#development): the
-runner builds the image whenever `admin\` changes and checks every pull request to `main`.
-On the Pi it builds natively for ARM64; on another machine the workflow emulates ARM64 via
-QEMU, which takes considerably longer.
+runner builds the image whenever `admin\` changes and checks every pull request to `dev`
+and `main`. On the Pi it builds natively for ARM64; on another machine the workflow emulates
+ARM64 via QEMU, which takes considerably longer.
 
 1. **Get a registration token:** in Gitea, in the repo under **Settings → Actions →
    Runners → Create new Runner**. A runner at repo level only runs this repo's workflows.

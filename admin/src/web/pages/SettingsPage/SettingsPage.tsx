@@ -1,17 +1,19 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { SettingsUpdate, SettingsView } from '../../../shared/types';
 import { api } from '../../lib/api';
-import { t } from '../../i18n/i18n';
+import { hasText, t } from '../../i18n/i18n';
+import { ScheduleField } from '../../components/ScheduleField/ScheduleField';
 import { Toggle } from '../../components/Toggle/Toggle';
-
-const INTERVALS = [30, 60, 180, 360, 720, 1440] as const;
+import { Select } from '../../components/Select/Select';
+import { ColumnFilter, KindFilter } from '../../components/ActivityFilters/ActivityFilters';
 
 type Message = { tone: 'ok' | 'error'; text: string } | null;
 
-const intervalLabel = (minutes: number) =>
-  (INTERVALS as readonly number[]).includes(minutes)
-    ? t(`settings.interval.${minutes as (typeof INTERVALS)[number]}`)
-    : t('settings.interval.custom', { minutes });
+/** Known channels have a label, others (nightly, preview, …) go by their name */
+const channelLabel = (channel: string) => {
+  const key = `settings.channel.${channel}`;
+  return hasText(key) ? t(key) : channel;
+};
 
 /** The empty token field tells where the token in use comes from */
 function tokenPlaceholder(source: SettingsView['githubTokenSource'], removing: boolean): string {
@@ -36,16 +38,17 @@ export function SettingsPage() {
   if (!form) return message ? <p className="banner error">{message.text}</p> : <p className="muted">{t('common.loading')}</p>;
 
   const set = <K extends keyof SettingsView>(key: K, value: SettingsView[K]) => setForm({ ...form, [key]: value });
-  const intervals: number[] = (INTERVALS as readonly number[]).includes(form.checkIntervalMinutes)
-    ? [...INTERVALS]
-    : [...INTERVALS, form.checkIntervalMinutes];
+  // The saved channel stays selectable even when no app has releases in it right now
+  const channels = form.releaseChannels.includes(form.updateChannel)
+    ? form.releaseChannels
+    : [...form.releaseChannels, form.updateChannel];
 
   async function save(e: FormEvent) {
     e.preventDefault();
     if (!form) return;
     setSaving(true);
     setMessage(null);
-    const { githubTokenSource: _, ...values } = form;
+    const { githubTokenSource: _, releaseChannels: __, ...values } = form;
     const update: SettingsUpdate = values;
     // The token only goes along when it changes: a new one, or null to remove the saved one
     if (token) update.githubToken = token;
@@ -73,16 +76,20 @@ export function SettingsPage() {
 
       <section className="panel">
         <h2>{t('settings.updates')}</h2>
+        <ScheduleField value={form.checkSchedule} onChange={(schedule) => set('checkSchedule', schedule)} />
         <label className="field">
-          {t('settings.interval')}
-          <select value={form.checkIntervalMinutes} onChange={(e) => set('checkIntervalMinutes', Number(e.target.value))}>
-            {intervals.map((minutes) => (
-              <option key={minutes} value={minutes}>
-                {intervalLabel(minutes)}
+          {t('settings.channel')}
+          <Select value={form.updateChannel} onChange={(e) => set('updateChannel', e.target.value)}>
+            {channels.map((channel) => (
+              <option key={channel} value={channel}>
+                {channelLabel(channel)}
               </option>
             ))}
-          </select>
-          <span className="hint">{t('settings.intervalHint')}</span>
+          </Select>
+          <span className="hint">
+            {t('settings.channelHint')}
+            {form.releaseChannels.length === 1 && ` ${t('settings.channelOnlyStable')}`}
+          </span>
         </label>
         <Toggle checked={form.defaultAutoUpdate} onChange={(v) => set('defaultAutoUpdate', v)}>
           {t('settings.defaultAutoUpdate')}
@@ -90,6 +97,26 @@ export function SettingsPage() {
         <Toggle checked={form.autoInstallNew} onChange={(v) => set('autoInstallNew', v)}>
           {t('settings.autoInstallNew')}
         </Toggle>
+      </section>
+
+      <section className="panel">
+        <h2>{t('settings.activity')}</h2>
+        <div className="field">
+          <span>{t('settings.activityGroups')}</span>
+          <KindFilter
+            selected={form.activityView.groups}
+            minSelected={1}
+            onChange={(groups) => set('activityView', { ...form.activityView, groups })}
+          />
+        </div>
+        <div className="field">
+          <span>{t('settings.activityColumns')}</span>
+          <ColumnFilter
+            selected={form.activityView.columns}
+            onChange={(columns) => set('activityView', { ...form.activityView, columns })}
+          />
+          <span className="hint">{t('settings.activityHint')}</span>
+        </div>
       </section>
 
       <section className="panel">

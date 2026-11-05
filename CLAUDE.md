@@ -16,15 +16,24 @@ For the changed files, each without errors:
 - **`dev.sh`:** `bash -n dev.sh` and shellcheck, e.g.
   `docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable dev.sh`.
 
-`.gitea/workflows/checks.yaml` runs the same checks on every pull request to `main` – keep
-it in line with this list. Its status `Prüfen / checks (pull_request)` is what the branch
-protection of `main` requires before a merge.
+`.gitea/workflows/checks.yaml` runs the same checks on every pull request to `dev` and
+`main` – keep it in line with this list. Its status `Prüfen / checks (pull_request)` is what
+the branch protection of `main` requires before a merge.
 
 ## Running locally
 
 `./dev.sh` starts MySQL from `docker-compose.dev.yml`, server and Vite in `admin/` and nginx
 for the start page; Ctrl+C stops everything again. The single steps are in the README,
 section "Development".
+
+## Database
+
+The server brings the schema up to date by itself at startup: `MIGRATIONS` in
+`admin/src/server/core/db.ts`, under the MySQL lock `craftapps_migrate`, so several instances
+wait for each other. Only append new migrations, never change what an existing one does. Every
+step has to be repeatable – a failed migration starts over from its first step on the next
+start: tables with `CREATE TABLE IF NOT EXISTS`, columns with `addColumn`, data changes that
+find nothing left to do the second time.
 
 ## Documentation
 
@@ -42,7 +51,9 @@ holds the global ones: `_shared.scss` with everything that recurs (colors, hairl
 breakpoints, the width of the form pages, tone colors, the label mixin), plus base, buttons,
 page frame, forms and tables. `styles/index.scss` loads all partials – add new ones there;
 their order is the cascade order, so on equal specificity a later partial wins. Colors stay
-CSS custom properties – React sets the app color `--c` at runtime. The start page's CSS sits
+CSS custom properties – React sets the app color `--c` at runtime. Drop-downs use the
+component `Select` (one choice, the browser's select) or `MultiSelect` (several) – both draw
+the arrow with the mixin `chevron` from `_shared.scss`, so there is no bare `<select>`. The start page's CSS sits
 inline in the HTML that `admin/src/server/apps/overview.ts` generates.
 
 ## Icons
@@ -77,6 +88,10 @@ locales – `channels.type.<type>`, `channels.field.<type>.<key>` and optionally
 the UI.
 
 ## Push
+
+Pull requests go to `dev` first; `dev` reaches `main` by pull request. A push to `dev` builds
+no image and creates no release – the workflows only react to `main`, releases are tagged
+there.
 
 A push to `main` goes straight into production: on changes in `admin/`, GitHub Actions (via
 the mirror from Gitea to GitHub) and Gitea Actions build the admin image. Watchtower deploys

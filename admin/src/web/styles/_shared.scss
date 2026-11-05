@@ -52,6 +52,23 @@ $tones: (
   }
 }
 
+// Arrow of the drop-downs (Select, MultiSelect): on the ::after of a positioned box, a little
+// away from its right edge; $chevron-space keeps the text clear of it
+$chevron-space: 34px;
+
+@mixin chevron {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 13px;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
 // Small uppercase monospace labels: buttons, chips, table headings, links in the cards
 @mixin label($size, $spacing, $line-height: null) {
   @if $line-height {
