@@ -1,8 +1,10 @@
-# Runs the checks from CLAUDE.md on every pull request to main: ESLint and the build of the
-# admin UI, both Compose files, nginx.conf, the workflows and dev.sh. The branch protection
-# of main can require its status "Prüfen / checks (pull_request)" before a merge (see
-# README.md). That's why there is no path filter: a required status that never shows up
-# would block the merge.
+# Runs the checks from CLAUDE.md on every pull request to dev and main: ESLint and the build
+# of the admin UI, both Compose files, nginx.conf, the workflows and dev.sh. Pull requests go
+# to dev first, dev reaches main by pull request. The branch protection of both can require
+# the status "Prüfen / checks (pull_request)" before a merge (see README.md). That's why
+# there is no path filter: a required status that never shows up would block the merge.
+# Gitea takes this file from the pull request's branch – a branch without dev in the list
+# below gets no check on its pull request to dev.
 #
 # Runs on the same runner as admin-image.yaml. Its jobs use the Pi's Docker via the socket,
 # but the checked-out files aren't on the Pi – so the checks in containers get them via
@@ -11,7 +13,7 @@ name: Prüfen
 
 on:
   pull_request:
-    branches: [main]
+    branches: [dev, main]
 
 jobs:
   checks:

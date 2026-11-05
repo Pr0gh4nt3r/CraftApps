@@ -649,17 +649,26 @@ npm run lint    # ESLint, warnings count as errors
 npm run build   # tsc for UI and server, Vite build as in CI
 ```
 
-In Gitea führt der [Runner](#gitea-runner) sie bei jedem Pull Request nach `main` aus,
-zusammen mit den Prüfungen für beide Compose-Dateien, `nginx.conf`, die Workflows und
-`dev.sh` ([.gitea/workflows/checks.yaml](.gitea/workflows/checks.yaml)). Das Ergebnis zeigt
-der Pull Request als Status **Prüfen / checks (pull_request)**. Damit ein Pull Request erst
-gemergt werden kann, wenn er bestanden ist, im Repo unter **Einstellungen → Branches** eine
-Regel für `main` anlegen:
+**Branches:** Änderungen entstehen auf Feature-Branches, deren Pull Requests gehen nach
+`dev`. Ist `dev` reif für die Produktion, bringt ein Pull Request von `dev` nach `main` es
+dorthin. Nur ein Push auf `main` baut das Image und rollt es aus; `dev` baut nichts und
+erzeugt kein Release – Releases bekommen ihren Tag auf `main`.
 
-| Einstellung                    | Wert                                          |
-| ------------------------------ | --------------------------------------------- |
-| **Statusprüfungen aktivieren** | an, mit dem Muster `Prüfen / *`               |
-| **Push deaktivieren**          | an, damit sich `main` nur durch Merges ändert |
+In Gitea führt der [Runner](#gitea-runner) die Prüfungen bei jedem Pull Request nach `dev`
+und `main` aus, zusammen mit den Prüfungen für beide Compose-Dateien, `nginx.conf`, die
+Workflows und `dev.sh` ([.gitea/workflows/checks.yaml](.gitea/workflows/checks.yaml)). Das
+Ergebnis zeigt der Pull Request als Status **Prüfen / checks (pull_request)**. Damit ein
+Pull Request erst gemergt werden kann, wenn er bestanden ist, im Repo unter
+**Einstellungen → Branches** je eine Regel für `main` und `dev` anlegen:
+
+| Einstellung                    | Wert                                              |
+| ------------------------------ | ------------------------------------------------- |
+| **Statusprüfungen aktivieren** | an, mit dem Muster `Prüfen / *`                   |
+| **Push deaktivieren**          | an, damit sich der Branch nur durch Merges ändert |
+
+Gitea nimmt den Workflow aus dem Branch des Pull Requests: Ein Branch, der entstanden ist,
+bevor `dev` im Workflow stand, bekommt seine Prüfung, sobald er aus `dev` aktualisiert wird
+(**Branch aktualisieren** im Pull Request).
 
 ## Container
 
@@ -838,9 +847,9 @@ nichts. Watchtower braucht die Zugangsdaten getrennt, siehe [Watchtower](#watcht
 ### Gitea-Runner
 
 Für das [Image in Gitea](#in-gitea) und die [Prüfungen bei Pull Requests](#entwicklung): Der
-Runner baut das Image, wenn sich `admin\` ändert, und prüft jeden Pull Request nach `main`.
-Auf dem Pi baut er nativ für ARM64; auf einem anderen Rechner emuliert der Workflow ARM64
-per QEMU, das dauert deutlich länger.
+Runner baut das Image, wenn sich `admin\` ändert, und prüft jeden Pull Request nach `dev`
+und `main`. Auf dem Pi baut er nativ für ARM64; auf einem anderen Rechner emuliert der
+Workflow ARM64 per QEMU, das dauert deutlich länger.
 
 1. **Registrierungstoken holen:** in Gitea im Repo unter **Einstellungen → Actions →
    Runner → Neuen Runner erstellen**. Ein Runner auf Repo-Ebene führt nur die Workflows

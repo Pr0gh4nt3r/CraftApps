@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { StateView } from '../../../shared/types';
 import { api } from '../../lib/api';
 import { AppCard, type Action } from '../../components/AppCard/AppCard';
-import { formatDateTime, formatRelative } from '../../lib/format';
+import { formatAt, formatDateTime, formatFull } from '../../lib/format';
 import { t, tm } from '../../i18n/i18n';
 
 export function AppsPage() {
@@ -56,7 +56,10 @@ export function AppsPage() {
           <p className="muted small">
             {t('apps.lastCheck', { time: formatDateTime(state.lastCheckAt) })}
             <br />
-            {t('apps.nextCheck', { time: state.checking ? t('apps.checkingNow') : formatRelative(state.nextCheckAt) })}
+            {/* The time in the browser's time zone, the tooltip names date and zone */}
+            <span title={state.checking ? undefined : formatFull(state.nextCheckAt)}>
+              {t('apps.nextCheck', { time: state.checking ? t('apps.checkingNow') : formatAt(state.nextCheckAt) })}
+            </span>
             {github}
           </p>
           <button className="btn" disabled={state.checking} onClick={() => run('POST', '/api/check')}>
