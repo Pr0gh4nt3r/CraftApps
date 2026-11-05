@@ -582,6 +582,10 @@ admin UI or `null`.
   beta also rc and stable, alpha everything. Going back to a more mature channel never
   downgrades: an installed `0.17.0-beta.2` stays until `0.17.0` is out – **Reinstall**
   switches to the channel's version right away.
+- **Database updates:** at startup the admin UI brings its database up to date by itself. If
+  an update is interrupted, the next start continues where it stopped; several instances on the
+  same database wait for each other. A backup of the database before an update doesn't hurt
+  anyway.
 - Login: at most 10 attempts per 15 minutes and IP address.
 - The admin UI takes order, names, colors, English and German texts and icons from the
   [Craft Launcher](https://github.com/storytold/craft-launcher). If it is unreachable, the

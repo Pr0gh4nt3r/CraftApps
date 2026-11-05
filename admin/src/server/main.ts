@@ -20,7 +20,7 @@ const cfg = loadConfig();
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' }, trustProxy: cfg.trustProxy });
 
 const db = await connectDb(cfg.db, app.log);
-await migrate(db);
+await migrate(db, app.log);
 await ensureInitialAdmin(db, cfg.initialAdmin, app.log);
 const settings = new SettingsStore(db);
 const channels = new ChannelStore(db);

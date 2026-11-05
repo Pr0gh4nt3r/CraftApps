@@ -69,10 +69,16 @@ export async function ensureInitialAdmin(db: Pool, initial: Config['initialAdmin
     log.warn('Noch kein Benutzer vorhanden – INITIAL_ADMIN_USER und INITIAL_ADMIN_PASSWORD setzen und neu starten');
     return;
   }
-  await db.query('INSERT INTO users (username, password_hash) VALUES (?, ?)', [
-    initial.username,
-    await hashPassword(initial.password),
-  ]);
+  try {
+    await db.query('INSERT INTO users (username, password_hash) VALUES (?, ?)', [
+      initial.username,
+      await hashPassword(initial.password),
+    ]);
+  } catch (err) {
+    // Another instance starting at the same time was quicker – the account is there
+    if ((err as { code?: string }).code === 'ER_DUP_ENTRY') return;
+    throw err;
+  }
   log.info(`Benutzer ${initial.username} angelegt`);
   await logEvent(db, 'user', msg('event.initialAdmin', { name: initial.username }));
 }
