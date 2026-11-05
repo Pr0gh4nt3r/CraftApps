@@ -1,4 +1,5 @@
 import type { Pool, RowDataPacket } from 'mysql2/promise';
+import { DEFAULT_ACTIVITY_VIEW, normalizeView, type ActivityView } from '../../shared/activity.js';
 import { CHECK_INTERVALS, currentTime, scheduleProblem, type CheckInterval, type CheckSchedule } from '../../shared/schedule.js';
 import type { SettingsView } from '../../shared/types.js';
 
@@ -7,6 +8,8 @@ export interface Settings {
   checkSchedule: CheckSchedule;
   /** Update channel: stable, rc, beta, alpha, … – a channel also takes the more mature ones */
   updateChannel: string;
+  /** What the activity log shows to users without an own view – at least one group and column */
+  activityView: ActivityView;
   autoInstallNew: boolean;
   defaultAutoUpdate: boolean;
   /** Public address of the nginx serving the apps, e.g. https://craft.example.com */
@@ -51,6 +54,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // Without saved settings: every 6 hours, from the minute the server started
   checkSchedule: scheduleFromMinutes(360),
   updateChannel: 'stable',
+  activityView: DEFAULT_ACTIVITY_VIEW,
   autoInstallNew: false,
   defaultAutoUpdate: true,
   appsBaseUrl: '',
@@ -101,6 +105,11 @@ export class SettingsStore {
       for (const [key, fallback] of Object.entries(DEFAULT_SETTINGS)) {
         const value = stored.get(key);
         // Otherwise the default applies
+        if (key === 'activityView') {
+          // Groups or columns of a newer version are left out
+          merged[key] = normalizeView(value, 1) ?? fallback;
+          continue;
+        }
         const valid = key === 'checkSchedule' ? isSchedule(value) : typeof value === typeof fallback;
         if (valid) merged[key] = value;
       }

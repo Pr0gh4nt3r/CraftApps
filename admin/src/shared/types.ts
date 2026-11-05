@@ -2,6 +2,7 @@
 
 import type { ChannelType, ChannelValues, NotifyEvent } from './channels.js';
 import type { Lang, Msg } from './messages.js';
+import type { ActivityView } from './activity.js';
 import type { CheckSchedule } from './schedule.js';
 
 export type AppStatus = 'not-installed' | 'installed' | 'update-available';
@@ -87,6 +88,8 @@ export interface SettingsView {
   checkSchedule: CheckSchedule;
   /** stable, rc, beta, alpha, … – takes releases of its own and of every more mature channel */
   updateChannel: string;
+  /** What the activity log shows to users without an own view */
+  activityView: ActivityView;
   autoInstallNew: boolean;
   defaultAutoUpdate: boolean;
   appsBaseUrl: string;

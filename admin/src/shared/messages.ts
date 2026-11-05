@@ -68,6 +68,7 @@ const de = {
   'setting.appsBaseUrl': 'öffentliche Adresse der Apps',
   'setting.adminBaseUrl': 'Adresse dieser Verwaltung',
   'setting.githubToken': 'GitHub-Token',
+  'setting.activityView': 'Standardansicht der Aktivität',
 
   'error.appSearchFailed': 'App-Suche auf GitHub fehlgeschlagen: {error}',
   'error.checkFailed': 'Prüfung fehlgeschlagen: {error}',
@@ -195,6 +196,7 @@ const en: Record<MsgKey, string> = {
   'setting.appsBaseUrl': 'public address of the apps',
   'setting.adminBaseUrl': 'address of this admin UI',
   'setting.githubToken': 'GitHub token',
+  'setting.activityView': 'default view of the activity',
 
   'error.appSearchFailed': 'App search on GitHub failed: {error}',
   'error.checkFailed': 'Check failed: {error}',

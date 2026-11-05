@@ -142,6 +142,8 @@ const MIGRATIONS: (string | ((db: Pool) => Promise<void>))[][] = [
     'UPDATE apps SET latest_etag = NULL',
     intervalToSchedule,
   ],
+  // The view of the activity log a user saved – NULL follows the default from the settings
+  ['ALTER TABLE users ADD COLUMN activity_view TEXT NULL'],
 ];
 
 export async function connectDb(cfg: DbConfig, log: FastifyBaseLogger): Promise<Pool> {

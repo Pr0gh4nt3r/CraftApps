@@ -17,6 +17,10 @@ interface Props<T extends string> {
   noneLabel: string;
   /** Text of the button when several but not all are ticked */
   someLabel: (count: number, total: number) => string;
+  /** At least this many stay ticked – their checkboxes can't be unticked then */
+  minSelected?: number;
+  /** E.g. "narrow" for a button that only fits short summaries */
+  className?: string;
 }
 
 /**
@@ -31,6 +35,8 @@ export function MultiSelect<T extends string>({
   allLabel,
   noneLabel,
   someLabel,
+  minSelected = 0,
+  className,
 }: Props<T>) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -63,13 +69,14 @@ export function MultiSelect<T extends string>({
   }, [open]);
 
   const ticked = options.filter((o) => selected.includes(o.value));
+  const atMinimum = ticked.length <= minSelected;
   const summary = all ? allLabel : none ? noneLabel : ticked.length === 1 ? ticked[0].label : someLabel(ticked.length, options.length);
   // Keeps the order of the options, whatever order they were ticked in
   const toggle = (value: T) =>
     onChange(options.map((o) => o.value).filter((v) => (v === value ? !selected.includes(v) : selected.includes(v))));
 
   return (
-    <div className="multi-select" ref={wrapRef}>
+    <div className={className ? `multi-select ${className}` : 'multi-select'} ref={wrapRef}>
       <button
         ref={buttonRef}
         type="button"
@@ -88,13 +95,20 @@ export function MultiSelect<T extends string>({
               ref={allRef}
               type="checkbox"
               checked={all}
+              // Unticking all would go below the minimum
+              disabled={all && minSelected > 0}
               onChange={() => onChange(all ? [] : options.map((o) => o.value))}
             />
             {allLabel}
           </label>
           {options.map((o) => (
             <label key={o.value} className="multi-select-option">
-              <input type="checkbox" checked={selected.includes(o.value)} onChange={() => toggle(o.value)} />
+              <input
+                type="checkbox"
+                checked={selected.includes(o.value)}
+                disabled={atMinimum && selected.includes(o.value)}
+                onChange={() => toggle(o.value)}
+              />
               {o.label}
             </label>
           ))}
