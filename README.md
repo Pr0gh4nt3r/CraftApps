@@ -618,16 +618,26 @@ npm run lint    # ESLint, warnings count as errors
 npm run build   # tsc for UI and server, Vite build as in CI
 ```
 
-In Gitea the [runner](#gitea-runner) runs them on every pull request to `main`, together
-with the checks for both Compose files, `nginx.conf`, the workflows and `dev.sh`
-([.gitea/workflows/checks.yaml](.gitea/workflows/checks.yaml)). The pull request shows the
-result as the status **Prüfen / checks (pull_request)**. So that a pull request can only be
-merged once it has passed, add a rule for `main` in the repo under **Settings → Branches**:
+**Branches:** changes are made on feature branches, their pull requests go to `dev`. Once
+`dev` is ready for production, a pull request from `dev` to `main` brings it there. Only a
+push to `main` builds the image and deploys it; `dev` builds nothing and creates no release –
+releases are tagged on `main`.
 
-| Setting                 | Value                                          |
-| ----------------------- | ---------------------------------------------- |
-| **Enable Status Check** | on, with the pattern `Prüfen / *`              |
-| **Disable Push**        | on, so that `main` only changes through merges |
+In Gitea the [runner](#gitea-runner) runs the checks on every pull request to `dev` and
+`main`, together with the checks for both Compose files, `nginx.conf`, the workflows and
+`dev.sh` ([.gitea/workflows/checks.yaml](.gitea/workflows/checks.yaml)). The pull request
+shows the result as the status **Prüfen / checks (pull_request)**. So that a pull request
+can only be merged once it has passed, add a rule each for `main` and `dev` in the repo under
+**Settings → Branches**:
+
+| Setting                 | Value                                              |
+| ----------------------- | -------------------------------------------------- |
+| **Enable Status Check** | on, with the pattern `Prüfen / *`                  |
+| **Disable Push**        | on, so that the branch only changes through merges |
+
+Gitea takes the workflow from the pull request's branch: a branch created before `dev` was
+added to the workflow gets its check once it is updated from `dev` (**Update branch** in the
+pull request).
 
 ## Containers
 
@@ -805,9 +815,9 @@ Watchtower needs the credentials separately, see [Watchtower](#watchtower).
 ### Gitea runner
 
 For the [image in Gitea](#in-gitea) and the [checks on pull requests](#development): the
-runner builds the image whenever `admin\` changes and checks every pull request to `main`.
-On the Pi it builds natively for ARM64; on another machine the workflow emulates ARM64 via
-QEMU, which takes considerably longer.
+runner builds the image whenever `admin\` changes and checks every pull request to `dev`
+and `main`. On the Pi it builds natively for ARM64; on another machine the workflow emulates
+ARM64 via QEMU, which takes considerably longer.
 
 1. **Get a registration token:** in Gitea, in the repo under **Settings → Actions →
    Runners → Create new Runner**. A runner at repo level only runs this repo's workflows.
