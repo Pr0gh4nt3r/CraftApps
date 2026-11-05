@@ -42,7 +42,7 @@ CraftApps\
 │       │   ├── api\                    Routes for the admin UI
 │       │   ├── apps\                   Find, install and update apps; start page
 │       │   ├── auth\                   Users, sessions, login
-│       │   ├── core\                   Configuration, database, helpers
+│       │   ├── core\                   Configuration, database, activity log, helpers
 │       │   ├── notify\                 Notification channels: Gotify, email, ntfy, webhook, Telegram, Discord
 │       │   └── settings\               Settings
 │       ├── shared\                     Types, messages (German/English) and check schedule for server and frontend
@@ -175,9 +175,11 @@ turned off) and not installed yet:
 
 ![Admin UI: apps with their state, version and automatic updates](docs/images/admin-apps-en.png)
 
-**Activity:** what happened, automatically or by which user:
+**Activity:** what happened, automatically or by which user – every check with its result,
+installations and updates, changes to settings, channels and users, logins and test messages.
+The filter at the top shows only one kind, **Load older entries** goes back up to 180 days:
 
-![Admin UI: activity log with installations, an available update and changed settings](docs/images/admin-activity-en.png)
+![Admin UI: activity log with checks, installations, an available update and changed settings](docs/images/admin-activity-en.png)
 
 **Notifications:** the channels with their events, here with the form of a Gotify channel –
 its saved token stays on the server:

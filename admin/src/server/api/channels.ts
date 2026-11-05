@@ -22,6 +22,11 @@ const CHANNEL = {
 } as const;
 const REQUIRED = ['name', 'enabled', 'language', 'events', 'config'];
 
+/** For the activity log: the saved channel's name – a channel not saved yet goes by its type */
+async function testedName(channels: ChannelStore, { id, type }: ChannelTest): Promise<string> {
+  return id === undefined ? type : (await channels.get(id)).name;
+}
+
 /** Notification channels: list, create, change, turn on and off, delete, test. */
 export function registerChannelRoutes(
   app: FastifyInstance,
@@ -96,8 +101,13 @@ export function registerChannelRoutes(
       } catch (err) {
         // Invalid settings or unknown channel: answered by the error handler with their status
         if ((err as { statusCode?: unknown }).statusCode) throw err;
-        return reply.code(502).send({ error: toMsg(err) });
+        const error = toMsg(err);
+        const name = await testedName(channels, req.body);
+        await manager.event('error', msg('event.channelTestFailed', { name, error }), null, req.user!.username);
+        return reply.code(502).send({ error });
       }
+      const name = await testedName(channels, req.body);
+      await manager.event('notify', msg('event.channelTested', { name }), null, req.user!.username);
       return { ok: true };
     },
   );

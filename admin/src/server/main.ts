@@ -89,6 +89,7 @@ await app.register(async (api) => {
 });
 
 await manager.init();
+await manager.event('system', msg('event.started'));
 manager.start();
 await app.listen({ host: '0.0.0.0', port: cfg.port });
 

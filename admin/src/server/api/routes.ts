@@ -58,15 +58,39 @@ export function registerRoutes(
     },
   );
 
-  app.get<{ Querystring: { limit?: number } }>(
+  // Newest first, page by page: before = the id of the oldest entry so far; kinds filters, e.g.
+  // "installed,updated"
+  app.get<{ Querystring: { limit?: number; before?: number; kinds?: string } }>(
     '/api/events',
-    { schema: { querystring: { type: 'object', properties: { limit: { type: 'integer', minimum: 1, maximum: 1000 } } } } },
+    {
+      schema: {
+        querystring: {
+          type: 'object',
+          properties: {
+            limit: { type: 'integer', minimum: 1, maximum: 1000 },
+            before: { type: 'integer', minimum: 1 },
+            kinds: { type: 'string', maxLength: 255, pattern: '^[a-z-]+(,[a-z-]+)*$' },
+          },
+        },
+      },
+    },
     async (req) => {
+      const where: string[] = [];
+      const params: unknown[] = [];
+      if (req.query.before) {
+        where.push('e.id < ?');
+        params.push(req.query.before);
+      }
+      if (req.query.kinds) {
+        where.push('e.kind IN (?)');
+        params.push(req.query.kinds.split(','));
+      }
       const [rows] = await db.query<RowDataPacket[]>(
         `SELECT e.id, e.created_at, e.app_id, a.name AS app_name, a.color AS app_color, e.kind, e.message, e.msg, e.username
          FROM events e LEFT JOIN apps a ON a.id = e.app_id
+         ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
          ORDER BY e.id DESC LIMIT ?`,
-        [req.query.limit ?? 300],
+        [...params, req.query.limit ?? 200],
       );
       return rows.map(
         (r): EventView => ({
@@ -133,7 +157,14 @@ export function registerRoutes(
       // Another channel: check right away, so the apps show what it brings – the releases are
       // mostly known already, GitHub answers "304 Not Modified"
       if (next.updateChannel !== before.updateChannel) void manager.check(req.user!.username);
-      await manager.event('setting', msg('event.settingsChanged'), null, req.user!.username);
+      // The activity log names what changed – saving without a change leaves no entry
+      const changed = (Object.keys(next) as (keyof Settings)[]).filter(
+        (key) => JSON.stringify(next[key]) !== JSON.stringify(before[key]),
+      );
+      if (changed.length) {
+        const fields = changed.map((key) => msg(`setting.${key}`));
+        await manager.event('setting', msg('event.settingsChangedFields', { fields }), null, req.user!.username);
+      }
       return settingsView(next, cfg.githubToken, await manager.releaseChannels());
     },
   );

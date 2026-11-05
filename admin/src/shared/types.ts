@@ -57,12 +57,27 @@ export interface StateView {
   warnings: Msg[];
 }
 
+/** Kind of an activity log entry – the UI shows a label and a color for each */
+export type EventKind =
+  | 'installed'
+  | 'updated'
+  | 'uninstalled'
+  | 'available'
+  | 'update-available'
+  | 'error'
+  | 'check'
+  | 'setting'
+  | 'notify'
+  | 'user'
+  | 'system';
+
 export interface EventView {
   id: number;
   at: string;
   appId: string | null;
   appName: string | null;
   appColor: string | null;
+  /** An EventKind – or an unknown one from a newer version */
   kind: string;
   message: Msg;
   username: string | null;
