@@ -2,6 +2,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import mysql from 'mysql2/promise';
 import type { Pool, RowDataPacket } from 'mysql2/promise';
 import type { DbConfig } from './config.js';
+import { scheduleFromMinutes } from '../settings/settings.js';
 
 const TABLE = 'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
 
@@ -39,6 +40,19 @@ async function gotifyToChannel(db: Pool): Promise<void> {
     ]);
   }
   await db.query('DELETE FROM settings WHERE name IN (?)', [names]);
+}
+
+/** The check interval in minutes becomes a schedule with fixed times. */
+async function intervalToSchedule(db: Pool): Promise<void> {
+  const [rows] = await db.query<RowDataPacket[]>("SELECT value FROM settings WHERE name = 'checkIntervalMinutes'");
+  if (rows[0]) {
+    const schedule = scheduleFromMinutes(Number(JSON.parse(rows[0].value as string)));
+    await db.query('INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)', [
+      'checkSchedule',
+      JSON.stringify(schedule),
+    ]);
+  }
+  await db.query("DELETE FROM settings WHERE name = 'checkIntervalMinutes'");
 }
 
 // Each migration is a list of SQL statements or functions, run in order. Never change existing
@@ -119,6 +133,14 @@ const MIGRATIONS: (string | ((db: Pool) => Promise<void>))[][] = [
       UNIQUE KEY uq_notification_channels_name (name)
     ) ${TABLE}`,
     gotifyToChannel,
+  ],
+  // Update channels: the releases in question per app (newest stable one plus newer
+  // pre-releases) – the list of releases has ETags of its own. Fixed check times instead of an
+  // interval in minutes.
+  [
+    'ALTER TABLE apps ADD COLUMN release_candidates TEXT NULL AFTER latest_etag',
+    'UPDATE apps SET latest_etag = NULL',
+    intervalToSchedule,
   ],
 ];
 

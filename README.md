@@ -45,10 +45,10 @@ CraftApps\
 │       │   ├── core\                   Configuration, database, activity log, helpers
 │       │   ├── notify\                 Notification channels: Gotify, email, ntfy, webhook, Telegram, Discord
 │       │   └── settings\               Settings
-│       ├── shared\                     Types and messages (German/English) for server and frontend
+│       ├── shared\                     Types, messages (German/English) and check schedule for server and frontend
 │       └── web\                        React frontend, main.tsx starts it
 │           ├── App\                    Top bar; on narrow screens with a burger and a user menu
-│           ├── components\             AppCard, ChannelForm, LangSwitch, Toggle – each with its styles
+│           ├── components\             AppCard, ChannelForm, LangSwitch, ScheduleField, Toggle – each with its styles
 │           ├── i18n\                   Language and texts, German and English in locales\
 │           ├── lib\                    API calls and formatting
 │           ├── pages\                  Apps, activity, notifications, settings, users, login – each with its styles
@@ -146,14 +146,18 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 
 - **Apps** in a grid like the Craft Launcher – with its icons, brand colors and short
   descriptions: install, update, reinstall, uninstall, toggle automatic updates per app.
-- **New apps** it finds by itself: all storytold repos ending in `craft` whose latest
-  release has a `<app>-web-*.zip`. New apps are reported and, if you like, installed
-  automatically.
+- **New apps** it finds by itself: all storytold repos ending in `craft` whose newest
+  release in the update channel has a `<app>-web-*.zip`. New apps are reported and, if you
+  like, installed automatically.
+- **Checks on schedule:** from every 30 minutes to quarterly, at fixed times in your time
+  zone – e.g. daily at 04:00, or weekly on Monday and Thursday at 00:00 and 12:00. The
+  update channel decides between stable versions and pre-releases (rc, beta, alpha), as far
+  as the apps publish them.
 - **Updates without interruption:** new files go next to the old ones, `index.html` is
   switched last, the previous version stays until the next update. Every download is
   verified via SHA-256.
-- **Login** with users in MySQL, activity log, settings (check interval, GitHub token,
-  addresses) and user management.
+- **Login** with users in MySQL, activity log, settings (check schedule, update channel,
+  GitHub token, addresses) and user management.
 - **Notifications** via Gotify, email, ntfy, Telegram, Discord or a webhook – as many
   channels as you like, each with its own events and language, see
   [Notifications](#notifications).
@@ -182,8 +186,8 @@ its saved token stays on the server:
 
 ![Admin UI: notification channels for Gotify, email, a webhook and Telegram, below the form of the Gotify channel](docs/images/admin-notifications-en.png)
 
-**Settings:** check interval, GitHub token and addresses – the saved token stays on the
-server:
+**Settings:** check schedule with a preview of the next checks, update channel, GitHub
+token and addresses – the saved token stays on the server:
 
 ![Admin UI: settings for updates, the GitHub token and addresses](docs/images/admin-settings-en.png)
 
@@ -556,6 +560,22 @@ admin UI or `null`.
   only shows that one is saved. If it has expired or was revoked, the **Activity** says
   so – then enter a new one. Without a saved token, the environment variable
   `GITHUB_TOKEN` applies, if set.
+- **Check schedule:** the times apply in the time zone below them – at first the server's
+  (in the container UTC); the settings page offers the browser's. With every 30 minutes and
+  hourly only the minute counts, from 3 to 12 hours the times are starting points: every 6
+  hours from 04:00 checks at 04:00, 10:00, 16:00 and 22:00. Monthly on the 31st means the
+  last day in shorter months, quarterly runs in January, April, July and October. An empty
+  time becomes the current one when saving; at least 15 minutes must lie between two
+  checks. After a restart the admin UI only checks right away if it missed a planned check
+  meanwhile – otherwise it waits for the next one. An update from an earlier version turns
+  the check interval into a schedule with the same rhythm, from the minute of the update.
+- **Update channels:** the list only offers channels with releases newer than the newest
+  stable one – at the moment the apps only publish stable versions. The channel comes from
+  the tag (`1.2.0-beta.1` → beta); a release GitHub marks as pre-release without such a name
+  counts as **Pre-release**. A channel also takes everything more mature: rc also stable,
+  beta also rc and stable, alpha everything. Going back to a more mature channel never
+  downgrades: an installed `0.17.0-beta.2` stays until `0.17.0` is out – **Reinstall**
+  switches to the channel's version right away.
 - Login: at most 10 attempts per 15 minutes and IP address.
 - The admin UI takes order, names, colors, English and German texts and icons from the
   [Craft Launcher](https://github.com/storytold/craft-launcher). If it is unreachable, the

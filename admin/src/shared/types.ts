@@ -2,6 +2,7 @@
 
 import type { ChannelType, ChannelValues, NotifyEvent } from './channels.js';
 import type { Lang, Msg } from './messages.js';
+import type { CheckSchedule } from './schedule.js';
 
 export type AppStatus = 'not-installed' | 'installed' | 'update-available';
 export type JobKind = 'install' | 'update' | 'uninstall';
@@ -83,17 +84,23 @@ export interface EventView {
 }
 
 export interface SettingsView {
-  checkIntervalMinutes: number;
+  checkSchedule: CheckSchedule;
+  /** stable, rc, beta, alpha, … – takes releases of its own and of every more mature channel */
+  updateChannel: string;
   autoInstallNew: boolean;
   defaultAutoUpdate: boolean;
   appsBaseUrl: string;
   adminBaseUrl: string;
   /** Where the GitHub token in use comes from – the token itself stays on the server */
   githubTokenSource: 'settings' | 'env' | null;
+  /** Update channels the apps currently have releases in, most mature first – stable always */
+  releaseChannels: string[];
 }
 
 /** Changes settings – githubToken replaces the saved token, null removes it */
-export type SettingsUpdate = Partial<Omit<SettingsView, 'githubTokenSource'> & { githubToken: string | null }>;
+export type SettingsUpdate = Partial<
+  Omit<SettingsView, 'githubTokenSource' | 'releaseChannels'> & { githubToken: string | null }
+>;
 
 export interface ChannelView {
   id: number;
