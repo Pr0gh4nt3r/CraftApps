@@ -18,13 +18,12 @@ export interface ReleaseAsset {
 export interface Release {
   tag_name: string;
   published_at: string | null;
+  prerelease: boolean;
+  draft: boolean;
   assets: ReleaseAsset[];
 }
 
-export type LatestRelease =
-  | { kind: 'not-modified' }
-  | { kind: 'none' }
-  | { kind: 'release'; release: Release; etag: string | null };
+export type Releases = { kind: 'not-modified' } | { kind: 'list'; releases: Release[]; etag: string | null };
 
 export class GitHubLimitError extends MsgError {}
 export class GitHubTokenError extends MsgError {}
@@ -88,13 +87,16 @@ export class GitHub {
     }
   }
 
-  /** Latest release; with an ETag GitHub answers "304 Not Modified" as long as nothing has changed. */
-  async latestRelease(owner: string, repo: string, etag: string | null): Promise<LatestRelease> {
-    const res = await this.request(`/repos/${owner}/${repo}/releases/latest`, etag);
+  /**
+   * The newest 30 releases including pre-releases, newest first – for the update channels.
+   * With an ETag GitHub answers "304 Not Modified" as long as nothing has changed.
+   */
+  async releases(owner: string, repo: string, etag: string | null): Promise<Releases> {
+    const res = await this.request(`/repos/${owner}/${repo}/releases?per_page=30`, etag);
     if (res.status === 304) return { kind: 'not-modified' };
-    if (res.status === 404) return { kind: 'none' }; // Repo without any releases, e.g. AniCraft
+    if (res.status === 404) return { kind: 'list', releases: [], etag: null }; // the repo is gone
     if (!res.ok) throw new MsgError(msg('error.githubRelease', { status: res.status, repo }));
-    return { kind: 'release', release: (await res.json()) as Release, etag: res.headers.get('etag') };
+    return { kind: 'list', releases: (await res.json()) as Release[], etag: res.headers.get('etag') };
   }
 }
 

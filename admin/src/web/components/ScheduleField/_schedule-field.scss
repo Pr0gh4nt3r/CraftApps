@@ -1,0 +1,52 @@
+// Weekdays, times and the preview of the next checks (ScheduleField on the SettingsPage); the
+// fields themselves are global
+@use '../../styles/shared';
+
+// Weekday buttons, or the times with their remove buttons and "Add time" – wrapping on phones
+.schedule-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.weekday {
+  min-width: 52px;
+  height: 36px;
+  padding: 0 10px;
+  border: shared.$hairline-strong;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--text);
+  }
+
+  &[aria-pressed='true'] {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+  }
+}
+
+// One time: the field and its remove button side by side, as high as the buttons
+.schedule-time {
+  display: inline-flex;
+
+  .field & input {
+    width: 132px; // also "08:00 PM" in browsers with a 12-hour clock
+    height: 36px;
+    border-right: none;
+  }
+
+  input[type='number'] {
+    width: 80px;
+  }
+}
+
+.schedule-preview {
+  margin: -4px 0 16px;
+  font-size: 13px;
+}

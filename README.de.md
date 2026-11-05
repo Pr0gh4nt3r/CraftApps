@@ -45,10 +45,10 @@ CraftApps\
 │       │   ├── core\                   Konfiguration, Datenbank, Hilfsfunktionen
 │       │   ├── notify\                 Benachrichtigungskanäle: Gotify, E-Mail, ntfy, Webhook, Telegram, Discord
 │       │   └── settings\               Einstellungen
-│       ├── shared\                     Typen und Meldungen (Deutsch/Englisch) für Server und Oberfläche
+│       ├── shared\                     Typen, Meldungen (Deutsch/Englisch) und Zeitplan für Server und Oberfläche
 │       └── web\                        React-Oberfläche, main.tsx startet sie
 │           ├── App\                    Kopfzeile; auf schmalen Bildschirmen mit Burger- und Benutzermenü
-│           ├── components\             AppCard, ChannelForm, LangSwitch, Toggle – jeweils mit ihren Styles
+│           ├── components\             AppCard, ChannelForm, LangSwitch, ScheduleField, Toggle – jeweils mit ihren Styles
 │           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
 │           ├── lib\                    API-Aufrufe und Formatierung
 │           ├── pages\                  Apps, Aktivität, Benachrichtigungen, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles
@@ -148,13 +148,17 @@ Registry-Eintrag.
   Kurzbeschreibungen: installieren, aktualisieren, neu installieren, deinstallieren,
   automatische Updates je App an- oder ausschalten.
 - **Neue Apps** findet sie selbst: alle Repos von storytold, die auf `craft` enden und
-  deren neuestes Release ein `<app>-web-*.zip` hat. Neue Apps werden gemeldet und auf
-  Wunsch automatisch installiert.
+  deren neuestes Release im Update-Kanal ein `<app>-web-*.zip` hat. Neue Apps werden
+  gemeldet und auf Wunsch automatisch installiert.
+- **Prüfungen nach Zeitplan:** von alle 30 Minuten bis vierteljährlich, zu festen Zeiten in
+  deiner Zeitzone – z.B. täglich um 04:00 oder wöchentlich montags und donnerstags um 00:00
+  und 12:00. Der Update-Kanal entscheidet zwischen stabilen Versionen und Vorabversionen
+  (rc, beta, alpha), soweit die Apps welche veröffentlichen.
 - **Updates ohne Unterbrechung:** Neue Dateien kommen neben die alten, `index.html` wird
   zuletzt umgeschaltet, die Vorversion bleibt bis zum nächsten Update liegen. Jeder
   Download wird per SHA-256 geprüft.
-- **Anmeldung** mit Benutzern in MySQL, Aktivitätsverlauf, Einstellungen (Prüfintervall,
-  GitHub-Token, Adressen) und Benutzerverwaltung.
+- **Anmeldung** mit Benutzern in MySQL, Aktivitätsverlauf, Einstellungen (Zeitplan der
+  Prüfungen, Update-Kanal, GitHub-Token, Adressen) und Benutzerverwaltung.
 - **Benachrichtigungen** über Gotify, E-Mail, ntfy, Telegram, Discord oder einen Webhook –
   beliebig viele Kanäle, jeder mit eigenen Ereignissen und eigener Sprache, siehe
   [Benachrichtigungen](#benachrichtigungen).
@@ -181,8 +185,8 @@ Gotify-Kanals – sein gespeicherter Token bleibt auf dem Server:
 
 ![Verwaltung: Benachrichtigungskanäle für Gotify, E-Mail, einen Webhook und Telegram, darunter das Formular des Gotify-Kanals](docs/images/admin-notifications-de.png)
 
-**Einstellungen:** Prüfintervall, GitHub-Token und Adressen – der gespeicherte Token bleibt
-auf dem Server:
+**Einstellungen:** Zeitplan der Prüfungen mit Vorschau auf die nächsten, Update-Kanal,
+GitHub-Token und Adressen – der gespeicherte Token bleibt auf dem Server:
 
 ![Verwaltung: Einstellungen für Updates, den GitHub-Token und Adressen](docs/images/admin-settings-de.png)
 
@@ -560,6 +564,23 @@ Verwaltung oder `null`.
   Formular zeigt nur, dass einer gespeichert ist. Ist er abgelaufen oder widerrufen, steht
   das in der **Aktivität** – dann einen neuen eintragen. Ohne gespeicherten Token gilt die
   Umgebungsvariable `GITHUB_TOKEN`, falls gesetzt.
+- **Zeitplan der Prüfungen:** Die Zeiten gelten in der Zeitzone darunter – anfangs der des
+  Servers (im Container UTC); die Einstellungsseite bietet die des Browsers an. Bei „alle
+  30 Minuten“ und „stündlich“ zählt nur die Minute, von 3 bis 12 Stunden sind die Zeiten
+  Startpunkte: alle 6 Stunden ab 04:00 prüft um 04:00, 10:00, 16:00 und 22:00. Monatlich am
+  31. heißt in kürzeren Monaten am letzten Tag, vierteljährlich läuft im Januar, April, Juli
+  und Oktober. Eine leere Zeit wird beim Speichern zur aktuellen; zwischen zwei Prüfungen
+  müssen mindestens 15 Minuten liegen. Nach einem Neustart prüft die Verwaltung nur sofort,
+  wenn sie inzwischen eine geplante Prüfung verpasst hat – sonst wartet sie auf die nächste.
+  Ein Update von einer früheren Version macht aus dem Prüfintervall einen Zeitplan im
+  selben Rhythmus, ab der Minute des Updates.
+- **Update-Kanäle:** Die Liste bietet nur Kanäle an, in denen es Releases gibt, die neuer
+  sind als das neueste stabile – im Moment veröffentlichen die Apps nur stabile Versionen.
+  Den Kanal liefert der Tag (`1.2.0-beta.1` → beta); ein Release, das GitHub ohne solchen
+  Namen als Pre-release markiert, zählt als **Vorabversion**. Ein Kanal nimmt auch alles
+  Reifere: rc auch stabile, beta auch rc und stabile, alpha alles. Zurück zu einem reiferen
+  Kanal stuft nie herab: ein installiertes `0.17.0-beta.2` bleibt, bis `0.17.0` erscheint –
+  **Neu installieren** wechselt sofort zur Version des Kanals.
 - Anmeldung: höchstens 10 Versuche pro 15 Minuten und IP-Adresse.
 - Reihenfolge, Namen, Farben, deutsche und englische Texte und Icons übernimmt die
   Verwaltung aus dem [Craft Launcher](https://github.com/storytold/craft-launcher). Ist der
