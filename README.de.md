@@ -42,7 +42,7 @@ CraftApps\
 │       │   ├── api\                    Routen für die Verwaltung
 │       │   ├── apps\                   Apps finden, installieren und aktualisieren; Startseite
 │       │   ├── auth\                   Benutzer, Sitzungen, Anmeldung
-│       │   ├── core\                   Konfiguration, Datenbank, Hilfsfunktionen
+│       │   ├── core\                   Konfiguration, Datenbank, Aktivitätsverlauf, Hilfsfunktionen
 │       │   ├── notify\                 Benachrichtigungskanäle: Gotify, E-Mail, ntfy, Webhook, Telegram, Discord
 │       │   └── settings\               Einstellungen
 │       ├── shared\                     Typen und Meldungen (Deutsch/Englisch) für Server und Oberfläche
@@ -172,9 +172,12 @@ aus) und noch nicht installiert:
 
 ![Verwaltung: Apps mit Status, Version und automatischen Updates](docs/images/admin-apps-de.png)
 
-**Aktivität:** was passiert ist, automatisch oder durch welchen Benutzer:
+**Aktivität:** was passiert ist, automatisch oder durch welchen Benutzer – jede Prüfung mit
+ihrem Ergebnis, Installationen und Updates, Änderungen an Einstellungen, Kanälen und
+Benutzern, Anmeldungen und Testnachrichten. Der Filter oben zeigt nur eine Art,
+**Ältere Einträge laden** reicht bis 180 Tage zurück:
 
-![Verwaltung: Aktivitätsverlauf mit Installationen, einem verfügbaren Update und geänderten Einstellungen](docs/images/admin-activity-de.png)
+![Verwaltung: Aktivitätsverlauf mit Prüfungen, Installationen, einem verfügbaren Update und geänderten Einstellungen](docs/images/admin-activity-de.png)
 
 **Benachrichtigungen:** die Kanäle mit ihren Ereignissen, hier mit dem Formular eines
 Gotify-Kanals – sein gespeicherter Token bleibt auf dem Server:

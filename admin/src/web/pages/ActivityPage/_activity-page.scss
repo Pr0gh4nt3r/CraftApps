@@ -1,4 +1,4 @@
-// Marks in the activity log (ActivityPage); the table itself is global
+// Filter, marks and paging of the activity log (ActivityPage); the table itself is global
 @use '../../styles/shared';
 
 // Color of the app
@@ -15,4 +15,26 @@
 .kind {
   @include shared.label(10.5px, 0.08em);
   @include shared.tones(ok, warn, error, info, muted);
+}
+
+// Which kinds of entries to show – next to "Refresh", as high as the button
+.filter {
+  height: 36px;
+  padding: 0 10px;
+  border: shared.$hairline-strong;
+  border-radius: 0;
+  background: var(--bg);
+  font-size: 13px;
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+}
+
+// "Load older entries" below the table
+.load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
 }
