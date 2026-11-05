@@ -55,8 +55,24 @@ async function intervalToSchedule(db: Pool): Promise<void> {
   await db.query("DELETE FROM settings WHERE name = 'checkIntervalMinutes'");
 }
 
-// Each migration is a list of SQL statements or functions, run in order. Never change existing
-// ones, only append new ones.
+/**
+ * Adds a column unless it is there already. MySQL can't do ADD COLUMN IF NOT EXISTS, and a
+ * schema change takes effect at once – after an aborted update the step runs again.
+ */
+function addColumn(table: string, column: string, definition: string): (db: Pool) => Promise<void> {
+  return async (db) => {
+    const [rows] = await db.query<RowDataPacket[]>(
+      'SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+      [table, column],
+    );
+    if (!rows.length) await db.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+  };
+}
+
+// Each migration is a list of SQL statements or functions, run in order. Never change what an
+// existing one does, only append new ones. Every step has to be repeatable: if a step fails, the
+// migration isn't recorded and runs again from its first step on the next start – so tables
+// with IF NOT EXISTS, columns with addColumn, data changes that find nothing to do a second time.
 const MIGRATIONS: (string | ((db: Pool) => Promise<void>))[][] = [
   [
     `CREATE TABLE IF NOT EXISTS users (
@@ -114,8 +130,9 @@ const MIGRATIONS: (string | ((db: Pool) => Promise<void>))[][] = [
   // English descriptions; messages as JSON (key + parameters) so the UI can show them in its
   // language – events keep the German text in message, last_error holds the JSON itself
   [
-    "ALTER TABLE apps ADD COLUMN description_en VARCHAR(512) NOT NULL DEFAULT '' AFTER description, MODIFY last_error TEXT NULL",
-    'ALTER TABLE events ADD COLUMN msg TEXT NULL AFTER message',
+    addColumn('apps', 'description_en', "VARCHAR(512) NOT NULL DEFAULT '' AFTER description"),
+    'ALTER TABLE apps MODIFY last_error TEXT NULL',
+    addColumn('events', 'msg', 'TEXT NULL AFTER message'),
   ],
   // Notification channels – settings and secrets as JSON, events as JSON array
   [
@@ -138,12 +155,12 @@ const MIGRATIONS: (string | ((db: Pool) => Promise<void>))[][] = [
   // pre-releases) – the list of releases has ETags of its own. Fixed check times instead of an
   // interval in minutes.
   [
-    'ALTER TABLE apps ADD COLUMN release_candidates TEXT NULL AFTER latest_etag',
+    addColumn('apps', 'release_candidates', 'TEXT NULL AFTER latest_etag'),
     'UPDATE apps SET latest_etag = NULL',
     intervalToSchedule,
   ],
   // The view of the activity log a user saved – NULL follows the default from the settings
-  ['ALTER TABLE users ADD COLUMN activity_view TEXT NULL'],
+  [addColumn('users', 'activity_view', 'TEXT NULL')],
 ];
 
 export async function connectDb(cfg: DbConfig, log: FastifyBaseLogger): Promise<Pool> {
@@ -163,14 +180,41 @@ export async function connectDb(cfg: DbConfig, log: FastifyBaseLogger): Promise<
   }
 }
 
-export async function migrate(pool: Pool): Promise<void> {
-  await pool.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
-    version INT NOT NULL PRIMARY KEY,
-    applied_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
-  ) ${TABLE}`);
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT COALESCE(MAX(version), 0) AS version FROM schema_migrations');
-  for (let v = Number(rows[0].version); v < MIGRATIONS.length; v++) {
-    for (const step of MIGRATIONS[v]) await (typeof step === 'string' ? pool.query(step) : step(pool));
-    await pool.query('INSERT INTO schema_migrations (version) VALUES (?)', [v + 1]);
+// One migration run at a time, even with several instances on the same database
+const LOCK = 'craftapps_migrate';
+// How long a second instance waits for the first one – long enough for a big events table
+const LOCK_SECONDS = 600;
+
+/** Brings the schema up to date: the missing migrations in order, under a lock in MySQL. */
+export async function migrate(pool: Pool, log: FastifyBaseLogger): Promise<void> {
+  // A lock belongs to a connection: this one holds it until the end – MySQL drops it by itself
+  // if the connection breaks off, e.g. because the container stops
+  const conn = await pool.getConnection();
+  try {
+    const [locked] = await conn.query<RowDataPacket[]>('SELECT GET_LOCK(?, ?) AS ok', [LOCK, LOCK_SECONDS]);
+    if (Number(locked[0].ok) !== 1) {
+      throw new Error(`Datenbank: keine Sperre für die Migration nach ${LOCK_SECONDS} s – läuft eine andere Instanz?`);
+    }
+    await conn.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INT NOT NULL PRIMARY KEY,
+      applied_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+    ) ${TABLE}`);
+    // Only now: another instance may have migrated while this one waited for the lock
+    const [rows] = await conn.query<RowDataPacket[]>('SELECT COALESCE(MAX(version), 0) AS version FROM schema_migrations');
+    for (let v = Number(rows[0].version); v < MIGRATIONS.length; v++) {
+      try {
+        for (const step of MIGRATIONS[v]) await (typeof step === 'string' ? pool.query(step) : step(pool));
+      } catch (err) {
+        throw new Error(
+          `Datenbank: Migration ${v + 1} fehlgeschlagen, beim nächsten Start geht es dort weiter – ${(err as Error).message}`,
+          { cause: err },
+        );
+      }
+      await conn.query('INSERT INTO schema_migrations (version) VALUES (?)', [v + 1]);
+      log.info(`Datenbank: Migration ${v + 1} ausgeführt`);
+    }
+  } finally {
+    await conn.query('SELECT RELEASE_LOCK(?)', [LOCK]).catch(() => undefined);
+    conn.release();
   }
 }

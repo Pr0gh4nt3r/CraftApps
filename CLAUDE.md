@@ -26,6 +26,15 @@ the branch protection of `main` requires before a merge.
 for the start page; Ctrl+C stops everything again. The single steps are in the README,
 section "Development".
 
+## Database
+
+The server brings the schema up to date by itself at startup: `MIGRATIONS` in
+`admin/src/server/core/db.ts`, under the MySQL lock `craftapps_migrate`, so several instances
+wait for each other. Only append new migrations, never change what an existing one does. Every
+step has to be repeatable – a failed migration starts over from its first step on the next
+start: tables with `CREATE TABLE IF NOT EXISTS`, columns with `addColumn`, data changes that
+find nothing left to do the second time.
+
 ## Documentation
 
 Besides the READMEs, the comments in `docker-compose.yml`, `nginx.conf`, `dev.sh`,

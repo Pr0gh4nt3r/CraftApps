@@ -593,6 +593,10 @@ Verwaltung oder `null`.
   Reifere: rc auch stabile, beta auch rc und stabile, alpha alles. Zurück zu einem reiferen
   Kanal stuft nie herab: ein installiertes `0.17.0-beta.2` bleibt, bis `0.17.0` erscheint –
   **Neu installieren** wechselt sofort zur Version des Kanals.
+- **Datenbank-Updates:** Beim Start bringt die Verwaltung ihre Datenbank selbst auf den
+  neuesten Stand. Wird ein Update unterbrochen, macht der nächste Start dort weiter; mehrere
+  Instanzen an derselben Datenbank warten aufeinander. Ein Backup der Datenbank vor einem
+  Update schadet trotzdem nicht.
 - Anmeldung: höchstens 10 Versuche pro 15 Minuten und IP-Adresse.
 - Reihenfolge, Namen, Farben, deutsche und englische Texte und Icons übernimmt die
   Verwaltung aus dem [Craft Launcher](https://github.com/storytold/craft-launcher). Ist der
