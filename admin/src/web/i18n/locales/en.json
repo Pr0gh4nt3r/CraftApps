@@ -21,6 +21,10 @@
   "common.loading": "Loading …",
   "common.errorStatus": "Error {status}",
 
+  "time.today": "at {time}",
+  "time.tomorrow": "tomorrow at {time}",
+  "time.date": "on {date} at {time}",
+
   "apps.title": "Apps",
   "apps.installed": "{installed} of {total} installed",
   "apps.updatesOne": "1 update available",
