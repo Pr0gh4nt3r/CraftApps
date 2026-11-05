@@ -15,6 +15,7 @@
 @use 'forms';
 @use '../components/ScheduleField/schedule-field';
 @use 'tables';
+@use '../components/MultiSelect/multi-select';
 @use '../pages/ActivityPage/activity-page';
 @use '../pages/NotificationsPage/notifications-page';
 @use '../components/ChannelForm/channel-form';

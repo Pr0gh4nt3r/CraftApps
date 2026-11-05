@@ -48,7 +48,7 @@ CraftApps\
 │       ├── shared\                     Typen, Meldungen (Deutsch/Englisch) und Zeitplan für Server und Oberfläche
 │       └── web\                        React-Oberfläche, main.tsx startet sie
 │           ├── App\                    Kopfzeile; auf schmalen Bildschirmen mit Burger- und Benutzermenü
-│           ├── components\             AppCard, ChannelForm, LangSwitch, ScheduleField, Toggle – jeweils mit ihren Styles
+│           ├── components\             AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Toggle – jeweils mit ihren Styles
 │           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
 │           ├── lib\                    API-Aufrufe und Formatierung
 │           ├── pages\                  Apps, Aktivität, Benachrichtigungen, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles
@@ -178,10 +178,15 @@ aus) und noch nicht installiert:
 
 **Aktivität:** was passiert ist, automatisch oder durch welchen Benutzer – jede Prüfung mit
 ihrem Ergebnis, Installationen und Updates, Änderungen an Einstellungen, Kanälen und
-Benutzern, Anmeldungen und Testnachrichten. Der Filter oben zeigt nur eine Art,
-**Ältere Einträge laden** reicht bis 180 Tage zurück:
+Benutzern, Anmeldungen und Testnachrichten. **Ältere Einträge laden** reicht bis 180 Tage
+zurück:
 
 ![Verwaltung: Aktivitätsverlauf mit Prüfungen, Installationen, einem verfügbaren Update und geänderten Einstellungen](docs/images/admin-activity-de.png)
+
+Im Filter oben hakst du an, welche Arten zu sehen sind – eine, mehrere oder alle;
+**Alle Einträge** hakt alle auf einmal an oder ab:
+
+![Verwaltung: der geöffnete Filter des Aktivitätsverlaufs mit Prüfungen und Fehlern, darunter nur diese Einträge](docs/images/admin-activity-filter-de.png)
 
 **Benachrichtigungen:** die Kanäle mit ihren Ereignissen, hier mit dem Formular eines
 Gotify-Kanals – sein gespeicherter Token bleibt auf dem Server:

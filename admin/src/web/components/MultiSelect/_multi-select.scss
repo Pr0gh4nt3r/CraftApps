@@ -1,0 +1,91 @@
+// Drop-down list with a checkbox per option (MultiSelect), e.g. the filter of the activity log.
+// The panel looks like the "…" menu of the cards.
+@use '../../styles/shared';
+
+.multi-select {
+  position: relative;
+}
+
+// Looks like a select: the summary on the left, an arrow on the right
+.multi-select-button {
+  position: relative;
+  min-width: 220px;
+  height: 36px;
+  padding: 0 34px 0 10px;
+  border: shared.$hairline-strong;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 13px;
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-70%) rotate(45deg);
+  }
+
+  &:hover {
+    border-color: var(--text);
+  }
+
+  &:focus-visible,
+  &[aria-expanded="true"] {
+    outline: none;
+    border-color: var(--primary);
+  }
+}
+
+// Below the button, at its right edge – the toolbars put it at the right of the page
+.multi-select-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 100%;
+  padding: 6px;
+  background: var(--surface-2);
+  border: shared.$hairline-strong;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  text-align: left;
+}
+
+.multi-select-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background: var(--line);
+  }
+
+  // "All" with a line between it and the single options
+  &.all {
+    margin-bottom: 6px;
+    padding-bottom: 10px;
+    border-bottom: shared.$hairline;
+  }
+
+  input {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+}

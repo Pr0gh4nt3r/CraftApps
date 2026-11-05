@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { EventKind, EventView } from '../../../shared/types';
 import { api } from '../../lib/api';
 import { formatDateTime } from '../../lib/format';
 import { t, tm, type UiKey } from '../../i18n/i18n';
+import { MultiSelect } from '../../components/MultiSelect/MultiSelect';
 
 const KINDS: Record<EventKind, { label: UiKey; tone: string }> = {
   installed: { label: 'activity.kind.installed', tone: 'ok' },
@@ -18,9 +19,8 @@ const KINDS: Record<EventKind, { label: UiKey; tone: string }> = {
   system: { label: 'activity.kind.system', tone: 'muted' },
 };
 
-// What the filter can show – each choice is a group of kinds, "all" shows everything
-const FILTERS = {
-  all: [],
+// What the filter offers – each entry is a group of kinds, any of them can be ticked
+const GROUPS = {
   apps: ['installed', 'updated', 'uninstalled', 'available', 'update-available'],
   check: ['check'],
   error: ['error'],
@@ -28,47 +28,54 @@ const FILTERS = {
   user: ['user'],
   system: ['system'],
 } satisfies Record<string, EventKind[]>;
-type Filter = keyof typeof FILTERS;
+type Group = keyof typeof GROUPS;
+const ALL_GROUPS = Object.keys(GROUPS) as Group[];
 
 // Entries per page; "Load older entries" fetches the next page
 const PAGE = 200;
 
-function eventsUrl(filter: Filter, before?: number): string {
+function eventsUrl(groups: Group[], before?: number): string {
   const params = new URLSearchParams({ limit: String(PAGE) });
-  const kinds: EventKind[] = FILTERS[filter];
-  if (kinds.length) params.set('kinds', kinds.join(','));
+  // Everything ticked: no filter at all – so kinds of a newer version show up too
+  if (groups.length < ALL_GROUPS.length) params.set('kinds', groups.flatMap((g): EventKind[] => GROUPS[g]).join(','));
   if (before) params.set('before', String(before));
   return `/api/events?${params}`;
 }
 
 export function ActivityPage() {
-  const [filter, setFilter] = useState<Filter>('all');
+  const [groups, setGroups] = useState<Group[]>(ALL_GROUPS);
   const [events, setEvents] = useState<EventView[] | null>(null);
   // Whether the last page was full – then there may be older entries
   const [more, setMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Ticking quickly starts several requests – only the latest one counts
+  const latest = useRef(0);
 
-  const load = useCallback(
-    () =>
-      api<EventView[]>('GET', eventsUrl(filter)).then(
-        (data) => {
-          setEvents(data);
-          setMore(data.length === PAGE);
-          setError(null);
-        },
-        (err: Error) => setError(err.message),
-      ),
-    [filter],
-  );
-  useEffect(() => void load(), [load]);
+  const load = useCallback(() => {
+    // Nothing ticked: nothing to ask for, the page says so instead of the table
+    if (!groups.length) return;
+    const request = ++latest.current;
+    api<EventView[]>('GET', eventsUrl(groups)).then(
+      (data) => {
+        if (request !== latest.current) return;
+        setEvents(data);
+        setMore(data.length === PAGE);
+        setError(null);
+      },
+      (err: Error) => setError(err.message),
+    );
+  }, [groups]);
+  useEffect(() => load(), [load]);
 
   function loadOlder() {
     if (!events?.length) return;
+    const request = latest.current;
     setLoadingMore(true);
-    api<EventView[]>('GET', eventsUrl(filter, events[events.length - 1].id))
+    api<EventView[]>('GET', eventsUrl(groups, events[events.length - 1].id))
       .then(
         (data) => {
+          if (request !== latest.current) return;
           setEvents([...events, ...data]);
           setMore(data.length === PAGE);
           setError(null);
@@ -78,6 +85,8 @@ export function ActivityPage() {
       .finally(() => setLoadingMore(false));
   }
 
+  const nothing = groups.length === 0;
+
   return (
     <>
       <section className="toolbar">
@@ -86,28 +95,28 @@ export function ActivityPage() {
           <p className="muted">{t('activity.subtitle')}</p>
         </div>
         <div className="toolbar-side">
-          <select
-            className="filter"
-            aria-label={t('activity.filter')}
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as Filter)}
-          >
-            {(Object.keys(FILTERS) as Filter[]).map((key) => (
-              <option key={key} value={key}>
-                {t(`activity.filter.${key}`)}
-              </option>
-            ))}
-          </select>
-          <button className="btn" onClick={load}>
+          <MultiSelect
+            label={t('activity.filter')}
+            options={ALL_GROUPS.map((group) => ({ value: group, label: t(`activity.filter.${group}`) }))}
+            selected={groups}
+            onChange={setGroups}
+            allLabel={t('activity.filter.all')}
+            noneLabel={t('activity.filter.none')}
+            someLabel={(count, total) => t('activity.filter.some', { count, total })}
+          />
+          <button className="btn" disabled={nothing} onClick={load}>
             {t('activity.refresh')}
           </button>
         </div>
       </section>
       {error && <p className="banner error">{error}</p>}
-      {events && events.length === 0 && (
-        <p className="banner">{filter === 'all' ? t('activity.empty') : t('activity.emptyFilter')}</p>
+      {nothing && <p className="banner">{t('activity.emptyNone')}</p>}
+      {!nothing && events && events.length === 0 && (
+        <p className="banner">
+          {groups.length === ALL_GROUPS.length ? t('activity.empty') : t('activity.emptyFilter')}
+        </p>
       )}
-      {events && events.length > 0 && (
+      {!nothing && events && events.length > 0 && (
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -145,7 +154,7 @@ export function ActivityPage() {
           </table>
         </div>
       )}
-      {more && (
+      {!nothing && more && (
         <div className="load-more">
           <button className="btn" disabled={loadingMore} onClick={loadOlder}>
             {loadingMore ? t('common.loading') : t('activity.more')}
