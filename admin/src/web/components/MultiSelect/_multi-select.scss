@@ -16,7 +16,9 @@
   background: var(--bg);
   color: var(--text);
   font-size: 13px;
+  overflow: hidden;
   text-align: left;
+  text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
 
@@ -80,4 +82,26 @@
     accent-color: var(--primary);
     cursor: pointer;
   }
+
+  // The last ticked one where at least one has to stay
+  &:has(input:disabled) {
+    color: var(--muted);
+    cursor: default;
+
+    input {
+      cursor: default;
+    }
+  }
+}
+
+// For short summaries such as "4 of 5 columns"
+.multi-select.narrow .multi-select-button {
+  min-width: 150px;
+}
+
+// In a form field (SettingsPage): as wide and high as the other fields
+.field .multi-select-button {
+  width: 100%;
+  height: 38px;
+  font-size: 14px;
 }

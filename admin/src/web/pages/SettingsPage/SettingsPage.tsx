@@ -5,6 +5,7 @@ import { hasText, t } from '../../i18n/i18n';
 import { ScheduleField } from '../../components/ScheduleField/ScheduleField';
 import { Toggle } from '../../components/Toggle/Toggle';
 import { Select } from '../../components/Select/Select';
+import { ColumnFilter, KindFilter } from '../../components/ActivityFilters/ActivityFilters';
 
 type Message = { tone: 'ok' | 'error'; text: string } | null;
 
@@ -96,6 +97,26 @@ export function SettingsPage() {
         <Toggle checked={form.autoInstallNew} onChange={(v) => set('autoInstallNew', v)}>
           {t('settings.autoInstallNew')}
         </Toggle>
+      </section>
+
+      <section className="panel">
+        <h2>{t('settings.activity')}</h2>
+        <div className="field">
+          <span>{t('settings.activityGroups')}</span>
+          <KindFilter
+            selected={form.activityView.groups}
+            minSelected={1}
+            onChange={(groups) => set('activityView', { ...form.activityView, groups })}
+          />
+        </div>
+        <div className="field">
+          <span>{t('settings.activityColumns')}</span>
+          <ColumnFilter
+            selected={form.activityView.columns}
+            onChange={(columns) => set('activityView', { ...form.activityView, columns })}
+          />
+          <span className="hint">{t('settings.activityHint')}</span>
+        </div>
       </section>
 
       <section className="panel">

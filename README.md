@@ -45,10 +45,10 @@ CraftApps\
 │       │   ├── core\                   Configuration, database, activity log, helpers
 │       │   ├── notify\                 Notification channels: Gotify, email, ntfy, webhook, Telegram, Discord
 │       │   └── settings\               Settings
-│       ├── shared\                     Types, messages (German/English) and check schedule for server and frontend
+│       ├── shared\                     Types, messages (German/English), check schedule and activity view for server and frontend
 │       └── web\                        React frontend, main.tsx starts it
 │           ├── App\                    Top bar; on narrow screens with a burger and a user menu
-│           ├── components\             AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, Toggle – each with its styles
+│           ├── components\             ActivityFilters, AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, Toggle – each with its styles
 │           ├── i18n\                   Language and texts, German and English in locales\
 │           ├── lib\                    API calls and formatting
 │           ├── pages\                  Apps, activity, notifications, settings, users, login – each with its styles
@@ -157,7 +157,7 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
   switched last, the previous version stays until the next update. Every download is
   verified via SHA-256.
 - **Login** with users in MySQL, activity log, settings (check schedule, update channel,
-  GitHub token, addresses) and user management.
+  default view of the activity log, GitHub token, addresses) and user management.
 - **Notifications** via Gotify, email, ntfy, Telegram, Discord or a webhook – as many
   channels as you like, each with its own events and language, see
   [Notifications](#notifications).
@@ -181,18 +181,19 @@ installations and updates, changes to settings, channels and users, logins and t
 
 ![Admin UI: activity log with checks, installations, an available update and changed settings](docs/images/admin-activity-en.png)
 
-In the filter at the top you tick the kinds to show – one, several or all; **All entries**
-ticks or unticks all of them at once:
+In the two drop-downs at the top you tick the kinds and the columns to show – **All entries**
+ticks or unticks all kinds at once. The admin UI saves the choice for each user, on every
+device; **Back to default** returns to the default from the settings:
 
-![Admin UI: the open filter of the activity log with checks and errors ticked, below only those entries](docs/images/admin-activity-filter-en.png)
+![Admin UI: activity log with only checks and errors, the open column choice without the app column and the note that the choice is saved](docs/images/admin-activity-filter-en.png)
 
 **Notifications:** the channels with their events, here with the form of a Gotify channel –
 its saved token stays on the server:
 
 ![Admin UI: notification channels for Gotify, email, a webhook and Telegram, below the form of the Gotify channel](docs/images/admin-notifications-en.png)
 
-**Settings:** check schedule with a preview of the next checks, update channel, GitHub
-token and addresses – the saved token stays on the server:
+**Settings:** check schedule with a preview of the next checks, update channel, the default
+view of the activity log, GitHub token and addresses – the saved token stays on the server:
 
 ![Admin UI: settings for updates, the GitHub token and addresses](docs/images/admin-settings-en.png)
 

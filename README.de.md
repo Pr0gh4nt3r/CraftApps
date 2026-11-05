@@ -45,10 +45,10 @@ CraftApps\
 │       │   ├── core\                   Konfiguration, Datenbank, Aktivitätsverlauf, Hilfsfunktionen
 │       │   ├── notify\                 Benachrichtigungskanäle: Gotify, E-Mail, ntfy, Webhook, Telegram, Discord
 │       │   └── settings\               Einstellungen
-│       ├── shared\                     Typen, Meldungen (Deutsch/Englisch) und Zeitplan für Server und Oberfläche
+│       ├── shared\                     Typen, Meldungen (Deutsch/Englisch), Zeitplan und Aktivitätsansicht für Server und Oberfläche
 │       └── web\                        React-Oberfläche, main.tsx startet sie
 │           ├── App\                    Kopfzeile; auf schmalen Bildschirmen mit Burger- und Benutzermenü
-│           ├── components\             AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, Toggle – jeweils mit ihren Styles
+│           ├── components\             ActivityFilters, AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, Toggle – jeweils mit ihren Styles
 │           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
 │           ├── lib\                    API-Aufrufe und Formatierung
 │           ├── pages\                  Apps, Aktivität, Benachrichtigungen, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles
@@ -158,7 +158,8 @@ Registry-Eintrag.
   zuletzt umgeschaltet, die Vorversion bleibt bis zum nächsten Update liegen. Jeder
   Download wird per SHA-256 geprüft.
 - **Anmeldung** mit Benutzern in MySQL, Aktivitätsverlauf, Einstellungen (Zeitplan der
-  Prüfungen, Update-Kanal, GitHub-Token, Adressen) und Benutzerverwaltung.
+  Prüfungen, Update-Kanal, Standardansicht der Aktivität, GitHub-Token, Adressen) und
+  Benutzerverwaltung.
 - **Benachrichtigungen** über Gotify, E-Mail, ntfy, Telegram, Discord oder einen Webhook –
   beliebig viele Kanäle, jeder mit eigenen Ereignissen und eigener Sprache, siehe
   [Benachrichtigungen](#benachrichtigungen).
@@ -183,10 +184,12 @@ zurück:
 
 ![Verwaltung: Aktivitätsverlauf mit Prüfungen, Installationen, einem verfügbaren Update und geänderten Einstellungen](docs/images/admin-activity-de.png)
 
-Im Filter oben hakst du an, welche Arten zu sehen sind – eine, mehrere oder alle;
-**Alle Einträge** hakt alle auf einmal an oder ab:
+In den beiden Dropdowns oben hakst du an, welche Arten und Spalten zu sehen sind –
+**Alle Einträge** hakt alle Arten auf einmal an oder ab. Die Verwaltung speichert die
+Auswahl für jeden Benutzer, auf jedem Gerät; **Zurück zum Standard** kehrt zum Standard aus
+den Einstellungen zurück:
 
-![Verwaltung: der geöffnete Filter des Aktivitätsverlaufs mit Prüfungen und Fehlern, darunter nur diese Einträge](docs/images/admin-activity-filter-de.png)
+![Verwaltung: Aktivitätsverlauf nur mit Prüfungen und Fehlern, die geöffnete Spaltenwahl ohne die App-Spalte und der Hinweis, dass die Auswahl gespeichert ist](docs/images/admin-activity-filter-de.png)
 
 **Benachrichtigungen:** die Kanäle mit ihren Ereignissen, hier mit dem Formular eines
 Gotify-Kanals – sein gespeicherter Token bleibt auf dem Server:
@@ -194,7 +197,8 @@ Gotify-Kanals – sein gespeicherter Token bleibt auf dem Server:
 ![Verwaltung: Benachrichtigungskanäle für Gotify, E-Mail, einen Webhook und Telegram, darunter das Formular des Gotify-Kanals](docs/images/admin-notifications-de.png)
 
 **Einstellungen:** Zeitplan der Prüfungen mit Vorschau auf die nächsten, Update-Kanal,
-GitHub-Token und Adressen – der gespeicherte Token bleibt auf dem Server:
+Standardansicht der Aktivität, GitHub-Token und Adressen – der gespeicherte Token bleibt auf
+dem Server:
 
 ![Verwaltung: Einstellungen für Updates, den GitHub-Token und Adressen](docs/images/admin-settings-de.png)
 
