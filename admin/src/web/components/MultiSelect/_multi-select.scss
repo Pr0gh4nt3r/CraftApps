@@ -6,12 +6,12 @@
   position: relative;
 }
 
-// Looks like a select: the summary on the left, an arrow on the right
+// Looks like a Select: the summary on the left, the same arrow on the right
 .multi-select-button {
   position: relative;
   min-width: 220px;
   height: 36px;
-  padding: 0 34px 0 10px;
+  padding: 0 shared.$chevron-space 0 10px;
   border: shared.$hairline-strong;
   background: var(--bg);
   color: var(--text);
@@ -21,15 +21,7 @@
   cursor: pointer;
 
   &::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    right: 13px;
-    width: 6px;
-    height: 6px;
-    border-right: 1.5px solid currentColor;
-    border-bottom: 1.5px solid currentColor;
-    transform: translateY(-70%) rotate(45deg);
+    @include shared.chevron;
   }
 
   &:hover {

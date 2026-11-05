@@ -4,6 +4,7 @@ import { api } from '../../lib/api';
 import { hasText, t } from '../../i18n/i18n';
 import { ScheduleField } from '../../components/ScheduleField/ScheduleField';
 import { Toggle } from '../../components/Toggle/Toggle';
+import { Select } from '../../components/Select/Select';
 
 type Message = { tone: 'ok' | 'error'; text: string } | null;
 
@@ -77,13 +78,13 @@ export function SettingsPage() {
         <ScheduleField value={form.checkSchedule} onChange={(schedule) => set('checkSchedule', schedule)} />
         <label className="field">
           {t('settings.channel')}
-          <select value={form.updateChannel} onChange={(e) => set('updateChannel', e.target.value)}>
+          <Select value={form.updateChannel} onChange={(e) => set('updateChannel', e.target.value)}>
             {channels.map((channel) => (
               <option key={channel} value={channel}>
                 {channelLabel(channel)}
               </option>
             ))}
-          </select>
+          </Select>
           <span className="hint">
             {t('settings.channelHint')}
             {form.releaseChannels.length === 1 && ` ${t('settings.channelOnlyStable')}`}

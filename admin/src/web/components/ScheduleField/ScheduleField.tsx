@@ -10,6 +10,7 @@ import {
   type CheckSchedule,
 } from '../../../shared/schedule';
 import { getLocale, t, tm } from '../../i18n/i18n';
+import { Select } from '../Select/Select';
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
 const MONTH_DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -70,13 +71,13 @@ export function ScheduleField({ value, onChange }: Props) {
     <>
       <label className="field">
         {t('settings.interval')}
-        <select value={value.interval} onChange={(e) => changeInterval(e.target.value as CheckInterval)}>
+        <Select value={value.interval} onChange={(e) => changeInterval(e.target.value as CheckInterval)}>
           {CHECK_INTERVALS.map((interval) => (
             <option key={interval} value={interval}>
               {t(`settings.interval.${interval}`)}
             </option>
           ))}
-        </select>
+        </Select>
         <span className="hint">{t('settings.intervalHint')}</span>
       </label>
 
@@ -102,13 +103,13 @@ export function ScheduleField({ value, onChange }: Props) {
       {(value.interval === '1M' || value.interval === '3M') && (
         <label className="field">
           {t('settings.monthDay')}
-          <select value={value.monthDay} onChange={(e) => set('monthDay', Number(e.target.value))}>
+          <Select value={value.monthDay} onChange={(e) => set('monthDay', Number(e.target.value))}>
             {MONTH_DAYS.map((day) => (
               <option key={day} value={day}>
                 {t('settings.monthDayOption', { day })}
               </option>
             ))}
-          </select>
+          </Select>
           <span className="hint">
             {t(value.interval === '3M' ? 'settings.monthDayHintQuarter' : 'settings.monthDayHint')}
           </span>
@@ -162,13 +163,13 @@ export function ScheduleField({ value, onChange }: Props) {
 
       <label className="field">
         {t('settings.timeZone')}
-        <select value={value.timeZone} onChange={(e) => set('timeZone', e.target.value)}>
+        <Select value={value.timeZone} onChange={(e) => set('timeZone', e.target.value)}>
           {zones.map((zone) => (
             <option key={zone} value={zone}>
               {zone}
             </option>
           ))}
-        </select>
+        </Select>
         <span className="hint">
           {value.timeZone === browserZone() ? (
             t('settings.timeZoneHint')

@@ -48,7 +48,7 @@ CraftApps\
 │       ├── shared\                     Typen, Meldungen (Deutsch/Englisch) und Zeitplan für Server und Oberfläche
 │       └── web\                        React-Oberfläche, main.tsx startet sie
 │           ├── App\                    Kopfzeile; auf schmalen Bildschirmen mit Burger- und Benutzermenü
-│           ├── components\             AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Toggle – jeweils mit ihren Styles
+│           ├── components\             AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, Toggle – jeweils mit ihren Styles
 │           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
 │           ├── lib\                    API-Aufrufe und Formatierung
 │           ├── pages\                  Apps, Aktivität, Benachrichtigungen, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles
