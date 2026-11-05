@@ -16,9 +16,9 @@ For the changed files, each without errors:
 - **`dev.sh`:** `bash -n dev.sh` and shellcheck, e.g.
   `docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable dev.sh`.
 
-`.gitea/workflows/checks.yaml` runs the same checks on every pull request to `main` – keep
-it in line with this list. Its status `Prüfen / checks (pull_request)` is what the branch
-protection of `main` requires before a merge.
+`.gitea/workflows/checks.yaml` runs the same checks on every pull request to `dev` and
+`main` – keep it in line with this list. Its status `Prüfen / checks (pull_request)` is what
+the branch protection of `main` requires before a merge.
 
 ## Running locally
 
@@ -77,6 +77,10 @@ locales – `channels.type.<type>`, `channels.field.<type>.<key>` and optionally
 the UI.
 
 ## Push
+
+Pull requests go to `dev` first; `dev` reaches `main` by pull request. A push to `dev` builds
+no image and creates no release – the workflows only react to `main`, releases are tagged
+there.
 
 A push to `main` goes straight into production: on changes in `admin/`, GitHub Actions (via
 the mirror from Gitea to GitHub) and Gitea Actions build the admin image. Watchtower deploys
