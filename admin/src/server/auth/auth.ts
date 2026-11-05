@@ -3,6 +3,7 @@ import type { FastifyBaseLogger, FastifyInstance, FastifyReply, FastifyRequest }
 import type { Pool, RowDataPacket } from 'mysql2/promise';
 import { msg, type Msg } from '../../shared/messages.js';
 import type { MeView, UserView } from '../../shared/types.js';
+import { logEvent } from '../core/activity.js';
 import type { Config } from '../core/config.js';
 
 declare module 'fastify' {
@@ -73,6 +74,7 @@ export async function ensureInitialAdmin(db: Pool, initial: Config['initialAdmin
     await hashPassword(initial.password),
   ]);
   log.info(`Benutzer ${initial.username} angelegt`);
+  await logEvent(db, 'user', msg('event.initialAdmin', { name: initial.username }));
 }
 
 /**
@@ -136,6 +138,8 @@ export function registerLogin(app: FastifyInstance, db: Pool): void {
         new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000),
       ]);
       await db.query('UPDATE users SET last_login_at = CURRENT_TIMESTAMP(3) WHERE id = ?', [user.id]);
+      // Failed attempts only go to the server log: the activity log holds what logged-in users did
+      await logEvent(db, 'user', msg('event.loggedIn'), null, user.username as string);
       reply.setCookie(SESSION_COOKIE, token, cookieOptions(req));
       return { id: Number(user.id), username: user.username as string } satisfies MeView;
     },
@@ -147,6 +151,7 @@ export function registerAccount(app: FastifyInstance, db: Pool): void {
   app.post('/api/auth/logout', async (req, reply) => {
     const token = req.cookies[SESSION_COOKIE];
     if (token) await db.query('DELETE FROM sessions WHERE id = ?', [sha256(token)]);
+    await logEvent(db, 'user', msg('event.loggedOut'), null, req.user!.username);
     reply.clearCookie(SESSION_COOKIE, { path: '/' });
     return { ok: true };
   });
@@ -178,6 +183,7 @@ export function registerAccount(app: FastifyInstance, db: Pool): void {
         user.id,
         sha256(req.cookies[SESSION_COOKIE] ?? ''),
       ]);
+      await logEvent(db, 'user', msg('event.passwordChanged'), null, user.username);
       return { ok: true };
     },
   );
@@ -225,6 +231,7 @@ export function registerAccount(app: FastifyInstance, db: Pool): void {
         }
         throw err;
       }
+      await logEvent(db, 'user', msg('event.userCreated', { name: username }), null, req.user!.username);
       return { ok: true };
     },
   );
@@ -232,7 +239,11 @@ export function registerAccount(app: FastifyInstance, db: Pool): void {
   app.delete<{ Params: { id: string } }>('/api/users/:id', async (req, reply) => {
     const id = Number(req.params.id);
     if (id === req.user!.id) return reply.code(400).send({ error: msg('error.deleteSelf') });
-    await db.query('DELETE FROM users WHERE id = ?', [id]);
+    const [rows] = await db.query<RowDataPacket[]>('SELECT username FROM users WHERE id = ?', [id]);
+    if (rows[0]) {
+      await db.query('DELETE FROM users WHERE id = ?', [id]);
+      await logEvent(db, 'user', msg('event.userDeleted', { name: rows[0].username as string }), null, req.user!.username);
+    }
     return { ok: true };
   });
 }

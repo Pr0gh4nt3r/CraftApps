@@ -4,8 +4,9 @@ import path from 'node:path';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Pool, RowDataPacket } from 'mysql2/promise';
 import type { NotifyEvent } from '../../shared/channels.js';
-import { msg, parseMsg, renderMsg, type Localized, type Msg } from '../../shared/messages.js';
-import type { AppView, JobKind, JobView, StateView } from '../../shared/types.js';
+import { countMsg, msg, parseMsg, renderMsg, type Localized, type Msg } from '../../shared/messages.js';
+import type { AppView, EventKind, JobKind, JobView, StateView } from '../../shared/types.js';
+import { logEvent } from '../core/activity.js';
 import type { Config } from '../core/config.js';
 import { GitHubLimitError, findWebAsset, type GitHub, type Repo } from './github.js';
 import { appDir, deploy, download, prune, type Asset, type OnProgress } from './installer.js';
@@ -115,7 +116,10 @@ export class Manager {
 
   // ------------------------------------------------------------ Checks
 
-  /** Looks for new apps and releases, applies automatic updates and notifies. */
+  /**
+   * Looks for new apps and releases, applies automatic updates and notifies. Every check ends
+   * up in the activity log – with what it found, or as an error if it couldn't search.
+   */
   async check(username: string | null = null): Promise<void> {
     if (this.checking) return;
     this.checking = true;
@@ -127,19 +131,21 @@ export class Manager {
         repos = await this.github.listRepos(this.cfg.owner);
         this.lastGlobalError = null;
       } catch (err) {
-        await this.failure(null, msg('error.appSearchFailed', { error: toMsg(err) }));
+        await this.failure(null, msg('error.appSearchFailed', { error: toMsg(err) }), username);
         return;
       }
       await this.syncCatalog(repos, await launcherInfo(this.settings, this.log), settings);
-      if (username) await this.event('check', msg('event.checked'), null, username);
 
       const fresh: AppRow[] = [];
+      let updates = 0;
+      let errors = 0;
       for (const app of await this.apps()) {
         if (!app.in_catalog) continue;
         await fetchIcon(this.cfg.dataDir, app.id);
         try {
           await this.refreshRelease(app);
         } catch (err) {
+          errors++;
           await this.failure(app, msg('error.checkFailed', { error: toMsg(err) }));
           if (err instanceof GitHubLimitError) break; // the remaining ones would fail the same way
           continue;
@@ -153,8 +159,10 @@ export class Manager {
         if (installed) {
           if (app.latest_tag === app.installed_tag) continue;
           if (app.auto_update) {
+            updates++;
             this.queueQuietly('update', app.id);
           } else if (app.notified_tag !== app.latest_tag) {
+            updates++;
             await this.markNotified(app);
             const change = `${version(app.installed_tag)} → ${version(app.latest_tag)}`;
             await this.event('update-available', msg('event.updateAvailable', { change }), app.id);
@@ -172,6 +180,13 @@ export class Manager {
         }
       }
       if (fresh.length) await this.announce(fresh, firstRun, settings.autoInstallNew);
+      const found = [
+        ...(fresh.length ? [countMsg('newApps', fresh.length)] : []),
+        ...(updates ? [countMsg('updates', updates)] : []),
+        ...(errors ? [countMsg('errors', errors)] : []),
+      ];
+      const result = found.length ? found : [msg('event.checkNothing')];
+      await this.event('check', msg('event.checkResult', { result }), null, username);
       this.lastCheckAt = new Date();
       await this.settings.setInternal('lastCheckAt', this.lastCheckAt.toISOString());
     } finally {
@@ -470,15 +485,9 @@ export class Manager {
     await this.db.query('UPDATE apps SET notified_tag = ? WHERE id = ?', [app.latest_tag, app.id]);
   }
 
-  /** Activity log entry: the message as JSON for the UI, plus the German text */
-  async event(kind: string, message: Msg, appId: string | null = null, username: string | null = null): Promise<void> {
-    await this.db.query('INSERT INTO events (app_id, kind, message, msg, username) VALUES (?, ?, ?, ?, ?)', [
-      appId,
-      kind,
-      renderMsg('de', message).slice(0, 1024),
-      JSON.stringify(message),
-      username,
-    ]);
+  /** Activity log entry, see logEvent */
+  event(kind: EventKind, message: Msg, appId: string | null = null, username: string | null = null): Promise<void> {
+    return logEvent(this.db, kind, message, appId, username);
   }
 
   /** To every channel that reports the event; channels that fail end up in the activity log */
@@ -498,8 +507,12 @@ export class Manager {
     }
   }
 
-  /** Logs and reports errors – each error only once, not again on every check. */
-  private async failure(app: AppRow | null, message: Msg): Promise<void> {
+  /**
+   * Logs and reports errors – each error only once, not again on every check. A failed search
+   * for apps ends the check, so it shows up in the activity log every time, as the result of
+   * that check (username: who started it); the notification still goes out only once.
+   */
+  private async failure(app: AppRow | null, message: Msg, username: string | null = null): Promise<void> {
     const text = renderMsg('de', message);
     this.log.warn(app ? `${app.id}: ${text}` : text);
     const stored = JSON.stringify(message);
@@ -507,11 +520,12 @@ export class Manager {
       if (app.last_error === stored) return;
       app.last_error = stored;
       await this.db.query('UPDATE apps SET last_error = ?, checked_at = CURRENT_TIMESTAMP(3) WHERE id = ?', [stored, app.id]);
+      await this.event('error', message, app.id);
     } else {
+      await this.event('error', message, null, username);
       if (this.lastGlobalError === stored) return;
       this.lastGlobalError = stored;
     }
-    await this.event('error', message, app?.id ?? null);
     const title = app ? msg('notify.error.title', { app: app.name }) : msg('notify.error.titleGlobal');
     await this.notify('errors', title, message, 8);
   }
