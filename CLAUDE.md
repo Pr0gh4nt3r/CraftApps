@@ -42,7 +42,9 @@ holds the global ones: `_shared.scss` with everything that recurs (colors, hairl
 breakpoints, the width of the form pages, tone colors, the label mixin), plus base, buttons,
 page frame, forms and tables. `styles/index.scss` loads all partials – add new ones there;
 their order is the cascade order, so on equal specificity a later partial wins. Colors stay
-CSS custom properties – React sets the app color `--c` at runtime. The start page's CSS sits
+CSS custom properties – React sets the app color `--c` at runtime. Drop-downs use the
+component `Select` (one choice, the browser's select) or `MultiSelect` (several) – both draw
+the arrow with the mixin `chevron` from `_shared.scss`, so there is no bare `<select>`. The start page's CSS sits
 inline in the HTML that `admin/src/server/apps/overview.ts` generates.
 
 ## Icons

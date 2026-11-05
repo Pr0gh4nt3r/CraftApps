@@ -48,7 +48,7 @@ CraftApps\
 │       ├── shared\                     Types, messages (German/English) and check schedule for server and frontend
 │       └── web\                        React frontend, main.tsx starts it
 │           ├── App\                    Top bar; on narrow screens with a burger and a user menu
-│           ├── components\             AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Toggle – each with its styles
+│           ├── components\             AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, Toggle – each with its styles
 │           ├── i18n\                   Language and texts, German and English in locales\
 │           ├── lib\                    API calls and formatting
 │           ├── pages\                  Apps, activity, notifications, settings, users, login – each with its styles
