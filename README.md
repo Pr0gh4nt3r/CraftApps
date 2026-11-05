@@ -48,7 +48,7 @@ CraftApps\
 │       ├── shared\                     Types, messages (German/English) and check schedule for server and frontend
 │       └── web\                        React frontend, main.tsx starts it
 │           ├── App\                    Top bar; on narrow screens with a burger and a user menu
-│           ├── components\             AppCard, ChannelForm, LangSwitch, ScheduleField, Toggle – each with its styles
+│           ├── components\             AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Toggle – each with its styles
 │           ├── i18n\                   Language and texts, German and English in locales\
 │           ├── lib\                    API calls and formatting
 │           ├── pages\                  Apps, activity, notifications, settings, users, login – each with its styles
@@ -177,9 +177,14 @@ turned off) and not installed yet:
 
 **Activity:** what happened, automatically or by which user – every check with its result,
 installations and updates, changes to settings, channels and users, logins and test messages.
-The filter at the top shows only one kind, **Load older entries** goes back up to 180 days:
+**Load older entries** goes back up to 180 days:
 
 ![Admin UI: activity log with checks, installations, an available update and changed settings](docs/images/admin-activity-en.png)
+
+In the filter at the top you tick the kinds to show – one, several or all; **All entries**
+ticks or unticks all of them at once:
+
+![Admin UI: the open filter of the activity log with checks and errors ticked, below only those entries](docs/images/admin-activity-filter-en.png)
 
 **Notifications:** the channels with their events, here with the form of a Gotify channel –
 its saved token stays on the server:
