@@ -149,7 +149,8 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
   Sorted by name, by use or by the newest release, searchable, as tiles or as a list – on the
   start page as well.
 - **Details of every app** as in the launcher: what it is, its screenshots and features and
-  the latest version – in the admin UI a click on an app opens them, with all its actions.
+  the latest version – in the admin UI a click on an app opens them, with all its actions; on
+  the start page the info button on a tile, with **Open**.
 - **New apps** it finds by itself: all storytold repos ending in `craft` whose newest
   release in the update channel has a `<app>-web-*.zip`. New apps are reported and, if you
   like, installed automatically.
@@ -193,7 +194,8 @@ In the light design, here chosen with the switch at the top right:
 
 **Details:** a click on an app opens its page from the launcher – headline, screenshots, what it
 is, its features and the latest version, with the same actions as on its card; the arrows page
-through the apps in the order shown:
+through the apps in the order shown. The start page shows the same details for the installed
+apps, via the info button on their tiles:
 
 ![Admin UI: the details of PhotoCraft with screenshots, features and the latest version](docs/images/admin-details-en.png)
 
@@ -235,6 +237,15 @@ list as the admin UI – on the computer and on the phone:
 ![Start page: the installed apps with version and release date](docs/images/start-page-en.png)
 
 ![Start page on the phone: the installed apps one below the other](docs/images/start-page-mobile-en.png)
+
+A click on a tile opens the app as before; the info button in its corner opens its details,
+with **Open** to start the app:
+
+![Start page: the details of PhotoCraft with screenshots, features and Open](docs/images/start-page-details-en.png)
+
+In the light design:
+
+![Start page in the light design](docs/images/start-page-light-en.png)
 
 ## Setup
 
@@ -612,7 +623,8 @@ admin UI or `null`.
 - The admin UI takes order, names, colors, English and German texts, icons and the details
   pages from the [Craft Launcher](https://github.com/storytold/craft-launcher). If it is
   unreachable, the last known state applies. The details pages are English only, as in the
-  launcher; their screenshots end up in the volume `craftapps_data` under `screenshots/`.
+  launcher; their screenshots end up in the volume `craftapps_data` under `screenshots/`,
+  where the start page reads them as well.
 - The admin container runs as user 1000 with a read-only file system and without Linux
   capabilities. A new volume `craftapps_data` belongs to this user automatically. If the
   admin UI still reports missing write access, run

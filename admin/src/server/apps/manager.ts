@@ -591,19 +591,27 @@ export class Manager {
   private async refreshOverview(): Promise<void> {
     try {
       const installed = (await this.apps()).filter((a) => this.isInstalled(a));
-      await writeOverview(
-        this.cfg.dataDir,
-        installed.map((a) => ({
+      const details = (await this.settings.getInternal<LauncherDetails>('details')) ?? null;
+      const apps = [];
+      for (const a of installed) {
+        apps.push({
           id: a.id,
           name: a.name,
           description: a.description,
           descriptionEn: a.description_en || a.description,
           color: a.color,
           version: version(a.installed_tag),
+          tag: a.installed_tag ?? '',
           publishedAt: a.installed_published_at,
-        })),
-        path.join(this.cfg.webDir, 'overview'),
-      );
+          // The size of the web zip is only known for the latest release
+          size: a.installed_tag === a.latest_tag ? (parseAsset(a.latest_asset)?.size ?? null) : null,
+          websiteUrl: this.websiteUrl(a),
+          repoUrl: this.repoUrl(a),
+          // nginx serves the pictures from the data volume next to index.html
+          details: await detailsView(this.cfg.dataDir, details, a.id, (key) => `screenshots/${details?.rev}/${a.id}/${key}.jpg`),
+        });
+      }
+      await writeOverview(this.cfg.dataDir, apps, path.join(this.cfg.webDir, 'overview'));
     } catch (err) {
       this.log.warn(`Übersichtsseite nicht geschrieben: ${errorText(err)}`);
     }
