@@ -48,7 +48,7 @@ CraftApps\
 │       ├── shared\                     Types, messages (German/English), check schedule and activity view for server and frontend
 │       └── web\                        React frontend, main.tsx starts it
 │           ├── App\                    Top bar; on narrow screens with a burger and a user menu
-│           ├── components\             ActivityFilters, AppCard, AppsControls, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, Toggle – each with its styles
+│           ├── components\             ActivityFilters, AppCard, AppsControls, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – each with its styles
 │           ├── i18n\                   Language and texts, German and English in locales\
 │           ├── lib\                    API calls and formatting
 │           ├── pages\                  Apps, activity, notifications, settings, users, login – each with its styles
@@ -166,6 +166,8 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 - **English and German:** the admin UI follows the browser's language and has a switch in
   the top bar, the start page at `/` likewise. Each notification channel uses the language
   set for it.
+- **Light and dark:** both pages follow the system's design; the switch next to the language
+  picks light or dark for this browser.
 
 Data: users, settings, notification channels and history live in MySQL, the apps in the
 volume `craftapps_data`, which nginx mounts read-only.
@@ -207,7 +209,7 @@ accounts:
 ![Admin UI: change your own password, the list of users and the form for a new one](docs/images/admin-users-en.png)
 
 **On the phone:** up to 1000 px wide, the tabs fold into the burger menu, name and logout into
-the user menu next to it; the language switch stays in the bar:
+the user menu next to it; the design and language switches stay in the bar:
 
 ![Admin UI on the phone: apps, the open burger menu and the notification channels with the open user menu](docs/images/admin-mobile-en.png)
 

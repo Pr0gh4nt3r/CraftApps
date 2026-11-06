@@ -95,11 +95,27 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDi
       }
     }
     document.documentElement.lang = lang;
+    // Light or dark from the switch – without a choice the CSS follows the system
+    let theme;
+    try {
+      theme = localStorage.getItem("craftapps.theme");
+    } catch {
+      // storage blocked
+    }
+    if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
   }
 </script>
 <style>
-  :root { color-scheme: dark; --bg: #0d0f13; --card: #14171d; --line: #262b34; --text: #e7e9ee; --muted: #8f96a3;
-          --mono: ui-monospace, SFMono-Regular, Consolas, monospace; }
+  /* Dark by default, light with data-theme="light" or, without a choice, as the system – the
+     same colors as the admin UI. --app-ink darkens text in the app color on a light page. */
+  :root { color-scheme: dark; --bg: #0d0f13; --card: #14171d; --hover: #191d24; --raised: #1b1f27; --line: #262b34;
+          --text: #e7e9ee; --muted: #8f96a3; --app-ink: 100%; --mono: ui-monospace, SFMono-Regular, Consolas, monospace; }
+  :root[data-theme="light"] { color-scheme: light; --bg: #f3f4f6; --card: #ffffff; --hover: #f6f7f9; --raised: #eceef2;
+          --line: #dcdfe5; --text: #16191f; --muted: #5c6370; --app-ink: 70%; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) { color-scheme: light; --bg: #f3f4f6; --card: #ffffff; --hover: #f6f7f9; --raised: #eceef2;
+          --line: #dcdfe5; --text: #16191f; --muted: #5c6370; --app-ink: 70%; }
+  }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
   main { max-width: 1240px; margin: 0 auto; padding: 32px 16px 48px; }
@@ -109,11 +125,11 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDi
           background: var(--line); border: 1px solid var(--line); }
   .app { display: flex; gap: 14px; align-items: flex-start; padding: 18px; background: var(--card);
          color: inherit; text-decoration: none; }
-  .app:hover { background: #191d24; }
+  .app:hover { background: var(--hover); }
   .app img, .app .icon { flex: none; width: 56px; height: 56px; border-radius: 12px; }
   .app .icon { display: grid; place-items: center; background: var(--c); color: #0b0d10; font-size: 24px; font-weight: 700; }
   .name { display: block; font-size: 20px; font-weight: 700; }
-  .name span { color: var(--c); }
+  .name span { color: color-mix(in srgb, var(--c) var(--app-ink), #000); }
   .desc, .meta { display: block; color: var(--muted); font-size: 13px; }
   .meta { margin-top: 6px; font: 12px var(--mono); }
   .empty { margin: 0; padding: 32px; background: var(--card); color: var(--muted); }
@@ -152,23 +168,35 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDi
     .grid.list .meta { margin-top: 4px; }
   }
   html:not([lang="de"]) [data-lang="de"], html[lang="de"] [data-lang="en"] { display: none; }
-  /* DE | EN as in the admin UI – only with JavaScript, without it the switch couldn't work */
-  .lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-  .lang-switch[hidden] { display: none; }
-  .lang-switch button { padding: 3px 8px; border: 0; background: none; color: var(--muted);
-                        font: 700 11px var(--mono); letter-spacing: 0.08em; cursor: pointer; }
-  .lang-switch button + button { border-left: 1px solid var(--line); }
-  .lang-switch button:hover, .lang-switch [aria-pressed="true"] { color: var(--text); }
-  .lang-switch [aria-pressed="true"] { background: #1b1f27; }
+  /* Light | dark | system and DE | EN as in the admin UI – only with JavaScript, without it the
+     switches couldn't work */
+  .switches { display: flex; gap: 8px; }
+  .switch { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .switch[hidden] { display: none; }
+  .switch button { display: inline-flex; align-items: center; padding: 3px 8px; border: 0; background: none;
+                   color: var(--muted); font: 700 11px var(--mono); letter-spacing: 0.08em; cursor: pointer; }
+  .switch button + button { border-left: 1px solid var(--line); }
+  .switch button:hover, .switch [aria-pressed="true"] { color: var(--text); }
+  .switch [aria-pressed="true"] { background: var(--raised); }
+  .theme-switch button { padding: 3px 6px; }
+  .theme-switch svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8;
+                      stroke-linecap: round; stroke-linejoin: round; }
 </style>
 </head>
 <body>
 <main>
   <header>
     <h1>Craft Apps</h1>
-    <div class="lang-switch" role="group" hidden>
-      <button type="button" lang="de" title="Deutsch">DE</button>
-      <button type="button" lang="en" title="English">EN</button>
+    <div class="switches">
+      <div class="switch theme-switch" role="group" hidden>
+        <button type="button" data-theme="light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+        <button type="button" data-theme="dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
+        <button type="button" data-theme="system"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></button>
+      </div>
+      <div class="switch lang-switch" role="group" hidden>
+        <button type="button" lang="de" title="Deutsch">DE</button>
+        <button type="button" lang="en" title="English">EN</button>
+      </div>
     </div>
   </header>
   <div class="controls" hidden>
@@ -192,11 +220,16 @@ ${cards}
   </div>
 </main>
 <script>
-  // Switch and dates – the dates are formatted in the language of the page as well
+  // Switches and dates – the dates are formatted in the language of the page as well
   {
     const html = document.documentElement;
     const group = document.querySelector(".lang-switch");
     const buttons = group.querySelectorAll("button");
+    const themes = document.querySelector(".theme-switch");
+    const THEME_NAMES = {
+      de: { label: "Design", light: "Hell", dark: "Dunkel", system: "Wie das System" },
+      en: { label: "Design", light: "Light", dark: "Dark", system: "As the system" },
+    };
     const render = () => {
       const locale = html.lang === "de" ? "de-DE" : "en-GB";
       for (const t of document.querySelectorAll("time")) {
@@ -205,7 +238,29 @@ ${cards}
       }
       group.setAttribute("aria-label", html.lang === "de" ? "Sprache" : "Language");
       for (const b of buttons) b.setAttribute("aria-pressed", String(b.lang === html.lang));
+      const names = THEME_NAMES[html.lang === "de" ? "de" : "en"];
+      const theme = html.dataset.theme || "system";
+      themes.setAttribute("aria-label", names.label);
+      for (const b of themes.querySelectorAll("button")) {
+        b.title = names[b.dataset.theme];
+        b.setAttribute("aria-label", names[b.dataset.theme]);
+        b.setAttribute("aria-pressed", String(b.dataset.theme === theme));
+      }
     };
+    for (const b of themes.querySelectorAll("button")) {
+      b.addEventListener("click", () => {
+        const theme = b.dataset.theme;
+        if (theme === "system") delete html.dataset.theme;
+        else html.dataset.theme = theme;
+        try {
+          if (theme === "system") localStorage.removeItem("craftapps.theme");
+          else localStorage.setItem("craftapps.theme", theme);
+        } catch {
+          // not remembered then
+        }
+        render();
+      });
+    }
     for (const b of buttons) {
       b.addEventListener("click", () => {
         html.lang = b.lang;
@@ -218,6 +273,7 @@ ${cards}
       });
     }
     group.hidden = false;
+    themes.hidden = false;
     render();
   }
 </script>

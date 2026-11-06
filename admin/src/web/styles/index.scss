@@ -5,6 +5,7 @@
 @use 'base';
 @use '../App/topbar';
 @use '../components/LangSwitch/lang-switch';
+@use '../components/ThemeSwitch/theme-switch';
 @use 'page';
 @use 'buttons';
 @use '../pages/AppsPage/apps-page';

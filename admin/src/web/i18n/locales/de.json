@@ -1,5 +1,9 @@
 {
   "lang.label": "Sprache",
+  "theme.label": "Design",
+  "theme.light": "Hell",
+  "theme.dark": "Dunkel",
+  "theme.system": "Wie das System",
 
   "app.title": "Craft Apps – Verwaltung",
   "app.subtitle": "Verwaltung",
