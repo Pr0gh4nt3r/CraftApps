@@ -48,7 +48,7 @@ CraftApps\
 │       ├── shared\                     Typen, Meldungen (Deutsch/Englisch), Zeitplan und Aktivitätsansicht für Server und Oberfläche
 │       └── web\                        React-Oberfläche, main.tsx startet sie
 │           ├── App\                    Kopfzeile; auf schmalen Bildschirmen mit Burger- und Benutzermenü
-│           ├── components\             ActivityFilters, AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – jeweils mit ihren Styles
+│           ├── components\             ActivityFilters, AppCard, AppsControls, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – jeweils mit ihren Styles
 │           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
 │           ├── lib\                    API-Aufrufe und Formatierung
 │           ├── pages\                  Apps, Aktivität, Benachrichtigungen, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles
@@ -146,7 +146,8 @@ Registry-Eintrag.
 
 - **Apps** im Raster wie der Craft Launcher – mit dessen Icons, Markenfarben und
   Kurzbeschreibungen: installieren, aktualisieren, neu installieren, deinstallieren,
-  automatische Updates je App an- oder ausschalten.
+  automatische Updates je App an- oder ausschalten. Sortiert nach Name, Nutzung oder neuestem
+  Release, durchsuchbar, als Kacheln oder Liste – auch auf der Startseite.
 - **Neue Apps** findet sie selbst: alle Repos von storytold, die auf `craft` enden und
   deren neuestes Release im Update-Kanal ein `<app>-web-*.zip` hat. Neue Apps werden
   gemeldet und auf Wunsch automatisch installiert.
@@ -175,7 +176,10 @@ Apps im Volume `craftapps_data`, das nginx nur lesend einbindet.
 ### Screenshots
 
 **Apps:** eine Karte je App – hier installiert, mit wartendem Update (automatische Updates
-aus) und noch nicht installiert:
+aus) und noch nicht installiert. Darüber Sortierung, Suche und der Wechsel zwischen Kacheln und
+Liste; Sortierung und Ansicht merkt sich der Browser. **Am häufigsten genutzt** zählt, wie oft
+eine App in diesem Browser von der Seite aus geöffnet wurde – so wie der Desktop-Launcher auf
+seinem Rechner:
 
 ![Verwaltung: Apps mit Status, Version und automatischen Updates](docs/images/admin-apps-de.png)
 
@@ -214,8 +218,8 @@ Benutzermenü daneben; die Umschalter für Design und Sprache bleiben in der Lei
 
 ![Verwaltung auf dem Handy: Apps, das offene Burgermenü und die Benachrichtigungskanäle mit offenem Benutzermenü](docs/images/admin-mobile-de.png)
 
-**Startseite** unter `/`: die installierten Apps, ausgeliefert von nginx – am Rechner und auf
-dem Handy:
+**Startseite** unter `/`: die installierten Apps, ausgeliefert von nginx – mit derselben
+Sortierung, Suche und Liste wie die Verwaltung – am Rechner und auf dem Handy:
 
 ![Startseite: die installierten Apps mit Version und Release-Datum](docs/images/start-page-de.png)
 

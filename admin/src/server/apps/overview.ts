@@ -45,7 +45,10 @@ function card(dataDir: string, app: OverviewApp): string {
       : esc(app.description);
   const published = app.publishedAt?.toISOString() ?? '';
   const date = published ? ` · <time datetime="${published}">${published.slice(0, 10)}</time>` : '';
-  return `    <a class="app" href="${app.id}/" style="--c: ${esc(app.color)}">
+  // For order and search on the page (see the script at the end)
+  const search = `${app.name} ${app.id} ${app.description} ${app.descriptionEn}`.toLowerCase();
+  return `    <a class="app" href="${app.id}/" style="--c: ${esc(app.color)}" data-app="${esc(app.id)}"
+       data-name="${esc(app.name)}" data-date="${published}" data-search="${esc(search)}">
       ${icon}
       <span><span class="name">${esc(head)}<span>${craft}</span></span>
         <span class="desc">${desc}</span>
@@ -130,6 +133,40 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDi
   .desc, .meta { display: block; color: var(--muted); font-size: 13px; }
   .meta { margin-top: 6px; font: 12px var(--mono); }
   .empty { margin: 0; padding: 32px; background: var(--card); color: var(--muted); }
+  /* Order, search and tiles | list as in the admin UI – only with JavaScript */
+  .controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 16px; }
+  .controls[hidden], .grid[hidden], .app[hidden], .no-match[hidden] { display: none; }
+  .controls label { display: flex; align-items: center; gap: 10px; color: var(--muted);
+                    font: 700 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
+  .select { position: relative; display: inline-flex; }
+  .select::after { content: ""; position: absolute; top: 50%; right: 13px; width: 6px; height: 6px; pointer-events: none;
+                   border-right: 1.5px solid var(--text); border-bottom: 1.5px solid var(--text); transform: translateY(-70%) rotate(45deg); }
+  .controls select, .controls input { height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 0;
+                                      background: var(--bg); color: var(--text); font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .controls select { min-width: 210px; padding-right: 34px; appearance: none; text-transform: none; letter-spacing: 0; cursor: pointer; }
+  .controls input { width: 240px; }
+  .controls select:focus, .controls input:focus { outline: none; border-color: #2f7bf5; }
+  .layout { display: flex; border: 1px solid var(--line); }
+  .layout button { display: grid; place-items: center; width: 36px; height: 34px; border: 0; background: none;
+                   color: var(--muted); cursor: pointer; }
+  .layout button + button { border-left: 1px solid var(--line); }
+  .layout button:hover { color: var(--text); }
+  .layout [aria-pressed="true"] { background: var(--text); color: var(--bg); }
+  .layout svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+  .no-match { margin: 0 0 16px; padding: 16px; background: var(--card); color: var(--muted); }
+  /* The list: one row per app, name and description on the left, version on the right */
+  .grid.list { grid-template-columns: 1fr; }
+  .grid.list .app { align-items: center; padding: 12px 18px; }
+  .grid.list .app img, .grid.list .app .icon { width: 40px; height: 40px; border-radius: 9px; }
+  .grid.list .app > span:last-child { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px;
+                                      align-items: center; width: 100%; }
+  .grid.list .name { font-size: 17px; }
+  .grid.list .meta { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+  @media (max-width: 720px) {
+    .controls input { flex: 1 1 100%; order: -1; width: auto; }
+    .grid.list .app > span:last-child { display: block; }
+    .grid.list .meta { margin-top: 4px; }
+  }
   html:not([lang="de"]) [data-lang="de"], html[lang="de"] [data-lang="en"] { display: none; }
   /* Light | dark | system and DE | EN as in the admin UI – only with JavaScript, without it the
      switches couldn't work */
@@ -162,6 +199,22 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDi
       </div>
     </div>
   </header>
+  <div class="controls" hidden>
+    <label><span class="sort-label"></span>
+      <span class="select"><select>
+        <option value="name-asc"></option>
+        <option value="name-desc"></option>
+        <option value="most-used"></option>
+        <option value="updated"></option>
+      </select></span>
+    </label>
+    <input type="search">
+    <div class="layout" role="group">
+      <button type="button" data-layout="grid"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/></svg></button>
+      <button type="button" data-layout="list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    </div>
+  </div>
+  <p class="no-match" hidden></p>
   <div class="grid">
 ${cards}
   </div>
@@ -222,6 +275,118 @@ ${cards}
     group.hidden = false;
     themes.hidden = false;
     render();
+  }
+</script>
+<script>
+  // Order, search and tiles | list – remembered in this browser like in the admin UI. "Most
+  // used" counts how often an app was opened from this page in this browser.
+  {
+    const html = document.documentElement;
+    const grid = document.querySelector(".grid");
+    const tiles = [...grid.querySelectorAll(".app")];
+    const controls = document.querySelector(".controls");
+    const select = controls.querySelector("select");
+    const search = controls.querySelector("input");
+    const layouts = controls.querySelectorAll("[data-layout]");
+    const noMatch = document.querySelector(".no-match");
+    const TEXTS = {
+      de: { sort: "Sortieren", "name-asc": "Name (A–Z)", "name-desc": "Name (Z–A)", "most-used": "Am häufigsten genutzt",
+            updated: "Zuletzt aktualisiert", search: "Apps durchsuchen", layout: "Ansicht", grid: "Kacheln", list: "Liste",
+            none: (q) => "Keine App passt zu „" + q + "“." },
+      en: { sort: "Sort", "name-asc": "Name (A–Z)", "name-desc": "Name (Z–A)", "most-used": "Most used",
+            updated: "Recently updated", search: "Search apps", layout: "Layout", grid: "Tiles", list: "List",
+            none: (q) => 'No app matches "' + q + '".' },
+    };
+    const load = (key, fallback) => {
+      try {
+        return localStorage.getItem(key) || fallback;
+      } catch {
+        return fallback;
+      }
+    };
+    const save = (key, value) => {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // not remembered then
+      }
+    };
+    const usage = () => {
+      try {
+        return JSON.parse(localStorage.getItem("craftapps.usage") || "{}") || {};
+      } catch {
+        return {};
+      }
+    };
+    let sort = load("craftapps.appsSort", "name-asc");
+    if (![...select.options].some((o) => o.value === sort)) sort = "name-asc";
+    let layout = load("craftapps.appsLayout", "grid") === "list" ? "list" : "grid";
+
+    const texts = () => TEXTS[html.lang === "de" ? "de" : "en"];
+    const arrange = () => {
+      const locale = html.lang === "de" ? "de-DE" : "en-GB";
+      const words = search.value.toLowerCase().split(/\\s+/).filter(Boolean);
+      const counts = usage();
+      const byName = (a, b) => a.dataset.name.localeCompare(b.dataset.name, locale);
+      const compare = {
+        "name-asc": byName,
+        "name-desc": (a, b) => byName(b, a),
+        "most-used": (a, b) => (counts[b.dataset.app] || 0) - (counts[a.dataset.app] || 0) || byName(a, b),
+        updated: (a, b) => (Date.parse(b.dataset.date) || 0) - (Date.parse(a.dataset.date) || 0) || byName(a, b),
+      }[sort];
+      let shown = 0;
+      for (const tile of [...tiles].sort(compare)) {
+        tile.hidden = !words.every((w) => tile.dataset.search.includes(w));
+        if (!tile.hidden) shown++;
+        grid.append(tile);
+      }
+      grid.hidden = shown === 0;
+      noMatch.hidden = shown > 0;
+      noMatch.textContent = texts().none(search.value.trim());
+      grid.classList.toggle("list", layout === "list");
+      for (const b of layouts) b.setAttribute("aria-pressed", String(b.dataset.layout === layout));
+    };
+    const render = () => {
+      const t = texts();
+      controls.querySelector(".sort-label").textContent = t.sort;
+      for (const o of select.options) o.textContent = t[o.value];
+      search.placeholder = t.search;
+      search.setAttribute("aria-label", t.search);
+      controls.querySelector(".layout").setAttribute("aria-label", t.layout);
+      for (const b of layouts) {
+        b.title = t[b.dataset.layout];
+        b.setAttribute("aria-label", t[b.dataset.layout]);
+      }
+      arrange();
+    };
+
+    select.addEventListener("change", () => {
+      sort = select.value;
+      save("craftapps.appsSort", sort);
+      arrange();
+    });
+    search.addEventListener("input", arrange);
+    for (const b of layouts) {
+      b.addEventListener("click", () => {
+        layout = b.dataset.layout;
+        save("craftapps.appsLayout", layout);
+        arrange();
+      });
+    }
+    for (const tile of tiles) {
+      tile.addEventListener("click", () => {
+        const counts = usage();
+        counts[tile.dataset.app] = (counts[tile.dataset.app] || 0) + 1;
+        save("craftapps.usage", JSON.stringify(counts));
+      });
+    }
+    // The texts follow the language switch
+    new MutationObserver(render).observe(html, { attributes: true, attributeFilter: ["lang"] });
+    if (tiles.length) {
+      select.value = sort;
+      controls.hidden = false;
+      render();
+    }
   }
 </script>
 </body>

@@ -1,4 +1,5 @@
-// One app like in the launcher (AppCard); the grid around the cards is styled with AppsPage
+// One app like in the launcher (AppCard): a tile in the grid or a row in the list; the grid
+// around the cards is styled with AppsPage
 @use '../../styles/shared';
 
 .card {
@@ -85,6 +86,14 @@
   font-size: 14px;
 }
 
+// Status and version – below each other in a tile, one column of the row in the list
+.card-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
 .chip {
   padding: 3px 6px;
   border: 1px solid currentColor;
@@ -110,4 +119,93 @@
 
 .card-toggle {
   margin: 2px 0 0;
+}
+
+// The list: one row per app – number, icon and name, status, the switch for automatic updates
+// and the actions side by side; the links are in the "…" menu
+.list .card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 2fr) minmax(0, 1.4fr) auto auto;
+  grid-template-areas: "num head state toggle actions";
+  align-items: center;
+  column-gap: 20px;
+  padding: 10px 16px;
+
+  .card-top,
+  .card-body {
+    display: contents;
+  }
+
+  .card-links {
+    display: none;
+  }
+
+  .num {
+    grid-area: num;
+  }
+
+  .card-head {
+    grid-area: head;
+    margin: 0;
+  }
+
+  .icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+
+    &.placeholder {
+      font-size: 18px;
+    }
+  }
+
+  h2 {
+    font-size: 17px;
+  }
+
+  .desc {
+    font-size: 13px;
+  }
+
+  .card-state {
+    grid-area: state;
+    gap: 6px;
+  }
+
+  .card-error {
+    grid-column: head / -1;
+  }
+
+  .card-toggle {
+    grid-area: toggle;
+    margin: 0;
+
+    .toggle {
+      margin: 0;
+    }
+  }
+
+  .card-actions {
+    grid-area: actions;
+    padding: 0;
+
+    .btn.primary {
+      flex: none;
+      min-width: 150px;
+    }
+  }
+
+  // Phones: name on top, status and switch below, the actions in a row of their own
+  @media (max-width: shared.$narrow) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "num head head"
+      "state state toggle"
+      "actions actions actions";
+    row-gap: 10px;
+
+    .card-actions .btn.primary {
+      flex: 1;
+    }
+  }
 }

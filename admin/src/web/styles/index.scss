@@ -9,6 +9,7 @@
 @use 'page';
 @use 'buttons';
 @use '../pages/AppsPage/apps-page';
+@use '../components/AppsControls/apps-controls';
 @use '../components/AppCard/app-card';
 @use '../components/AppCard/progress';
 @use '../components/AppCard/menu';

@@ -48,7 +48,7 @@ CraftApps\
 │       ├── shared\                     Types, messages (German/English), check schedule and activity view for server and frontend
 │       └── web\                        React frontend, main.tsx starts it
 │           ├── App\                    Top bar; on narrow screens with a burger and a user menu
-│           ├── components\             ActivityFilters, AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – each with its styles
+│           ├── components\             ActivityFilters, AppCard, AppsControls, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – each with its styles
 │           ├── i18n\                   Language and texts, German and English in locales\
 │           ├── lib\                    API calls and formatting
 │           ├── pages\                  Apps, activity, notifications, settings, users, login – each with its styles
@@ -146,6 +146,8 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 
 - **Apps** in a grid like the Craft Launcher – with its icons, brand colors and short
   descriptions: install, update, reinstall, uninstall, toggle automatic updates per app.
+  Sorted by name, by use or by the newest release, searchable, as tiles or as a list – on the
+  start page as well.
 - **New apps** it finds by itself: all storytold repos ending in `craft` whose newest
   release in the update channel has a `<app>-web-*.zip`. New apps are reported and, if you
   like, installed automatically.
@@ -173,7 +175,9 @@ volume `craftapps_data`, which nginx mounts read-only.
 ### Screenshots
 
 **Apps:** one card per app – here installed, with an update waiting (automatic updates
-turned off) and not installed yet:
+turned off) and not installed yet. Above them the order, a search and the switch between tiles
+and a list; this browser remembers order and layout. **Most used** counts how often an app was
+opened from the page in this browser, like the desktop launcher does on its computer:
 
 ![Admin UI: apps with their state, version and automatic updates](docs/images/admin-apps-en.png)
 
@@ -209,8 +213,8 @@ the user menu next to it; the design and language switches stay in the bar:
 
 ![Admin UI on the phone: apps, the open burger menu and the notification channels with the open user menu](docs/images/admin-mobile-en.png)
 
-**Start page** at `/`: the installed apps, served by nginx – on the computer and on the
-phone:
+**Start page** at `/`: the installed apps, served by nginx – with the same order, search and
+list as the admin UI – on the computer and on the phone:
 
 ![Start page: the installed apps with version and release date](docs/images/start-page-en.png)
 
