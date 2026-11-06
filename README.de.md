@@ -147,7 +147,7 @@ Registry-Eintrag.
 - **Apps** im Raster wie der Craft Launcher – mit dessen Icons, Markenfarben und
   Kurzbeschreibungen: installieren, aktualisieren, neu installieren, deinstallieren,
   automatische Updates je App an- oder ausschalten. Sortiert nach Name, Nutzung oder neuestem
-  Release, durchsuchbar, als Kacheln oder Liste.
+  Release, durchsuchbar, als Kacheln oder Liste – auch auf der Startseite.
 - **Neue Apps** findet sie selbst: alle Repos von storytold, die auf `craft` enden und
   deren neuestes Release im Update-Kanal ein `<app>-web-*.zip` hat. Neue Apps werden
   gemeldet und auf Wunsch automatisch installiert.
@@ -216,8 +216,8 @@ Benutzermenü daneben; der Sprachumschalter bleibt in der Leiste:
 
 ![Verwaltung auf dem Handy: Apps, das offene Burgermenü und die Benachrichtigungskanäle mit offenem Benutzermenü](docs/images/admin-mobile-de.png)
 
-**Startseite** unter `/`: die installierten Apps, ausgeliefert von nginx – am Rechner und auf
-dem Handy:
+**Startseite** unter `/`: die installierten Apps, ausgeliefert von nginx – mit derselben
+Sortierung, Suche und Liste wie die Verwaltung – am Rechner und auf dem Handy:
 
 ![Startseite: die installierten Apps mit Version und Release-Datum](docs/images/start-page-de.png)
 

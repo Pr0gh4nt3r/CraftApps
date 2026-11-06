@@ -146,7 +146,8 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 
 - **Apps** in a grid like the Craft Launcher – with its icons, brand colors and short
   descriptions: install, update, reinstall, uninstall, toggle automatic updates per app.
-  Sorted by name, by use or by the newest release, searchable, as tiles or as a list.
+  Sorted by name, by use or by the newest release, searchable, as tiles or as a list – on the
+  start page as well.
 - **New apps** it finds by itself: all storytold repos ending in `craft` whose newest
   release in the update channel has a `<app>-web-*.zip`. New apps are reported and, if you
   like, installed automatically.
@@ -210,8 +211,8 @@ the user menu next to it; the language switch stays in the bar:
 
 ![Admin UI on the phone: apps, the open burger menu and the notification channels with the open user menu](docs/images/admin-mobile-en.png)
 
-**Start page** at `/`: the installed apps, served by nginx – on the computer and on the
-phone:
+**Start page** at `/`: the installed apps, served by nginx – with the same order, search and
+list as the admin UI – on the computer and on the phone:
 
 ![Start page: the installed apps with version and release date](docs/images/start-page-en.png)
 
