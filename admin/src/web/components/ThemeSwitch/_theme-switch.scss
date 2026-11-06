@@ -1,0 +1,16 @@
+// Light | dark | system in the top bar and on the login page (ThemeSwitch) – looks like DE | EN
+@use '../../styles/shared';
+
+.theme-switch {
+  @include shared.segmented;
+
+  button {
+    display: inline-flex;
+    padding: 3px 6px;
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}

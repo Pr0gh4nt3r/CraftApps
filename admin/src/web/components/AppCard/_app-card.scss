@@ -13,7 +13,7 @@
     letter-spacing: -0.01em;
 
     span {
-      color: var(--c);
+      @include shared.app-ink;
     }
   }
 }

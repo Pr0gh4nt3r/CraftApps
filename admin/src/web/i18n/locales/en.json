@@ -1,5 +1,9 @@
 {
   "lang.label": "Language",
+  "theme.label": "Design",
+  "theme.light": "Light",
+  "theme.dark": "Dark",
+  "theme.system": "As the system",
 
   "app.title": "Craft Apps – Admin",
   "app.subtitle": "Admin",

@@ -51,12 +51,12 @@ main {
   font-size: 14px;
 
   &.warn {
-    border-color: rgba(245, 165, 36, 0.5);
+    border-color: color-mix(in srgb, var(--warn) 50%, transparent);
     color: var(--warn);
   }
 
   &.error {
-    border-color: rgba(255, 107, 107, 0.5);
+    border-color: color-mix(in srgb, var(--danger) 50%, transparent);
     color: var(--danger);
   }
 }

@@ -6,6 +6,7 @@ import { AppsPage } from '../pages/AppsPage/AppsPage';
 import { LogoutIcon, UserIcon } from './Icons';
 import { t, useLang } from '../i18n/i18n';
 import { LangSwitch } from '../components/LangSwitch/LangSwitch';
+import { ThemeSwitch } from '../components/ThemeSwitch/ThemeSwitch';
 import { Login } from '../pages/Login/Login';
 import { NotificationsPage } from '../pages/NotificationsPage/NotificationsPage';
 import { SettingsPage } from '../pages/SettingsPage/SettingsPage';
@@ -111,6 +112,7 @@ export function App() {
           ))}
         </nav>
         <div className="topbar-side">
+          <ThemeSwitch />
           <LangSwitch />
           <button
             ref={userButton}

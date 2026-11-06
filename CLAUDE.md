@@ -53,8 +53,12 @@ page frame, forms and tables. `styles/index.scss` loads all partials – add new
 their order is the cascade order, so on equal specificity a later partial wins. Colors stay
 CSS custom properties – React sets the app color `--c` at runtime. Drop-downs use the
 component `Select` (one choice, the browser's select) or `MultiSelect` (several) – both draw
-the arrow with the mixin `chevron` from `_shared.scss`, so there is no bare `<select>`. The start page's CSS sits
-inline in the HTML that `admin/src/server/apps/overview.ts` generates.
+the arrow with the mixin `chevron` from `_shared.scss`, so there is no bare `<select>`. There
+are two designs: dark is the default in `:root`, light comes from the mixin `light-colors`
+(with `data-theme="light"` or, without a choice, `prefers-color-scheme`) – every new color
+needs a value in both, never a fixed color in a component; text in an app's color uses the
+mixin `app-ink`. The start page's CSS sits inline in the HTML that
+`admin/src/server/apps/overview.ts` generates.
 
 ## Icons
 
