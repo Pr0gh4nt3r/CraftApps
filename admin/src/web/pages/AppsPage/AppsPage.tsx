@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { StateView } from '../../../shared/types';
 import { api } from '../../lib/api';
 import { arrange, saveLayout, saveSort, storedLayout, storedSort, type Layout, type Sort } from '../../lib/appsView';
-import { AppCard, type Action } from '../../components/AppCard/AppCard';
+import type { Action } from '../../components/AppActions/AppActions';
+import { AppCard } from '../../components/AppCard/AppCard';
+import { AppDetails } from '../../components/AppDetails/AppDetails';
 import { AppsControls } from '../../components/AppsControls/AppsControls';
 import { formatAt, formatDateTime, formatFull } from '../../lib/format';
 import { getLocale, t, tm } from '../../i18n/i18n';
@@ -13,6 +15,14 @@ export function AppsPage() {
   const [sort, setSort] = useState<Sort>(storedSort);
   const [layout, setLayout] = useState<Layout>(storedLayout);
   const [query, setQuery] = useState('');
+  // The app whose details are open; the element to give the focus back to when they close
+  const [openId, setOpenId] = useState<string | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    document.body.classList.toggle('details-open', openId !== null);
+    return () => document.body.classList.remove('details-open');
+  }, [openId]);
 
   const load = useCallback(
     () => api<StateView>('GET', '/api/state').then(setState, (err: Error) => setNotice(err.message)),
@@ -42,6 +52,17 @@ export function AppsPage() {
 
   const installed = state.apps.filter((a) => a.status !== 'not-installed').length;
   const shown = arrange(state.apps, sort, query, getLocale());
+  // Paging goes through the apps as shown – in their order, within the search
+  const openIndex = shown.findIndex((a) => a.id === openId);
+  const openApp = state.apps.find((a) => a.id === openId);
+  const openDetails = (id: string) => {
+    opener.current = document.activeElement as HTMLElement | null;
+    setOpenId(id);
+  };
+  const closeDetails = () => {
+    setOpenId(null);
+    opener.current?.focus();
+  };
   const updates = state.apps.filter((a) => a.status === 'update-available').length;
   const github =
     state.github.remaining !== null
@@ -115,11 +136,23 @@ export function AppsPage() {
               app={app}
               index={index}
               layout={layout}
+              onOpen={() => openDetails(app.id)}
               onAction={(action: Action) => run('POST', `/api/apps/${app.id}/${action}`)}
               onAutoUpdate={(enabled) => run('PATCH', `/api/apps/${app.id}`, { autoUpdate: enabled })}
             />
           ))}
         </div>
+      )}
+      {openApp && (
+        <AppDetails
+          key={openApp.id}
+          app={openApp}
+          onPrev={openIndex > 0 ? () => setOpenId(shown[openIndex - 1].id) : null}
+          onNext={openIndex >= 0 && openIndex < shown.length - 1 ? () => setOpenId(shown[openIndex + 1].id) : null}
+          onClose={closeDetails}
+          onAction={(action) => run('POST', `/api/apps/${openApp.id}/${action}`)}
+          onAutoUpdate={(enabled) => run('PATCH', `/api/apps/${openApp.id}`, { autoUpdate: enabled })}
+        />
       )}
     </>
   );

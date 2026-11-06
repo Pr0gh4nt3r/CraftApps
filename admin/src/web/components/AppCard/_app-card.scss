@@ -5,6 +5,7 @@
 .card {
   display: flex;
   flex-direction: column;
+  cursor: pointer;
   background: var(--surface);
   border-right: shared.$hairline;
   border-bottom: shared.$hairline;
@@ -17,6 +18,27 @@
       @include shared.app-ink;
     }
   }
+}
+
+// The name: a button for the keyboard that looks like the heading
+.card-name {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+.card:hover {
+  background: var(--surface-2);
 }
 
 .card-top {

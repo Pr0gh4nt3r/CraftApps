@@ -6,7 +6,7 @@ import type { Pool, RowDataPacket } from 'mysql2/promise';
 import type { NotifyEvent } from '../../shared/channels.js';
 import { countMsg, msg, parseMsg, renderMsg, type Localized, type Msg } from '../../shared/messages.js';
 import { nextRun } from '../../shared/schedule.js';
-import type { AppView, EventKind, JobKind, JobView, StateView } from '../../shared/types.js';
+import type { AppDetailsData, AppView, EventKind, JobKind, JobView, StateView } from '../../shared/types.js';
 import { logEvent } from '../core/activity.js';
 import type { Config } from '../core/config.js';
 import { GitHubLimitError, type GitHub, type Repo } from './github.js';
@@ -14,6 +14,7 @@ import { appDir, deploy, download, prune, type Asset, type OnProgress } from './
 import { appMeta, fetchIcon, launcherInfo, type LauncherInfo } from './launcher.js';
 import type { Failure, Notifier } from '../notify/notify.js';
 import { writeOverview } from './overview.js';
+import { detailsView, fetchScreenshots, launcherDetails, screenshotDir, type LauncherDetails } from './details.js';
 import { isNewer, pickRelease, releaseCandidates, sortChannels, type Candidate } from './releases.js';
 import type { Settings, SettingsStore } from '../settings/settings.js';
 import { APP_ID, ConflictError, MINUTE, MsgError, NotFoundError, errorText, toMsg, version } from '../core/util.js';
@@ -162,6 +163,7 @@ export class Manager {
         return;
       }
       await this.syncCatalog(repos, await launcherInfo(this.settings, this.log), settings);
+      const details = await launcherDetails(this.settings, this.log);
 
       const fresh: AppRow[] = [];
       let updates = 0;
@@ -169,6 +171,7 @@ export class Manager {
       for (const app of await this.apps()) {
         if (!app.in_catalog) continue;
         await fetchIcon(this.cfg.dataDir, app.id);
+        await fetchScreenshots(this.cfg.dataDir, details, app.id);
         try {
           await this.refreshRelease(app, settings.updateChannel);
         } catch (err) {
@@ -469,12 +472,13 @@ export class Manager {
       descriptionEn: app.description_en || app.description,
       color: app.color,
       hasIcon: existsSync(path.join(this.cfg.dataDir, 'icons', `${app.id}.png`)),
-      websiteUrl: `https://getartcraft.com/apps/${app.id}`,
-      repoUrl: `https://github.com/${this.cfg.owner}/${app.repo}`,
+      websiteUrl: this.websiteUrl(app),
+      repoUrl: this.repoUrl(app),
       status: !installed ? 'not-installed' : updatable ? 'update-available' : 'installed',
       installedVersion: installed ? version(app.installed_tag) : null,
       installedPublishedAt: installed ? (app.installed_published_at?.toISOString() ?? null) : null,
       latestVersion: asset ? version(app.latest_tag) : null,
+      latestTag: asset ? app.latest_tag : null,
       latestPublishedAt: asset ? (app.latest_published_at?.toISOString() ?? null) : null,
       latestSize: asset?.size ?? null,
       autoUpdate: Boolean(app.auto_update),
@@ -484,7 +488,24 @@ export class Manager {
     };
   }
 
+  // ------------------------------------------------------------ App pages of the launcher
+
+  /** The page of an app for the admin UI, null if the launcher has none */
+  async details(appId: string): Promise<AppDetailsData | null> {
+    const details = (await this.settings.getInternal<LauncherDetails>('details')) ?? null;
+    return detailsView(this.cfg.dataDir, details, appId, (key) => `/api/screenshots/${appId}/${key}`);
+  }
+
+  /** Folder of the screenshots of an app in the data volume, null while there are none */
+  async screenshotFolder(appId: string): Promise<string | null> {
+    const rev = (await this.settings.getInternal<LauncherDetails>('details'))?.rev;
+    return rev ? path.join(screenshotDir(this.cfg.dataDir, rev), appId) : null;
+  }
+
   // ------------------------------------------------------------ Helpers
+
+  private websiteUrl = (app: AppRow) => `https://getartcraft.com/apps/${app.id}`;
+  private repoUrl = (app: AppRow) => `https://github.com/${this.cfg.owner}/${app.repo}`;
 
   async app(id: string): Promise<AppRow | undefined> {
     const [rows] = await this.db.query<AppRow[]>('SELECT * FROM apps WHERE id = ?', [id]);

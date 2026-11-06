@@ -36,6 +36,8 @@ export interface AppView {
   installedVersion: string | null;
   installedPublishedAt: string | null;
   latestVersion: string | null;
+  /** Tag of the latest release, for the link to its notes */
+  latestTag: string | null;
   latestPublishedAt: string | null;
   latestSize: number | null;
   autoUpdate: boolean;
@@ -45,6 +47,18 @@ export interface AppView {
   openUrl: string | null;
   /** Running or recently failed action */
   job: JobView | null;
+}
+
+/** An app's page in the launcher – English only, as there */
+export interface AppDetailsData {
+  /** One line under the name */
+  headline: string;
+  paragraphs: string[];
+  features: { title: string; text: string }[];
+  /** The first is the lead picture, all are 8:5; url only once the picture is in the data volume */
+  shots: { key: string; caption: string; url?: string }[];
+  /** Where it runs, e.g. "macOS, Windows, Linux, web" */
+  platforms: string;
 }
 
 export interface StateView {
