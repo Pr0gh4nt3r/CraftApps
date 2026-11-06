@@ -166,6 +166,8 @@ Registry-Eintrag.
 - **Deutsch und Englisch:** Die Verwaltung richtet sich nach der Sprache des Browsers und
   hat oben einen Umschalter, ebenso die Startseite unter `/`. Jeder Benachrichtigungskanal
   schreibt in der Sprache, die für ihn eingestellt ist.
+- **Hell und dunkel:** Beide Seiten folgen dem Design des Systems; der Umschalter neben der
+  Sprache wählt für diesen Browser hell oder dunkel.
 
 Daten: Benutzer, Einstellungen, Benachrichtigungskanäle und Verlauf liegen in MySQL, die
 Apps im Volume `craftapps_data`, das nginx nur lesend einbindet.

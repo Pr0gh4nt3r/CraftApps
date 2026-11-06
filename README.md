@@ -164,6 +164,8 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 - **English and German:** the admin UI follows the browser's language and has a switch in
   the top bar, the start page at `/` likewise. Each notification channel uses the language
   set for it.
+- **Light and dark:** both pages follow the system's design; the switch next to the language
+  picks light or dark for this browser.
 
 Data: users, settings, notification channels and history live in MySQL, the apps in the
 volume `craftapps_data`, which nginx mounts read-only.

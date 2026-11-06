@@ -58,7 +58,7 @@ are two designs: dark is the default in `:root`, light comes from the mixin `lig
 (with `data-theme="light"` or, without a choice, `prefers-color-scheme`) – every new color
 needs a value in both, never a fixed color in a component; text in an app's color uses the
 mixin `app-ink`. The start page's CSS sits inline in the HTML that
-`admin/src/server/apps/overview.ts` generates.
+`admin/src/server/apps/overview.ts` generates, with the same two palettes.
 
 ## Icons
 
