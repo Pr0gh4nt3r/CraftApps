@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import type { AppDetailsData } from '../../shared/types.js';
 
 export interface OverviewApp {
   id: string;
@@ -9,7 +10,15 @@ export interface OverviewApp {
   descriptionEn: string;
   color: string;
   version: string;
+  /** Tag of the installed release, for the link to its notes */
+  tag: string;
   publishedAt: Date | null;
+  /** Size of the web zip, null if unknown */
+  size: number | null;
+  websiteUrl: string;
+  repoUrl: string;
+  /** The launcher's page – screenshots with addresses relative to the start page */
+  details: AppDetailsData | null;
 }
 
 const esc = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -47,13 +56,18 @@ function card(dataDir: string, app: OverviewApp): string {
   const date = published ? ` · <time datetime="${published}">${published.slice(0, 10)}</time>` : '';
   // For order and search on the page (see the script at the end)
   const search = `${app.name} ${app.id} ${app.description} ${app.descriptionEn}`.toLowerCase();
-  return `    <a class="app" href="${app.id}/" style="--c: ${esc(app.color)}" data-app="${esc(app.id)}"
-       data-name="${esc(app.name)}" data-date="${published}" data-search="${esc(search)}">
-      ${icon}
-      <span><span class="name">${esc(head)}<span>${craft}</span></span>
-        <span class="desc">${desc}</span>
-        <span class="meta">Version ${esc(app.version)}${date}</span></span>
-    </a>`;
+  // The tile is a link to the app; the info button in its corner opens the details (only with
+  // JavaScript, the script at the end shows it)
+  return `    <div class="app" style="--c: ${esc(app.color)}" data-app="${esc(app.id)}"
+         data-name="${esc(app.name)}" data-date="${published}" data-search="${esc(search)}">
+      <a class="app-main" href="${app.id}/" data-open="${esc(app.id)}">
+        ${icon}
+        <span><span class="name">${esc(head)}<span>${craft}</span></span>
+          <span class="desc">${desc}</span>
+          <span class="meta">Version ${esc(app.version)}${date}</span></span>
+      </a>
+      <button type="button" class="app-info" data-details="${esc(app.id)}" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6v.01"/></svg></button>
+    </div>`;
 }
 
 /**
@@ -65,6 +79,28 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDi
   const cards = apps.length
     ? apps.map((app) => card(dataDir, app)).join('\n')
     : '    <p class="empty"><span data-lang="de">Noch keine Apps installiert.</span><span data-lang="en">No apps installed yet.</span></p>';
+  // Everything the details need, as JSON in the page – "<" escaped, so no text can end the script
+  const appData = JSON.stringify(
+    Object.fromEntries(
+      apps.map((app) => [
+        app.id,
+        {
+          id: app.id,
+          name: app.name,
+          color: app.color,
+          icon: existsSync(path.join(dataDir, 'icons', `${app.id}.png`)) ? `icons/${app.id}.png` : null,
+          desc: { de: app.description, en: app.descriptionEn },
+          version: app.version,
+          tag: app.tag,
+          publishedAt: app.publishedAt?.toISOString() ?? null,
+          size: app.size,
+          websiteUrl: app.websiteUrl,
+          repoUrl: app.repoUrl,
+          details: app.details,
+        },
+      ]),
+    ),
+  ).replace(/</g, '\\u003c');
   const page = `<!doctype html>
 <html lang="en">
 <head>
@@ -123,8 +159,18 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDi
   h1 { margin: 0; font-size: 24px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1px;
           background: var(--line); border: 1px solid var(--line); }
-  .app { display: flex; gap: 14px; align-items: flex-start; padding: 18px; background: var(--card);
-         color: inherit; text-decoration: none; }
+  .app { position: relative; display: flex; background: var(--card); }
+  .app-main { flex: 1; display: flex; gap: 14px; align-items: flex-start; padding: 18px; color: inherit; text-decoration: none; }
+  /* Room for the info button in the corner – only the name reaches up there */
+  .grid:not(.list) .name { padding-right: 36px; }
+  /* Info in the corner of the tile: opens the details. Just the symbol, a frame only for the keyboard */
+  .app-info { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
+              border: 0; background: none; color: var(--muted); cursor: pointer; }
+  .app-info:hover, .app-info:focus-visible { color: var(--text); }
+  .app-info:focus-visible { outline: 1px solid var(--text); outline-offset: -2px; }
+  .app-info[hidden] { display: none; }
+  .app-info svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+  .grid.list .app-info { position: static; align-self: center; margin-right: 18px; }
   .app:hover { background: var(--hover); }
   .app img, .app .icon { flex: none; width: 56px; height: 56px; border-radius: 12px; }
   .app .icon { display: grid; place-items: center; background: var(--c); color: #0b0d10; font-size: 24px; font-weight: 700; }
@@ -132,6 +178,7 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDi
   .name span { color: color-mix(in srgb, var(--c) var(--app-ink), #000); }
   .desc, .meta { display: block; color: var(--muted); font-size: 13px; }
   .meta { margin-top: 6px; font: 12px var(--mono); }
+  .meta time { white-space: nowrap; }
   .empty { margin: 0; padding: 32px; background: var(--card); color: var(--muted); }
   /* Order, search and tiles | list as in the admin UI – only with JavaScript */
   .controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 16px; }
@@ -156,15 +203,15 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDi
   .no-match { margin: 0 0 16px; padding: 16px; background: var(--card); color: var(--muted); }
   /* The list: one row per app, name and description on the left, version on the right */
   .grid.list { grid-template-columns: 1fr; }
-  .grid.list .app { align-items: center; padding: 12px 18px; }
+  .grid.list .app-main { align-items: center; padding: 12px 18px; }
   .grid.list .app img, .grid.list .app .icon { width: 40px; height: 40px; border-radius: 9px; }
-  .grid.list .app > span:last-child { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px;
+  .grid.list .app-main > span:last-child { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px;
                                       align-items: center; width: 100%; }
   .grid.list .name { font-size: 17px; }
   .grid.list .meta { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
   @media (max-width: 720px) {
     .controls input { flex: 1 1 100%; order: -1; width: auto; }
-    .grid.list .app > span:last-child { display: block; }
+    .grid.list .app-main > span:last-child { display: block; }
     .grid.list .meta { margin-top: 4px; }
   }
   html:not([lang="de"]) [data-lang="de"], html[lang="de"] [data-lang="en"] { display: none; }
@@ -181,6 +228,70 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDi
   .theme-switch button { padding: 3px 6px; }
   .theme-switch svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8;
                       stroke-linecap: round; stroke-linejoin: round; }
+  /* Details of an app like in the launcher and the admin UI – only with JavaScript */
+  body.details-open { overflow: hidden; }
+  .details-backdrop { position: fixed; inset: 0; z-index: 20; overflow-y: auto; padding: 32px 16px;
+                      background: color-mix(in srgb, var(--bg) 75%, transparent); backdrop-filter: blur(2px); }
+  .details { max-width: 1240px; margin: 0 auto; background: var(--bg); border: 1px solid var(--line); border-top: 2px solid var(--c);
+             box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3); }
+  .details-head { padding: 20px 24px; background: color-mix(in srgb, var(--c) 8%, var(--card)); border-bottom: 1px solid var(--line); }
+  .details-bar { display: flex; align-items: center; justify-content: space-between; }
+  .details-label, .details h3, .details dt, .details figcaption { color: var(--muted); font: 700 11px var(--mono);
+                                                                 letter-spacing: 0.12em; text-transform: uppercase; }
+  .details-nav { display: flex; gap: 8px; }
+  .details-nav button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line);
+                        background: none; color: var(--text); cursor: pointer; }
+  .details-nav button:disabled { opacity: 0.45; cursor: default; }
+  .details-nav button:hover:not(:disabled) { border-color: var(--text); }
+  .details svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .details-title { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 20px; margin: 12px 0 18px; }
+  .details-icon { width: 96px; height: 96px; border-radius: 18px; }
+  span.details-icon { display: grid; place-items: center; background: var(--c); color: #0b0d10; font-size: 40px; font-weight: 800; }
+  .details h2 { margin: 0; font-size: 34px; line-height: 1.15; }
+  .details h2 span { color: color-mix(in srgb, var(--c) var(--app-ink), #000); }
+  .details-headline { margin: 4px 0 0; font-size: 16px; }
+  .details-meta { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+  .details-open-app { display: grid; place-items: center; min-width: 240px; min-height: 36px; padding: 0 14px; border: 1px solid var(--muted);
+                      color: var(--text); font: 700 12px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; }
+  .details-open-app:hover { border-color: var(--text); }
+  .details-links { display: flex; flex-wrap: wrap; gap: 10px; }
+  .details-links a { padding: 9px 14px; border: 1px solid var(--line); color: var(--text); font: 700 11px var(--mono);
+                     letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; }
+  .details-links a:hover { border-color: var(--text); }
+  .details-body { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 24px 32px; padding: 24px; }
+  .details h3 { margin: 0 0 14px; }
+  .details-about > p { margin: 0 0 10px; font-size: 16px; }
+  .shots { margin: 0 0 18px; }
+  .shots figcaption { margin-top: 10px; }
+  .shot-frame { position: relative; aspect-ratio: 8 / 5; border: 1px solid var(--line); background: var(--card); }
+  .shot-frame img, .shot-thumbs img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  /* On the picture itself – dark in both designs */
+  .shot-frame button { position: absolute; top: 50%; display: grid; place-items: center; width: 36px; height: 36px;
+                       border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(13, 15, 19, 0.75); color: #e7e9ee;
+                       transform: translateY(-50%); cursor: pointer; }
+  .shot-frame .prev { left: 10px; }
+  .shot-frame .next { right: 10px; }
+  .shot-thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+  .shot-thumbs button { padding: 0; aspect-ratio: 8 / 5; border: 1px solid var(--line); background: none; overflow: hidden; cursor: pointer; }
+  .shot-thumbs [aria-pressed="true"] { outline: 2px solid #2f7bf5; outline-offset: -2px; }
+  .details-features ol { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .details-features li { padding: 14px 16px; border: 1px solid var(--line); background: var(--card); }
+  .details-features strong { display: flex; gap: 14px; align-items: baseline; font-size: 15px; }
+  .details-features strong span { color: #2f7bf5; font: 700 11px var(--mono); }
+  .details-features p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+  .details-release { grid-column: 1 / -1; padding-top: 20px; border-top: 1px solid var(--line); }
+  .details dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin: 0 0 14px; }
+  .details dl > div { padding: 12px 14px; border: 1px solid var(--line); background: var(--card); }
+  .details dd { margin: 4px 0 0; font-size: 15px; }
+  .details-release > a { color: #2f7bf5; font-size: 14px; }
+  @media (max-width: 1000px) { .details-body { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 720px) {
+    .details-backdrop { padding: 0; }
+    .details-head, .details-body { padding: 16px; }
+    .details-title { grid-template-columns: auto minmax(0, 1fr); }
+    .details-title > a { grid-column: 1 / -1; }
+    .details-icon { width: 64px; height: 64px; border-radius: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -373,13 +484,14 @@ ${cards}
         arrange();
       });
     }
-    for (const tile of tiles) {
-      tile.addEventListener("click", () => {
-        const counts = usage();
-        counts[tile.dataset.app] = (counts[tile.dataset.app] || 0) + 1;
-        save("craftapps.usage", JSON.stringify(counts));
-      });
-    }
+    // Counts when an app is opened: its tile, or "Open" in the details
+    document.addEventListener("click", (e) => {
+      const link = e.target.closest("[data-open]");
+      if (!link) return;
+      const counts = usage();
+      counts[link.dataset.open] = (counts[link.dataset.open] || 0) + 1;
+      save("craftapps.usage", JSON.stringify(counts));
+    });
     // The texts follow the language switch
     new MutationObserver(render).observe(html, { attributes: true, attributeFilter: ["lang"] });
     if (tiles.length) {
@@ -387,6 +499,183 @@ ${cards}
       controls.hidden = false;
       render();
     }
+  }
+</script>
+<script type="application/json" id="app-data">${appData}</script>
+<script>
+  // Details of an app: the info button on its tile opens them – the tile itself stays the link to
+  // the app. Built from the data above with textContent only; Escape closes, the arrow keys page
+  // through the apps as shown.
+  {
+    const html = document.documentElement;
+    const data = JSON.parse(document.getElementById("app-data").textContent);
+    const TEXTS = {
+      de: { label: "App-Details", info: "Details zu {app}", prev: "Vorige App", next: "Nächste App", close: "Schließen", open: "Öffnen",
+            versions: "Versionen", features: "Funktionen", release: "Neueste Version", version: "Version",
+            published: "Veröffentlicht", download: "Herunterladen", platforms: "Plattformen",
+            changelog: "Vollständiges Änderungsprotokoll", shotPrev: "Voriges Bild", shotNext: "Nächstes Bild" },
+      en: { label: "App details", info: "Details of {app}", prev: "Previous app", next: "Next app", close: "Close", open: "Open",
+            versions: "Versions", features: "Features", release: "Latest version", version: "Version",
+            published: "Published", download: "Download", platforms: "Platforms",
+            changelog: "Full changelog", shotPrev: "Previous picture", shotNext: "Next picture" },
+    };
+    const ICONS = { prev: '<path d="M15 5l-7 7 7 7"/>', next: '<path d="M9 5l7 7-7 7"/>', close: '<path d="M6 6l12 12M18 6L6 18"/>' };
+    let current = null;
+    let shot = 0;
+    let opener = null;
+    let backdrop = null;
+
+    const el = (tag, props, ...children) => {
+      const e = document.createElement(tag);
+      for (const [k, v] of Object.entries(props || {})) {
+        if (v === null || v === undefined || v === false) continue;
+        if (k === "class") e.className = v;
+        else if (k === "text") e.textContent = v;
+        else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+        else e.setAttribute(k, v === true ? "" : v);
+      }
+      e.append(...children.filter((c) => c !== null && c !== undefined && c !== false));
+      return e;
+    };
+    // The icons are fixed markup from above, never data
+    const icon = (name) => {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("aria-hidden", "true");
+      svg.innerHTML = ICONS[name];
+      return svg;
+    };
+    const shown = () => [...document.querySelectorAll(".grid .app:not([hidden])")].map((tile) => tile.dataset.app);
+
+    function render() {
+      const t = TEXTS[html.lang === "de" ? "de" : "en"];
+      const locale = html.lang === "de" ? "de-DE" : "en-GB";
+      const app = data[current];
+      const d = app.details;
+      const ids = shown();
+      const at = ids.indexOf(current);
+      const pad = (n) => String(n).padStart(2, "0");
+      const date = app.publishedAt
+        ? new Date(app.publishedAt).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" })
+        : "–";
+      const size = app.size ? Math.max(1, Math.round(app.size / 1e6)).toLocaleString(locale) + " MB" : "–";
+      const [head, craft] = app.name.endsWith("Craft") ? [app.name.slice(0, -5), "Craft"] : [app.name, ""];
+      const navButton = (name, onclick, enabled) =>
+        el("button", { type: "button", title: t[name], "aria-label": t[name], disabled: !enabled, onclick }, icon(name));
+
+      const shots = d ? d.shots.filter((s) => s.url) : [];
+      shot = Math.min(shot, Math.max(0, shots.length - 1));
+      const showShot = (i) => {
+        shot = (i + shots.length) % shots.length;
+        render();
+      };
+      const pictures = shots.length
+        ? el("figure", { class: "shots" },
+            el("div", { class: "shot-frame" },
+              el("img", { src: shots[shot].url, alt: shots[shot].caption }),
+              shots.length > 1 && el("button", { type: "button", class: "prev", "aria-label": t.shotPrev, onclick: () => showShot(shot - 1) }, icon("prev")),
+              shots.length > 1 && el("button", { type: "button", class: "next", "aria-label": t.shotNext, onclick: () => showShot(shot + 1) }, icon("next"))),
+            el("figcaption", { text: shots[shot].caption + " · " + (shot + 1) + "/" + shots.length }),
+            shots.length > 1 && el("div", { class: "shot-thumbs" },
+              ...shots.map((s, i) =>
+                el("button", { type: "button", "aria-label": s.caption, "aria-pressed": String(i === shot), onclick: () => showShot(i) },
+                  el("img", { src: s.url, alt: "" })))))
+        : null;
+      const features = d && d.features.length ? d.features : null;
+      const section = el("section", { class: "details", role: "dialog", "aria-modal": "true", "aria-labelledby": "details-name",
+                                      style: "--c: " + app.color },
+        el("div", { class: "details-head" },
+          el("div", { class: "details-bar" },
+            el("span", { class: "details-label", text: t.label }),
+            el("div", { class: "details-nav" },
+              navButton("prev", () => go(-1), at > 0),
+              navButton("next", () => go(1), at >= 0 && at < ids.length - 1),
+              navButton("close", close, true))),
+          el("div", { class: "details-title" },
+            app.icon ? el("img", { class: "details-icon", src: app.icon, alt: "" })
+                     : el("span", { class: "details-icon", text: app.name.charAt(0) }),
+            el("div", {},
+              el("h2", { id: "details-name" }, head, el("span", { text: craft })),
+              el("p", { class: "details-headline", text: d ? d.headline : app.desc[html.lang === "de" ? "de" : "en"] }),
+              el("p", { class: "details-meta", text: "Version " + app.version + " · " + date })),
+            el("a", { class: "details-open-app", href: app.id + "/", "data-open": app.id, text: t.open })),
+          el("nav", { class: "details-links" },
+            el("a", { href: app.websiteUrl, target: "_blank", rel: "noreferrer", text: "Website ↗" }),
+            el("a", { href: app.repoUrl, target: "_blank", rel: "noreferrer", text: "GitHub ↗" }),
+            el("a", { href: app.repoUrl + "/releases", target: "_blank", rel: "noreferrer", text: t.versions + " ↗" }))),
+        el("div", { class: "details-body" },
+          (pictures || (d && d.paragraphs.length)) &&
+            el("div", { class: "details-about" }, pictures, ...(d ? d.paragraphs.map((p) => el("p", { text: p })) : [])),
+          features && el("section", { class: "details-features" },
+            el("h3", { text: "01 / " + t.features }),
+            el("ol", {}, ...features.map((f, i) =>
+              el("li", {}, el("strong", {}, el("span", { text: pad(i + 1) }), f.title), el("p", { text: f.text }))))),
+          el("section", { class: "details-release" },
+            el("h3", { text: pad(features ? 2 : 1) + " / " + t.release }),
+            el("dl", {},
+              el("div", {}, el("dt", { text: t.version }), el("dd", { text: app.version })),
+              el("div", {}, el("dt", { text: t.published }), el("dd", { text: date })),
+              el("div", {}, el("dt", { text: t.download }), el("dd", { text: size })),
+              el("div", {}, el("dt", { text: t.platforms }), el("dd", { text: d ? d.platforms : "–" }))),
+            el("a", { href: app.repoUrl + "/releases/tag/" + encodeURIComponent(app.tag), target: "_blank", rel: "noreferrer",
+                      text: t.changelog + " ↗" }))));
+      const focused = backdrop && document.activeElement && backdrop.contains(document.activeElement)
+        ? document.activeElement.getAttribute("aria-label") : null;
+      backdrop.replaceChildren(section);
+      // After paging the focus stays on the same button, as far as there is one
+      const again = focused && section.querySelector('[aria-label="' + focused.replace(/"/g, "") + '"]:not([disabled])');
+      (again || section.querySelector(".details-nav button:last-child")).focus();
+    }
+
+    function open(id) {
+      opener = document.activeElement;
+      current = id;
+      shot = 0;
+      backdrop = el("div", { class: "details-backdrop", onmousedown: (e) => e.target === backdrop && close() });
+      document.body.append(backdrop);
+      document.body.classList.add("details-open");
+      render();
+    }
+
+    function close() {
+      backdrop.remove();
+      backdrop = null;
+      current = null;
+      document.body.classList.remove("details-open");
+      if (opener) opener.focus();
+    }
+
+    function go(step) {
+      const ids = shown();
+      const next = ids[ids.indexOf(current) + step];
+      if (!next) return;
+      current = next;
+      shot = 0;
+      render();
+    }
+
+    const infos = document.querySelectorAll(".app-info");
+    for (const info of infos) info.addEventListener("click", () => open(info.dataset.details));
+    // The info buttons are named in the language of the page
+    const name = () => {
+      for (const info of infos) {
+        const label = TEXTS[html.lang === "de" ? "de" : "en"].info.replace("{app}", data[info.dataset.details].name);
+        info.title = label;
+        info.setAttribute("aria-label", label);
+      }
+    };
+    document.addEventListener("keydown", (e) => {
+      if (!current) return;
+      if (e.key === "Escape") close();
+      else if (e.key === "ArrowLeft") go(-1);
+      else if (e.key === "ArrowRight") go(1);
+    });
+    new MutationObserver(() => {
+      name();
+      if (current) render();
+    }).observe(html, { attributes: true, attributeFilter: ["lang"] });
+    name();
+    for (const info of infos) info.hidden = false;
   }
 </script>
 </body>

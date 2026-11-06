@@ -48,7 +48,7 @@ CraftApps\
 │       ├── shared\                     Typen, Meldungen (Deutsch/Englisch), Zeitplan und Aktivitätsansicht für Server und Oberfläche
 │       └── web\                        React-Oberfläche, main.tsx startet sie
 │           ├── App\                    Kopfzeile; auf schmalen Bildschirmen mit Burger- und Benutzermenü
-│           ├── components\             ActivityFilters, AppCard, AppsControls, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – jeweils mit ihren Styles
+│           ├── components\             ActivityFilters, AppActions, AppCard, AppDetails, AppsControls, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – jeweils mit ihren Styles
 │           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
 │           ├── lib\                    API-Aufrufe und Formatierung
 │           ├── pages\                  Apps, Aktivität, Benachrichtigungen, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles
@@ -148,6 +148,9 @@ Registry-Eintrag.
   Kurzbeschreibungen: installieren, aktualisieren, neu installieren, deinstallieren,
   automatische Updates je App an- oder ausschalten. Sortiert nach Name, Nutzung oder neuestem
   Release, durchsuchbar, als Kacheln oder Liste – auch auf der Startseite.
+- **Details jeder App** wie im Launcher: was sie ist, ihre Screenshots und Funktionen und die
+  neueste Version – in der Verwaltung per Klick auf eine App, mit allen Aktionen; auf der
+  Startseite über das Info-Symbol einer Kachel, mit **Öffnen**.
 - **Neue Apps** findet sie selbst: alle Repos von storytold, die auf `craft` enden und
   deren neuestes Release im Update-Kanal ein `<app>-web-*.zip` hat. Neue Apps werden
   gemeldet und auf Wunsch automatisch installiert.
@@ -182,6 +185,21 @@ eine App in diesem Browser von der Seite aus geöffnet wurde – so wie der Desk
 seinem Rechner:
 
 ![Verwaltung: Apps mit Status, Version und automatischen Updates](docs/images/admin-apps-de.png)
+
+Als Liste, eine Zeile je App – die Links zu Website und GitHub stehen dort im Menü **…**:
+
+![Verwaltung: die Apps als Liste mit Status, Version, automatischen Updates und Aktionen](docs/images/admin-apps-list-de.png)
+
+Im hellen Design, hier mit dem Umschalter oben rechts gewählt:
+
+![Verwaltung im hellen Design: die Apps als Kacheln](docs/images/admin-apps-light-de.png)
+
+**Details:** Ein Klick auf eine App öffnet ihre Seite aus dem Launcher – Leitsatz, Screenshots,
+Beschreibung, Funktionen und die neueste Version, mit denselben Aktionen wie auf ihrer Karte;
+die Pfeile blättern durch die Apps in der angezeigten Reihenfolge. Die Startseite zeigt
+dieselben Details für die installierten Apps, über das Info-Symbol ihrer Kacheln:
+
+![Verwaltung: die Details von PhotoCraft mit Screenshots, Funktionen und der neuesten Version](docs/images/admin-details-de.png)
 
 **Aktivität:** was passiert ist, automatisch oder durch welchen Benutzer – jede Prüfung mit
 ihrem Ergebnis, Installationen und Updates, Änderungen an Einstellungen, Kanälen und
@@ -224,6 +242,15 @@ Sortierung, Suche und Liste wie die Verwaltung – am Rechner und auf dem Handy:
 ![Startseite: die installierten Apps mit Version und Release-Datum](docs/images/start-page-de.png)
 
 ![Startseite auf dem Handy: die installierten Apps untereinander](docs/images/start-page-mobile-de.png)
+
+Ein Klick auf eine Kachel öffnet wie bisher die App; das Info-Symbol in ihrer Ecke öffnet ihre
+Details, mit **Öffnen** zum Starten der App:
+
+![Startseite: die Details von PhotoCraft mit Screenshots, Funktionen und Öffnen](docs/images/start-page-details-de.png)
+
+Im hellen Design:
+
+![Startseite im hellen Design](docs/images/start-page-light-de.png)
 
 ## Einrichtung
 
@@ -604,9 +631,11 @@ Verwaltung oder `null`.
   Instanzen an derselben Datenbank warten aufeinander. Ein Backup der Datenbank vor einem
   Update schadet trotzdem nicht.
 - Anmeldung: höchstens 10 Versuche pro 15 Minuten und IP-Adresse.
-- Reihenfolge, Namen, Farben, deutsche und englische Texte und Icons übernimmt die
-  Verwaltung aus dem [Craft Launcher](https://github.com/storytold/craft-launcher). Ist der
-  nicht erreichbar, gilt der zuletzt bekannte Stand.
+- Reihenfolge, Namen, Farben, deutsche und englische Texte, Icons und die Detailseiten
+  übernimmt die Verwaltung aus dem [Craft Launcher](https://github.com/storytold/craft-launcher).
+  Ist der nicht erreichbar, gilt der zuletzt bekannte Stand. Die Detailseiten gibt es wie im
+  Launcher nur auf Englisch; ihre Screenshots landen im Volume `craftapps_data` unter
+  `screenshots/`, wo die Startseite sie ebenfalls liest.
 - Der Container der Verwaltung läuft als Benutzer 1000 mit schreibgeschütztem
   Dateisystem und ohne Linux-Capabilities. Ein neues Volume `craftapps_data` gehört
   automatisch diesem Benutzer. Meldet die Verwaltung trotzdem fehlende Schreibrechte, auf

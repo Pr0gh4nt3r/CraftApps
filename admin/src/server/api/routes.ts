@@ -226,6 +226,19 @@ export function registerRoutes(
     },
   );
 
+  // The app's page from the launcher, 404 if it has none
+  app.get<{ Params: { id: string } }>('/api/apps/:id/details', async (req, reply) => {
+    const details = APP_ID.test(req.params.id) ? await manager.details(req.params.id) : null;
+    return details ?? reply.code(404).send({ error: msg('error.notFound') });
+  });
+
+  app.get<{ Params: { id: string; key: string } }>('/api/screenshots/:id/:key', { logLevel: 'warn' }, async (req, reply) => {
+    const folder = APP_ID.test(req.params.id) ? await manager.screenshotFolder(req.params.id) : null;
+    if (!folder || !/^[a-z0-9][a-z0-9-]{0,40}$/.test(req.params.key)) return reply.code(404).send({ error: msg('error.notFound') });
+    // The pictures of a revision never change
+    return reply.header('Cache-Control', 'private, max-age=604800').sendFile(`${req.params.key}.jpg`, folder);
+  });
+
   app.get<{ Params: { id: string } }>('/api/icons/:id', { logLevel: 'warn' }, async (req, reply) => {
     if (!APP_ID.test(req.params.id)) return reply.code(404).send({ error: msg('error.notFound') });
     return reply

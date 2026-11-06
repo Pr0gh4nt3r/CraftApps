@@ -48,7 +48,7 @@ CraftApps\
 │       ├── shared\                     Types, messages (German/English), check schedule and activity view for server and frontend
 │       └── web\                        React frontend, main.tsx starts it
 │           ├── App\                    Top bar; on narrow screens with a burger and a user menu
-│           ├── components\             ActivityFilters, AppCard, AppsControls, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – each with its styles
+│           ├── components\             ActivityFilters, AppActions, AppCard, AppDetails, AppsControls, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – each with its styles
 │           ├── i18n\                   Language and texts, German and English in locales\
 │           ├── lib\                    API calls and formatting
 │           ├── pages\                  Apps, activity, notifications, settings, users, login – each with its styles
@@ -148,6 +148,9 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
   descriptions: install, update, reinstall, uninstall, toggle automatic updates per app.
   Sorted by name, by use or by the newest release, searchable, as tiles or as a list – on the
   start page as well.
+- **Details of every app** as in the launcher: what it is, its screenshots and features and
+  the latest version – in the admin UI a click on an app opens them, with all its actions; on
+  the start page the info button on a tile, with **Open**.
 - **New apps** it finds by itself: all storytold repos ending in `craft` whose newest
   release in the update channel has a `<app>-web-*.zip`. New apps are reported and, if you
   like, installed automatically.
@@ -180,6 +183,21 @@ and a list; this browser remembers order and layout. **Most used** counts how of
 opened from the page in this browser, like the desktop launcher does on its computer:
 
 ![Admin UI: apps with their state, version and automatic updates](docs/images/admin-apps-en.png)
+
+As a list, one row per app – the links to the website and GitHub are in the **…** menu there:
+
+![Admin UI: the apps as a list with state, version, automatic updates and actions](docs/images/admin-apps-list-en.png)
+
+In the light design, here chosen with the switch at the top right:
+
+![Admin UI in the light design: the apps as tiles](docs/images/admin-apps-light-en.png)
+
+**Details:** a click on an app opens its page from the launcher – headline, screenshots, what it
+is, its features and the latest version, with the same actions as on its card; the arrows page
+through the apps in the order shown. The start page shows the same details for the installed
+apps, via the info button on their tiles:
+
+![Admin UI: the details of PhotoCraft with screenshots, features and the latest version](docs/images/admin-details-en.png)
 
 **Activity:** what happened, automatically or by which user – every check with its result,
 installations and updates, changes to settings, channels and users, logins and test messages.
@@ -219,6 +237,15 @@ list as the admin UI – on the computer and on the phone:
 ![Start page: the installed apps with version and release date](docs/images/start-page-en.png)
 
 ![Start page on the phone: the installed apps one below the other](docs/images/start-page-mobile-en.png)
+
+A click on a tile opens the app as before; the info button in its corner opens its details,
+with **Open** to start the app:
+
+![Start page: the details of PhotoCraft with screenshots, features and Open](docs/images/start-page-details-en.png)
+
+In the light design:
+
+![Start page in the light design](docs/images/start-page-light-en.png)
 
 ## Setup
 
@@ -593,9 +620,11 @@ admin UI or `null`.
   same database wait for each other. A backup of the database before an update doesn't hurt
   anyway.
 - Login: at most 10 attempts per 15 minutes and IP address.
-- The admin UI takes order, names, colors, English and German texts and icons from the
-  [Craft Launcher](https://github.com/storytold/craft-launcher). If it is unreachable, the
-  last known state applies.
+- The admin UI takes order, names, colors, English and German texts, icons and the details
+  pages from the [Craft Launcher](https://github.com/storytold/craft-launcher). If it is
+  unreachable, the last known state applies. The details pages are English only, as in the
+  launcher; their screenshots end up in the volume `craftapps_data` under `screenshots/`,
+  where the start page reads them as well.
 - The admin container runs as user 1000 with a read-only file system and without Linux
   capabilities. A new volume `craftapps_data` belongs to this user automatically. If the
   admin UI still reports missing write access, run

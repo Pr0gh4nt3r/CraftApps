@@ -68,6 +68,31 @@ export function ListIcon() {
   );
 }
 
+// Paging and closing on the details page (AppDetails)
+export function ChevronLeftIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M15 5l-7 7 7 7" />
+    </svg>
+  );
+}
+
+export function ChevronRightIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+export function CloseIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
 export function LogoutIcon() {
   return (
     <svg {...ICON}>
