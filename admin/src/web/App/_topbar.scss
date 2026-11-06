@@ -1,5 +1,6 @@
-// Top bar with brand, tabs, language and user (App). Below shared.$menu the tabs fold into a
-// burger menu, name and logout into a user menu; the language switch always stays in the bar.
+// Top bar with brand, tabs, design, language and user (App). Below shared.$menu the tabs fold
+// into a burger menu, name and logout into a user menu; the design and language switches always
+// stay in the bar.
 @use '../styles/shared';
 
 .topbar {
@@ -11,7 +12,7 @@
   gap: 24px;
   min-height: 56px;
   padding: 8px 24px;
-  background: rgba(13, 15, 19, 0.92);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(8px);
   border-bottom: shared.$hairline;
 
@@ -119,7 +120,7 @@
     padding: 8px 8px 8px 14px;
     background: var(--surface-2);
     border: shared.$hairline-strong;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    box-shadow: var(--shadow);
     color: var(--text);
     font-size: 14px;
 

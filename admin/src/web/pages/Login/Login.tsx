@@ -3,6 +3,7 @@ import type { MeView } from '../../../shared/types';
 import { api } from '../../lib/api';
 import { t } from '../../i18n/i18n';
 import { LangSwitch } from '../../components/LangSwitch/LangSwitch';
+import { ThemeSwitch } from '../../components/ThemeSwitch/ThemeSwitch';
 
 export function Login({ onLogin }: { onLogin: (me: MeView) => void }) {
   const [username, setUsername] = useState('');
@@ -29,7 +30,10 @@ export function Login({ onLogin }: { onLogin: (me: MeView) => void }) {
           <h1>
             Craft<span>Apps</span>
           </h1>
-          <LangSwitch />
+          <div className="login-switches">
+            <ThemeSwitch />
+            <LangSwitch />
+          </div>
         </div>
         <p className="muted">{t('login.prompt')}</p>
         <label className="field">

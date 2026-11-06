@@ -48,7 +48,7 @@ CraftApps\
 │       ├── shared\                     Typen, Meldungen (Deutsch/Englisch), Zeitplan und Aktivitätsansicht für Server und Oberfläche
 │       └── web\                        React-Oberfläche, main.tsx startet sie
 │           ├── App\                    Kopfzeile; auf schmalen Bildschirmen mit Burger- und Benutzermenü
-│           ├── components\             ActivityFilters, AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, Toggle – jeweils mit ihren Styles
+│           ├── components\             ActivityFilters, AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – jeweils mit ihren Styles
 │           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
 │           ├── lib\                    API-Aufrufe und Formatierung
 │           ├── pages\                  Apps, Aktivität, Benachrichtigungen, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles
@@ -166,6 +166,8 @@ Registry-Eintrag.
 - **Deutsch und Englisch:** Die Verwaltung richtet sich nach der Sprache des Browsers und
   hat oben einen Umschalter, ebenso die Startseite unter `/`. Jeder Benachrichtigungskanal
   schreibt in der Sprache, die für ihn eingestellt ist.
+- **Hell und dunkel:** Beide Seiten folgen dem Design des Systems; der Umschalter neben der
+  Sprache wählt für diesen Browser hell oder dunkel.
 
 Daten: Benutzer, Einstellungen, Benachrichtigungskanäle und Verlauf liegen in MySQL, die
 Apps im Volume `craftapps_data`, das nginx nur lesend einbindet.
@@ -208,7 +210,7 @@ löschen:
 ![Verwaltung: eigenes Passwort ändern, die Liste der Benutzer und das Formular für einen neuen](docs/images/admin-users-de.png)
 
 **Auf dem Handy:** Bis 1000 px Breite wandern die Tabs ins Burgermenü, Name und Abmelden ins
-Benutzermenü daneben; der Sprachumschalter bleibt in der Leiste:
+Benutzermenü daneben; die Umschalter für Design und Sprache bleiben in der Leiste:
 
 ![Verwaltung auf dem Handy: Apps, das offene Burgermenü und die Benachrichtigungskanäle mit offenem Benutzermenü](docs/images/admin-mobile-de.png)
 
