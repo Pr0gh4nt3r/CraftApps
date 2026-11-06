@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { AppView } from '../../../shared/types';
+import { countUse, type Layout } from '../../lib/appsView';
 import { formatDate, formatSize } from '../../lib/format';
 import { getLang, t, tm, type UiKey } from '../../i18n/i18n';
 import { Toggle } from '../Toggle/Toggle';
@@ -25,11 +26,14 @@ function metaLine(app: AppView): string {
 export function AppCard({
   app,
   index,
+  layout = 'grid',
   onAction,
   onAutoUpdate,
 }: {
   app: AppView;
   index: number;
+  /** A tile in the grid or a row in the list */
+  layout?: Layout;
   onAction: (action: Action) => void;
   onAutoUpdate: (enabled: boolean) => void;
 }) {
@@ -73,7 +77,7 @@ export function AppCard({
     );
   } else if (app.openUrl) {
     primary = (
-      <a className="btn primary" href={app.openUrl} target="_blank" rel="noreferrer">
+      <a className="btn primary" href={app.openUrl} target="_blank" rel="noreferrer" onClick={() => countUse(app.id)}>
         {t('app.open')}
       </a>
     );
@@ -114,15 +118,23 @@ export function AppCard({
             <p className="desc">{description}</p>
           </div>
         </div>
-        <span className={`chip ${status.tone}`}>{t(status.label)}</span>
-        <p className="meta">{metaLine(app)}</p>
+        <div className="card-state">
+          <span className={`chip ${status.tone}`}>{t(status.label)}</span>
+          <p className="meta">{metaLine(app)}</p>
+        </div>
         {job?.state === 'failed' && <p className="card-error">{tm(job.error)}</p>}
         {app.error && <p className="card-error">{tm(app.error)}</p>}
-        {installed && (
-          <Toggle className="card-toggle" checked={app.autoUpdate} onChange={onAutoUpdate}>
-            {t('app.autoUpdate')}
-          </Toggle>
-        )}
+        {installed &&
+          (layout === 'list' ? (
+            // In the list only the switch, named by its tooltip
+            <span className="card-toggle" title={t('app.autoUpdate')}>
+              <Toggle checked={app.autoUpdate} onChange={onAutoUpdate} label={t('app.autoUpdate')} />
+            </span>
+          ) : (
+            <Toggle className="card-toggle" checked={app.autoUpdate} onChange={onAutoUpdate}>
+              {t('app.autoUpdate')}
+            </Toggle>
+          ))}
       </div>
 
       <footer className="card-actions">
@@ -144,7 +156,7 @@ export function AppCard({
               {menuOpen && (
                 <div className="menu">
                   {app.status === 'update-available' && app.openUrl && (
-                    <a href={app.openUrl} target="_blank" rel="noreferrer">
+                    <a href={app.openUrl} target="_blank" rel="noreferrer" onClick={() => countUse(app.id)}>
                       {t('app.open')} ↗
                     </a>
                   )}
@@ -157,6 +169,17 @@ export function AppCard({
                   <a href={`${app.repoUrl}/releases`} target="_blank" rel="noreferrer">
                     {t('app.releaseNotes')} ↗
                   </a>
+                  {/* The list has no room for the links of the tile */}
+                  {layout === 'list' && (
+                    <>
+                      <a href={app.websiteUrl} target="_blank" rel="noreferrer">
+                        Website ↗
+                      </a>
+                      <a href={app.repoUrl} target="_blank" rel="noreferrer">
+                        GitHub ↗
+                      </a>
+                    </>
+                  )}
                 </div>
               )}
             </div>

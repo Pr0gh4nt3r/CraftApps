@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { StateView } from '../../../shared/types';
 import { api } from '../../lib/api';
+import { arrange, saveLayout, saveSort, storedLayout, storedSort, type Layout, type Sort } from '../../lib/appsView';
 import { AppCard, type Action } from '../../components/AppCard/AppCard';
+import { AppsControls } from '../../components/AppsControls/AppsControls';
 import { formatAt, formatDateTime, formatFull } from '../../lib/format';
-import { t, tm } from '../../i18n/i18n';
+import { getLocale, t, tm } from '../../i18n/i18n';
 
 export function AppsPage() {
   const [state, setState] = useState<StateView | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [sort, setSort] = useState<Sort>(storedSort);
+  const [layout, setLayout] = useState<Layout>(storedLayout);
+  const [query, setQuery] = useState('');
 
   const load = useCallback(
     () => api<StateView>('GET', '/api/state').then(setState, (err: Error) => setNotice(err.message)),
@@ -36,6 +41,7 @@ export function AppsPage() {
   if (!state) return <p className="muted">{t('common.loading')}</p>;
 
   const installed = state.apps.filter((a) => a.status !== 'not-installed').length;
+  const shown = arrange(state.apps, sort, query, getLocale());
   const updates = state.apps.filter((a) => a.status === 'update-available').length;
   const github =
     state.github.remaining !== null
@@ -80,15 +86,35 @@ export function AppsPage() {
       )}
       {notice && <p className="banner error">{notice}</p>}
 
+      {state.apps.length > 0 && (
+        <AppsControls
+          sort={sort}
+          onSort={(next) => {
+            setSort(next);
+            saveSort(next);
+          }}
+          query={query}
+          onQuery={setQuery}
+          layout={layout}
+          onLayout={(next) => {
+            setLayout(next);
+            saveLayout(next);
+          }}
+        />
+      )}
+
       {state.apps.length === 0 ? (
         <p className="banner">{t('apps.none')}</p>
+      ) : shown.length === 0 ? (
+        <p className="banner">{t('apps.noMatch', { query: query.trim() })}</p>
       ) : (
-        <div className="grid">
-          {state.apps.map((app, index) => (
+        <div className={layout === 'list' ? 'grid list' : 'grid'}>
+          {shown.map((app, index) => (
             <AppCard
               key={app.id}
               app={app}
               index={index}
+              layout={layout}
               onAction={(action: Action) => run('POST', `/api/apps/${app.id}/${action}`)}
               onAutoUpdate={(enabled) => run('PATCH', `/api/apps/${app.id}`, { autoUpdate: enabled })}
             />

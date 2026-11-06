@@ -21,6 +21,26 @@ export function UserIcon() {
   );
 }
 
+// Tiles and list (AppsControls)
+export function GridIcon() {
+  return (
+    <svg {...ICON}>
+      <rect x="4" y="4" width="6.5" height="6.5" />
+      <rect x="13.5" y="4" width="6.5" height="6.5" />
+      <rect x="4" y="13.5" width="6.5" height="6.5" />
+      <rect x="13.5" y="13.5" width="6.5" height="6.5" />
+    </svg>
+  );
+}
+
+export function ListIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  );
+}
+
 export function LogoutIcon() {
   return (
     <svg {...ICON}>
