@@ -1,0 +1,10 @@
+// Styles of the public start page – the index.html that src/server/apps/overview.ts writes into
+// the data volume. Vite builds them into dist/web/overview/overview.css (vite.config.ts), the
+// admin copies the file next to index.html. Same palettes, fonts and mixins as the admin UI
+// (../web/styles/_shared.scss). The order below is the cascade order.
+@use 'base';
+@use '../web/components/Icon/icon';
+@use 'switches';
+@use 'controls';
+@use 'tiles';
+@use 'details';

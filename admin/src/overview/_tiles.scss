@@ -1,0 +1,193 @@
+// The installed apps: tiles in a grid or, with the switch, a list with one row per app
+@use '../web/styles/shared';
+
+// Tiles at least as wide as their version line needs ("Version 0.20.0 · 27. Okt. 2026"), so
+// at most three side by side; all rows as high as the highest tile
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(325px, 100%), 1fr));
+  grid-auto-rows: 1fr;
+  gap: 1px;
+  background: var(--line);
+  border: shared.$hairline;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// A tile; --c is the app's color (in the markup – it comes from the launcher)
+.app {
+  position: relative;
+  display: flex;
+  background: var(--surface);
+
+  &[hidden] {
+    display: none;
+  }
+
+  &:hover {
+    background: var(--hover);
+  }
+
+  img,
+  .icon {
+    flex: none;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+  }
+
+  // Without a picture: the first letter on the app color
+  .icon {
+    display: grid;
+    place-items: center;
+    background: var(--c);
+    color: #0b0d10;
+    font-size: 24px;
+    font-weight: 700;
+  }
+}
+
+// The tile is a link to the app
+.app-main {
+  flex: 1;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px;
+  color: inherit;
+  text-decoration: none;
+
+  // Name, description and version one below the other, over the tile's whole height
+  > span:last-child {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-self: stretch;
+    min-width: 0;
+  }
+}
+
+// Info in the corner of the tile: opens the details. Just the symbol, a frame only for the keyboard
+.app-info {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--text);
+    outline-offset: -2px;
+  }
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.name {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+
+  span {
+    @include shared.app-ink;
+  }
+}
+
+// Room for the info button in the corner – only the name reaches up there
+.grid:not(.list) .name {
+  padding-right: 36px;
+}
+
+.desc,
+.meta {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+// Always one line, at the bottom of the tile – in a row with a longer description it stays in
+// line with the others ("…" only if a version were very long)
+.meta {
+  margin-top: auto;
+  padding-top: 6px;
+  overflow: hidden;
+  font: 12px var(--mono);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.empty {
+  margin: 0;
+  padding: 32px;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+// The list: name and description on the left, version on the right, info at the end
+.grid.list {
+  grid-template-columns: 1fr;
+
+  .app-main {
+    align-items: center;
+    padding: 12px 18px;
+  }
+
+  .app img,
+  .app .icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+  }
+
+  .app-main > span:last-child {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 16px;
+    align-items: center;
+    width: 100%;
+  }
+
+  .name {
+    font-size: 17px;
+  }
+
+  .meta {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin: 0;
+    padding: 0;
+  }
+
+  .app-info {
+    position: static;
+    align-self: center;
+    margin-right: 18px;
+  }
+
+  // Phones: the version below the description again
+  @media (max-width: shared.$narrow) {
+    .app-main > span:last-child {
+      display: block;
+    }
+
+    .meta {
+      padding-top: 4px;
+    }
+  }
+}

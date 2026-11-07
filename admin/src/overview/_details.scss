@@ -1,0 +1,331 @@
+// Details of an app like in the launcher and the admin UI – only with JavaScript, the script
+// builds the window. --c is the app's color.
+@use '../web/styles/shared';
+
+body.details-open {
+  overflow: hidden;
+}
+
+.details-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow-y: auto;
+  padding: 32px 16px;
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
+  backdrop-filter: blur(2px);
+
+  @media (max-width: shared.$narrow) {
+    padding: 0;
+  }
+}
+
+.details {
+  max-width: 1240px;
+  margin: 0 auto;
+  background: var(--bg);
+  border: shared.$hairline;
+  border-top: 2px solid var(--c);
+  box-shadow: var(--shadow);
+
+  h2 {
+    margin: 0;
+    font-size: 34px;
+    line-height: 1.15;
+
+    span {
+      @include shared.app-ink;
+    }
+  }
+
+  h3 {
+    margin: 0 0 14px;
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 8px;
+    margin: 0 0 14px;
+
+    > div {
+      padding: 12px 14px;
+      border: shared.$hairline;
+      background: var(--surface);
+    }
+  }
+
+  dd {
+    margin: 4px 0 0;
+    font-size: 15px;
+  }
+}
+
+// Small uppercase labels: "App details", headings, the facts and the caption
+.details-label,
+.details h3,
+.details dt,
+.details figcaption {
+  color: var(--muted);
+  @include shared.label(11px, 0.12em);
+}
+
+// Head: tinted with the app color, paging and closing at the top
+.details-head {
+  padding: 20px 24px;
+  background: color-mix(in srgb, var(--c) 8%, var(--surface));
+  border-bottom: shared.$hairline;
+}
+
+.details-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.details-nav {
+  display: flex;
+  gap: 8px;
+
+  button {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: shared.$hairline;
+    background: none;
+    color: var(--text);
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    &:hover:not(:disabled) {
+      border-color: var(--text);
+    }
+  }
+}
+
+.details-title {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  margin: 12px 0 18px;
+
+  // Phones: "Open" below icon and name
+  @media (max-width: shared.$narrow) {
+    grid-template-columns: auto minmax(0, 1fr);
+
+    > a {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.details-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 18px;
+
+  @media (max-width: shared.$narrow) {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+  }
+}
+
+// Without a picture: the first letter on the app color
+span.details-icon {
+  display: grid;
+  place-items: center;
+  background: var(--c);
+  color: #0b0d10;
+  font-size: 40px;
+  font-weight: 800;
+}
+
+.details-headline {
+  margin: 4px 0 0;
+  font-size: 16px;
+}
+
+.details-meta {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.details-open-app {
+  display: grid;
+  place-items: center;
+  min-width: 240px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--muted);
+  color: var(--text);
+  @include shared.label(12px, 0.12em);
+  text-decoration: none;
+
+  &:hover {
+    border-color: var(--text);
+  }
+}
+
+.details-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  a {
+    padding: 9px 14px;
+    border: shared.$hairline;
+    color: var(--text);
+    @include shared.label(11px, 0.12em);
+    text-decoration: none;
+
+    &:hover {
+      border-color: var(--text);
+    }
+  }
+}
+
+// Body: pictures and text on the left, the features on the right, the release below
+.details-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 24px 32px;
+  padding: 24px;
+
+  @media (max-width: shared.$two-columns) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.details-head,
+.details-body {
+  @media (max-width: shared.$narrow) {
+    padding: 16px;
+  }
+}
+
+.details-about > p {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.shots {
+  margin: 0 0 18px;
+
+  figcaption {
+    margin-top: 10px;
+  }
+}
+
+.shot-frame {
+  position: relative;
+  aspect-ratio: 8 / 5;
+  border: shared.$hairline;
+  background: var(--surface);
+
+  // On the picture itself – dark in both designs
+  button {
+    position: absolute;
+    top: 50%;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(13, 15, 19, 0.75);
+    color: #e7e9ee;
+    transform: translateY(-50%);
+    cursor: pointer;
+  }
+
+  .prev {
+    left: 10px;
+  }
+
+  .next {
+    right: 10px;
+  }
+}
+
+.shot-frame img,
+.shot-thumbs img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shot-thumbs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+
+  button {
+    padding: 0;
+    aspect-ratio: 8 / 5;
+    border: shared.$hairline;
+    background: none;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  [aria-pressed="true"] {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+}
+
+.details-features {
+  ol {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    padding: 14px 16px;
+    border: shared.$hairline;
+    background: var(--surface);
+  }
+
+  strong {
+    display: flex;
+    gap: 14px;
+    align-items: baseline;
+    font-size: 15px;
+
+    // The feature's number
+    span {
+      color: var(--primary);
+      font: 700 11px var(--mono);
+    }
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+}
+
+.details-release {
+  grid-column: 1 / -1;
+  padding-top: 20px;
+  border-top: shared.$hairline;
+
+  > a {
+    color: var(--primary);
+    font-size: 14px;
+  }
+}

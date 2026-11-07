@@ -1,4 +1,5 @@
 // Reset, typography and the small helper classes
+@use 'shared';
 
 * {
   box-sizing: border-box;
@@ -12,7 +13,7 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
-  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 15px/1.5 shared.$sans;
 }
 
 a {

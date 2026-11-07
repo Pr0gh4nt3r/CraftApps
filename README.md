@@ -38,6 +38,8 @@ CraftApps\
 │   ├── Dockerfile
 │   ├── public\                         Tab icons: admin UI, overview\ for the start page
 │   └── src\
+│       ├── assets\icons\               Icons of both pages, one SVG file each
+│       ├── overview\                   Styles of the start page (SCSS), built into dist\web\overview\
 │       ├── server\                     Fastify server, main.ts starts it
 │       │   ├── api\                    Routes for the admin UI
 │       │   ├── apps\                   Find, install and update apps; start page
@@ -48,7 +50,7 @@ CraftApps\
 │       ├── shared\                     Types, messages (German/English), check schedule and activity view for server and frontend
 │       └── web\                        React frontend, main.tsx starts it
 │           ├── App\                    Top bar; on narrow screens with a burger and a user menu
-│           ├── components\             ActivityFilters, AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, Toggle – each with its styles
+│           ├── components\             ActivityFilters, AppActions, AppCard, AppDetails, AppsControls, ChannelForm, Icon, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – each with its styles
 │           ├── i18n\                   Language and texts, German and English in locales\
 │           ├── lib\                    API calls and formatting
 │           ├── pages\                  Apps, activity, notifications, settings, users, login – each with its styles
@@ -146,6 +148,11 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 
 - **Apps** in a grid like the Craft Launcher – with its icons, brand colors and short
   descriptions: install, update, reinstall, uninstall, toggle automatic updates per app.
+  Sorted by name, by use or by the newest release, searchable, as tiles or as a list – on the
+  start page as well.
+- **Details of every app** as in the launcher: what it is, its screenshots and features and
+  the latest version – in the admin UI a click on an app opens them, with all its actions; on
+  the start page the info button on a tile, with **Open**.
 - **New apps** it finds by itself: all storytold repos ending in `craft` whose newest
   release in the update channel has a `<app>-web-*.zip`. New apps are reported and, if you
   like, installed automatically.
@@ -164,6 +171,8 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 - **English and German:** the admin UI follows the browser's language and has a switch in
   the top bar, the start page at `/` likewise. Each notification channel uses the language
   set for it.
+- **Light and dark:** both pages follow the system's design; the switch next to the language
+  picks light or dark for this browser.
 
 Data: users, settings, notification channels and history live in MySQL, the apps in the
 volume `craftapps_data`, which nginx mounts read-only.
@@ -171,9 +180,26 @@ volume `craftapps_data`, which nginx mounts read-only.
 ### Screenshots
 
 **Apps:** one card per app – here installed, with an update waiting (automatic updates
-turned off) and not installed yet:
+turned off) and not installed yet. Above them the order, a search and the switch between tiles
+and a list; this browser remembers order and layout. **Most used** counts how often an app was
+opened from the page in this browser, like the desktop launcher does on its computer:
 
 ![Admin UI: apps with their state, version and automatic updates](docs/images/admin-apps-en.png)
+
+As a list, one row per app – the links to the website and GitHub are in the **…** menu there:
+
+![Admin UI: the apps as a list with state, version, automatic updates and actions](docs/images/admin-apps-list-en.png)
+
+In the light design, here chosen with the switch at the top right:
+
+![Admin UI in the light design: the apps as tiles](docs/images/admin-apps-light-en.png)
+
+**Details:** a click on an app opens its page from the launcher – headline, screenshots, what it
+is, its features and the latest version, with the same actions as on its card; the arrows page
+through the apps in the order shown. The start page shows the same details for the installed
+apps, via the info button on their tiles:
+
+![Admin UI: the details of PhotoCraft with screenshots, features and the latest version](docs/images/admin-details-en.png)
 
 **Activity:** what happened, automatically or by which user – every check with its result,
 installations and updates, changes to settings, channels and users, logins and test messages.
@@ -202,17 +228,28 @@ accounts:
 
 ![Admin UI: change your own password, the list of users and the form for a new one](docs/images/admin-users-en.png)
 
-**On the phone:** up to 1000 px wide, the tabs fold into the burger menu, name and logout into
-the user menu next to it; the language switch stays in the bar:
+**On narrow screens and the phone:** up to 1050 px wide – so also in the pictures of
+notifications, settings and users above – the tabs fold into the burger menu, name and logout
+into the user menu next to it; the design and language switches stay in the bar. Wider, a long
+user name ends in "…" in the bar:
 
 ![Admin UI on the phone: apps, the open burger menu and the notification channels with the open user menu](docs/images/admin-mobile-en.png)
 
-**Start page** at `/`: the installed apps, served by nginx – on the computer and on the
-phone:
+**Start page** at `/`: the installed apps, served by nginx – with the same order, search and
+list as the admin UI – on the computer and on the phone:
 
 ![Start page: the installed apps with version and release date](docs/images/start-page-en.png)
 
 ![Start page on the phone: the installed apps one below the other](docs/images/start-page-mobile-en.png)
+
+A click on a tile opens the app as before; the info button in its corner opens its details,
+with **Open** to start the app:
+
+![Start page: the details of PhotoCraft with screenshots, features and Open](docs/images/start-page-details-en.png)
+
+In the light design:
+
+![Start page in the light design](docs/images/start-page-light-en.png)
 
 ## Setup
 
@@ -587,9 +624,11 @@ admin UI or `null`.
   same database wait for each other. A backup of the database before an update doesn't hurt
   anyway.
 - Login: at most 10 attempts per 15 minutes and IP address.
-- The admin UI takes order, names, colors, English and German texts and icons from the
-  [Craft Launcher](https://github.com/storytold/craft-launcher). If it is unreachable, the
-  last known state applies.
+- The admin UI takes order, names, colors, English and German texts, icons and the details
+  pages from the [Craft Launcher](https://github.com/storytold/craft-launcher). If it is
+  unreachable, the last known state applies. The details pages are English only, as in the
+  launcher; their screenshots end up in the volume `craftapps_data` under `screenshots/`,
+  where the start page reads them as well.
 - The admin container runs as user 1000 with a read-only file system and without Linux
   capabilities. A new volume `craftapps_data` belongs to this user automatically. If the
   admin UI still reports missing write access, run
@@ -612,7 +651,9 @@ again:
 - **Admin UI** at `http://localhost:5173`: Vite shows changes to the frontend right away,
   the server restarts on changes.
 - **Start page** at `http://localhost:8080`: nginx with `nginx.conf` as on the Pi, serving
-  `admin/data`. Another port: `START_PAGE_PORT=8090 ./dev.sh`.
+  `admin/data`. Another port: `START_PAGE_PORT=8090 ./dev.sh`. Its styles and icons come
+  from the build: the server runs `vite build` before it starts – after changes in
+  `admin/src/overview/` restart it.
 - Beforehand the script starts MySQL from `docker-compose.dev.yml` – and at the end stops it
   only if it started it. It runs `npm ci` if the dependencies are missing or
   `package-lock.json` changed, and creates `admin/.env` from `.env.example` if it's missing.
@@ -628,7 +669,7 @@ docker compose -f docker-compose.dev.yml up -d   # MySQL for development
 cd admin
 npm ci
 cp .env.example .env                       # once; matches docker-compose.dev.yml
-npm run dev:server                         # server, restarts on changes
+npm run dev:server                         # builds the start page's styles, then the server; restarts on changes
 npm run dev:web                            # second terminal: UI at http://localhost:5173
 # third terminal, in the main folder: start page at http://localhost:8080
 docker run --rm -p 127.0.0.1:8080:80 \

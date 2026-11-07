@@ -1,0 +1,61 @@
+// Icons (Icon): each file in src/assets/icons/ as a mask over the text color, so an icon takes
+// the color of its button in both designs. 18px by default – a component sets another size on
+// its .ui-icon. The start page loads this partial as well. Vite inlines the files into the CSS;
+// the paths start at admin/, so they hold for both entries (admin UI and start page). A new
+// icon needs its file, a rule here (written out – Vite doesn't resolve paths built with #{})
+// and its name in IconName (Icon.tsx).
+
+.ui-icon {
+  display: inline-block;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+}
+
+.ui-icon-chevron-left {
+  mask-image: url('/src/assets/icons/chevron-left.svg');
+}
+
+.ui-icon-chevron-right {
+  mask-image: url('/src/assets/icons/chevron-right.svg');
+}
+
+.ui-icon-close {
+  mask-image: url('/src/assets/icons/close.svg');
+}
+
+.ui-icon-grid {
+  mask-image: url('/src/assets/icons/grid.svg');
+}
+
+.ui-icon-info {
+  mask-image: url('/src/assets/icons/info.svg');
+}
+
+.ui-icon-list {
+  mask-image: url('/src/assets/icons/list.svg');
+}
+
+.ui-icon-logout {
+  mask-image: url('/src/assets/icons/logout.svg');
+}
+
+.ui-icon-monitor {
+  mask-image: url('/src/assets/icons/monitor.svg');
+}
+
+.ui-icon-moon {
+  mask-image: url('/src/assets/icons/moon.svg');
+}
+
+.ui-icon-sun {
+  mask-image: url('/src/assets/icons/sun.svg');
+}
+
+.ui-icon-user {
+  mask-image: url('/src/assets/icons/user.svg');
+}

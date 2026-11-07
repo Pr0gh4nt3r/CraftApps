@@ -17,7 +17,6 @@ export function LangSwitch() {
           lang={l.id}
           title={l.name}
           aria-pressed={l.id === lang}
-          className={l.id === lang ? 'active' : undefined}
           onClick={() => setLang(l.id)}
         >
           {l.label}

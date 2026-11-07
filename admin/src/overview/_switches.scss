@@ -1,0 +1,32 @@
+// Light | dark | system and DE | EN in the title bar as in the admin UI – only with JavaScript,
+// without it the switches couldn't work (the script shows them)
+@use '../web/styles/shared';
+
+.switches {
+  display: flex;
+  gap: 8px;
+}
+
+.switch {
+  @include shared.segmented;
+
+  &[hidden] {
+    display: none;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+.theme-switch {
+  button {
+    padding: 3px 6px;
+  }
+
+  .ui-icon {
+    width: 14px;
+    height: 14px;
+  }
+}

@@ -53,8 +53,19 @@ page frame, forms and tables. `styles/index.scss` loads all partials – add new
 their order is the cascade order, so on equal specificity a later partial wins. Colors stay
 CSS custom properties – React sets the app color `--c` at runtime. Drop-downs use the
 component `Select` (one choice, the browser's select) or `MultiSelect` (several) – both draw
-the arrow with the mixin `chevron` from `_shared.scss`, so there is no bare `<select>`. The start page's CSS sits
-inline in the HTML that `admin/src/server/apps/overview.ts` generates.
+the arrow with the mixin `chevron` from `_shared.scss`, so there is no bare `<select>`. There
+are two designs: dark is the default in `:root`, light comes from the mixin `light-colors`
+(with `data-theme="light"` or, without a choice, `prefers-color-scheme`) – every new color
+needs a value in both, never a fixed color in a component; text in an app's color uses the
+mixin `app-ink`; a color of a component's own sets its light value with the mixin `light`.
+
+The start page's styles are SCSS as well, in `admin/src/overview/` (entry `overview.scss`,
+its partials in cascade order). Vite builds them as a second entry into
+`dist/web/overview/overview.css`, and the admin copies the file next to the `index.html` that
+`admin/src/server/apps/overview.ts` writes. They use `_shared.scss` too – the same palettes,
+fonts and mixins. No style code in TypeScript: the only inline styles are the app color `--c`
+set at runtime (it comes from the launcher) and the HTML of the emails in
+`notify/drivers.ts`, which mail clients only read inline.
 
 ## Icons
 
@@ -63,6 +74,13 @@ admin copies this set into the data volume) are the sources. `favicon.ico` (16, 
 48 px) and `apple-touch-icon.png` (180 px, the same motif on a square background) next to
 them are rendered from the SVGs, e.g. with `rsvg-convert` – always update all three
 together.
+
+The icons inside both pages (design switch, tiles | list, info, paging, closing, user, logout)
+are SVG files in `admin/src/assets/icons/`: 24×24, stroke 1.8, round caps and joins, black –
+only their shape counts. The component `Icon` (`admin/src/web/components/Icon/`) draws them
+as a CSS mask over the text color, so they follow the button and the design; the start page
+uses the same classes (`<span class="ui-icon ui-icon-sun" aria-hidden="true">`). A new icon
+needs its file, a rule in `_icon.scss` and its name in `IconName` – no SVG markup in TS/TSX.
 
 ## Language
 

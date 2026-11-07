@@ -1,0 +1,83 @@
+// Order, search and layout above the apps (AppsControls) – on phones the search gets a row of
+// its own
+@use '../../styles/shared';
+
+.apps-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.apps-sort {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .apps-sort-label {
+    color: var(--muted);
+    @include shared.label(11px, 0.12em);
+  }
+
+  select {
+    height: 36px;
+    min-width: 210px;
+    padding-left: 10px;
+    border: shared.$hairline-strong;
+    background: var(--bg);
+    font-size: 13px;
+  }
+}
+
+.apps-search {
+  width: 240px;
+  height: 36px;
+  padding: 0 10px;
+  border: shared.$hairline-strong;
+  border-radius: 0;
+  background: var(--bg);
+  font-size: 13px;
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  @media (max-width: shared.$narrow) {
+    flex: 1 1 100%;
+    order: -1;
+    width: auto;
+  }
+}
+
+// Tiles | list: two square buttons, the chosen one filled
+.layout-switch {
+  display: flex;
+  border: shared.$hairline-strong;
+
+  button {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 34px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+
+    & + button {
+      border-left: shared.$hairline-strong;
+    }
+
+    &:hover {
+      color: var(--text);
+    }
+
+    &.active {
+      background: var(--text);
+      color: var(--bg);
+    }
+  }
+}

@@ -38,6 +38,8 @@ CraftApps\
 │   ├── Dockerfile
 │   ├── public\                         Tab-Icons: Verwaltung, overview\ für die Startseite
 │   └── src\
+│       ├── assets\icons\               Icons beider Seiten, je eine SVG-Datei
+│       ├── overview\                   Styles der Startseite (SCSS), gebaut nach dist\web\overview\
 │       ├── server\                     Fastify-Server, main.ts startet ihn
 │       │   ├── api\                    Routen für die Verwaltung
 │       │   ├── apps\                   Apps finden, installieren und aktualisieren; Startseite
@@ -48,7 +50,7 @@ CraftApps\
 │       ├── shared\                     Typen, Meldungen (Deutsch/Englisch), Zeitplan und Aktivitätsansicht für Server und Oberfläche
 │       └── web\                        React-Oberfläche, main.tsx startet sie
 │           ├── App\                    Kopfzeile; auf schmalen Bildschirmen mit Burger- und Benutzermenü
-│           ├── components\             ActivityFilters, AppCard, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, Toggle – jeweils mit ihren Styles
+│           ├── components\             ActivityFilters, AppActions, AppCard, AppDetails, AppsControls, ChannelForm, Icon, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – jeweils mit ihren Styles
 │           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
 │           ├── lib\                    API-Aufrufe und Formatierung
 │           ├── pages\                  Apps, Aktivität, Benachrichtigungen, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles
@@ -146,7 +148,11 @@ Registry-Eintrag.
 
 - **Apps** im Raster wie der Craft Launcher – mit dessen Icons, Markenfarben und
   Kurzbeschreibungen: installieren, aktualisieren, neu installieren, deinstallieren,
-  automatische Updates je App an- oder ausschalten.
+  automatische Updates je App an- oder ausschalten. Sortiert nach Name, Nutzung oder neuestem
+  Release, durchsuchbar, als Kacheln oder Liste – auch auf der Startseite.
+- **Details jeder App** wie im Launcher: was sie ist, ihre Screenshots und Funktionen und die
+  neueste Version – in der Verwaltung per Klick auf eine App, mit allen Aktionen; auf der
+  Startseite über das Info-Symbol einer Kachel, mit **Öffnen**.
 - **Neue Apps** findet sie selbst: alle Repos von storytold, die auf `craft` enden und
   deren neuestes Release im Update-Kanal ein `<app>-web-*.zip` hat. Neue Apps werden
   gemeldet und auf Wunsch automatisch installiert.
@@ -166,6 +172,8 @@ Registry-Eintrag.
 - **Deutsch und Englisch:** Die Verwaltung richtet sich nach der Sprache des Browsers und
   hat oben einen Umschalter, ebenso die Startseite unter `/`. Jeder Benachrichtigungskanal
   schreibt in der Sprache, die für ihn eingestellt ist.
+- **Hell und dunkel:** Beide Seiten folgen dem Design des Systems; der Umschalter neben der
+  Sprache wählt für diesen Browser hell oder dunkel.
 
 Daten: Benutzer, Einstellungen, Benachrichtigungskanäle und Verlauf liegen in MySQL, die
 Apps im Volume `craftapps_data`, das nginx nur lesend einbindet.
@@ -173,9 +181,27 @@ Apps im Volume `craftapps_data`, das nginx nur lesend einbindet.
 ### Screenshots
 
 **Apps:** eine Karte je App – hier installiert, mit wartendem Update (automatische Updates
-aus) und noch nicht installiert:
+aus) und noch nicht installiert. Darüber Sortierung, Suche und der Wechsel zwischen Kacheln und
+Liste; Sortierung und Ansicht merkt sich der Browser. **Am häufigsten genutzt** zählt, wie oft
+eine App in diesem Browser von der Seite aus geöffnet wurde – so wie der Desktop-Launcher auf
+seinem Rechner:
 
 ![Verwaltung: Apps mit Status, Version und automatischen Updates](docs/images/admin-apps-de.png)
+
+Als Liste, eine Zeile je App – die Links zu Website und GitHub stehen dort im Menü **…**:
+
+![Verwaltung: die Apps als Liste mit Status, Version, automatischen Updates und Aktionen](docs/images/admin-apps-list-de.png)
+
+Im hellen Design, hier mit dem Umschalter oben rechts gewählt:
+
+![Verwaltung im hellen Design: die Apps als Kacheln](docs/images/admin-apps-light-de.png)
+
+**Details:** Ein Klick auf eine App öffnet ihre Seite aus dem Launcher – Leitsatz, Screenshots,
+Beschreibung, Funktionen und die neueste Version, mit denselben Aktionen wie auf ihrer Karte;
+die Pfeile blättern durch die Apps in der angezeigten Reihenfolge. Die Startseite zeigt
+dieselben Details für die installierten Apps, über das Info-Symbol ihrer Kacheln:
+
+![Verwaltung: die Details von PhotoCraft mit Screenshots, Funktionen und der neuesten Version](docs/images/admin-details-de.png)
 
 **Aktivität:** was passiert ist, automatisch oder durch welchen Benutzer – jede Prüfung mit
 ihrem Ergebnis, Installationen und Updates, Änderungen an Einstellungen, Kanälen und
@@ -207,17 +233,28 @@ löschen:
 
 ![Verwaltung: eigenes Passwort ändern, die Liste der Benutzer und das Formular für einen neuen](docs/images/admin-users-de.png)
 
-**Auf dem Handy:** Bis 1000 px Breite wandern die Tabs ins Burgermenü, Name und Abmelden ins
-Benutzermenü daneben; der Sprachumschalter bleibt in der Leiste:
+**Auf schmalen Bildschirmen und dem Handy:** Bis 1050 px Breite – also auch in den Bildern von
+Benachrichtigungen, Einstellungen und Benutzern oben – wandern die Tabs ins Burgermenü, Name
+und Abmelden ins Benutzermenü daneben; die Umschalter für Design und Sprache bleiben in der
+Leiste. Breiter wird ein langer Benutzername in der Leiste mit „…“ gekürzt:
 
 ![Verwaltung auf dem Handy: Apps, das offene Burgermenü und die Benachrichtigungskanäle mit offenem Benutzermenü](docs/images/admin-mobile-de.png)
 
-**Startseite** unter `/`: die installierten Apps, ausgeliefert von nginx – am Rechner und auf
-dem Handy:
+**Startseite** unter `/`: die installierten Apps, ausgeliefert von nginx – mit derselben
+Sortierung, Suche und Liste wie die Verwaltung – am Rechner und auf dem Handy:
 
 ![Startseite: die installierten Apps mit Version und Release-Datum](docs/images/start-page-de.png)
 
 ![Startseite auf dem Handy: die installierten Apps untereinander](docs/images/start-page-mobile-de.png)
+
+Ein Klick auf eine Kachel öffnet wie bisher die App; das Info-Symbol in ihrer Ecke öffnet ihre
+Details, mit **Öffnen** zum Starten der App:
+
+![Startseite: die Details von PhotoCraft mit Screenshots, Funktionen und Öffnen](docs/images/start-page-details-de.png)
+
+Im hellen Design:
+
+![Startseite im hellen Design](docs/images/start-page-light-de.png)
 
 ## Einrichtung
 
@@ -598,9 +635,11 @@ Verwaltung oder `null`.
   Instanzen an derselben Datenbank warten aufeinander. Ein Backup der Datenbank vor einem
   Update schadet trotzdem nicht.
 - Anmeldung: höchstens 10 Versuche pro 15 Minuten und IP-Adresse.
-- Reihenfolge, Namen, Farben, deutsche und englische Texte und Icons übernimmt die
-  Verwaltung aus dem [Craft Launcher](https://github.com/storytold/craft-launcher). Ist der
-  nicht erreichbar, gilt der zuletzt bekannte Stand.
+- Reihenfolge, Namen, Farben, deutsche und englische Texte, Icons und die Detailseiten
+  übernimmt die Verwaltung aus dem [Craft Launcher](https://github.com/storytold/craft-launcher).
+  Ist der nicht erreichbar, gilt der zuletzt bekannte Stand. Die Detailseiten gibt es wie im
+  Launcher nur auf Englisch; ihre Screenshots landen im Volume `craftapps_data` unter
+  `screenshots/`, wo die Startseite sie ebenfalls liest.
 - Der Container der Verwaltung läuft als Benutzer 1000 mit schreibgeschütztem
   Dateisystem und ohne Linux-Capabilities. Ein neues Volume `craftapps_data` gehört
   automatisch diesem Benutzer. Meldet die Verwaltung trotzdem fehlende Schreibrechte, auf
@@ -623,7 +662,9 @@ wieder:
 - **Verwaltung** unter `http://localhost:5173`: Vite zeigt Änderungen an der Oberfläche
   sofort, der Server startet bei Änderungen neu.
 - **Startseite** unter `http://localhost:8080`: nginx mit `nginx.conf` wie auf dem Pi,
-  liefert `admin/data` aus. Anderer Port: `START_PAGE_PORT=8090 ./dev.sh`.
+  liefert `admin/data` aus. Anderer Port: `START_PAGE_PORT=8090 ./dev.sh`. Ihre Styles und
+  Icons kommen aus dem Build: Der Server führt vor dem Start `vite build` aus – nach
+  Änderungen in `admin/src/overview/` ihn neu starten.
 - Vorher startet das Skript MySQL aus `docker-compose.dev.yml` – und stoppt es am Ende nur,
   wenn es MySQL selbst gestartet hat. Fehlen die Abhängigkeiten oder hat sich
   `package-lock.json` geändert, führt es `npm ci` aus; fehlt `admin/.env`, legt es sie aus
@@ -640,7 +681,7 @@ docker compose -f docker-compose.dev.yml up -d   # MySQL for development
 cd admin
 npm ci
 cp .env.example .env                       # once; matches docker-compose.dev.yml
-npm run dev:server                         # server, restarts on changes
+npm run dev:server                         # builds the start page's styles, then the server; restarts on changes
 npm run dev:web                            # second terminal: UI at http://localhost:5173
 # third terminal, in the main folder: start page at http://localhost:8080
 docker run --rm -p 127.0.0.1:8080:80 \

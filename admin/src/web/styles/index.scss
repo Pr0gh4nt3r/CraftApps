@@ -3,14 +3,18 @@
 // cascade order: on equal specificity a later partial wins over an earlier one.
 @use 'shared';
 @use 'base';
+@use '../components/Icon/icon';
 @use '../App/topbar';
 @use '../components/LangSwitch/lang-switch';
+@use '../components/ThemeSwitch/theme-switch';
 @use 'page';
 @use 'buttons';
 @use '../pages/AppsPage/apps-page';
+@use '../components/AppsControls/apps-controls';
 @use '../components/AppCard/app-card';
 @use '../components/AppCard/progress';
 @use '../components/AppCard/menu';
+@use '../components/AppDetails/app-details';
 @use '../components/Toggle/toggle';
 @use 'forms';
 @use '../components/Select/select';

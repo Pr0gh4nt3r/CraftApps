@@ -3,9 +3,10 @@ import type { MeView } from '../../shared/types';
 import { ActivityPage } from '../pages/ActivityPage/ActivityPage';
 import { api, onUnauthorized } from '../lib/api';
 import { AppsPage } from '../pages/AppsPage/AppsPage';
-import { LogoutIcon, UserIcon } from './Icons';
+import { Icon } from '../components/Icon/Icon';
 import { t, useLang } from '../i18n/i18n';
 import { LangSwitch } from '../components/LangSwitch/LangSwitch';
+import { ThemeSwitch } from '../components/ThemeSwitch/ThemeSwitch';
 import { Login } from '../pages/Login/Login';
 import { NotificationsPage } from '../pages/NotificationsPage/NotificationsPage';
 import { SettingsPage } from '../pages/SettingsPage/SettingsPage';
@@ -111,6 +112,7 @@ export function App() {
           ))}
         </nav>
         <div className="topbar-side">
+          <ThemeSwitch />
           <LangSwitch />
           <button
             ref={userButton}
@@ -122,13 +124,15 @@ export function App() {
             aria-controls="topbar-user"
             onClick={() => toggle('user')}
           >
-            <UserIcon />
+            <Icon name="user" />
           </button>
           {/* In the bar; on narrow screens in the user menu */}
           <div id="topbar-user" className={open === 'user' ? 'user open' : 'user'}>
-            {me.username}
+            <span className="user-name" title={me.username}>
+              {me.username}
+            </span>
             <button type="button" className="logout" aria-label={t('app.logout')} title={t('app.logout')} onClick={logout}>
-              <LogoutIcon />
+              <Icon name="logout" />
             </button>
           </div>
           <button

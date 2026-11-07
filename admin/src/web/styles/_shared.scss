@@ -1,9 +1,12 @@
-// Everything that recurs across the components: colors, hairlines, the breakpoint, the tone
-// colors and the small uppercase labels. Every partial loads it with @use – from a component
-// folder as '../../styles/shared'; its CSS (the custom properties) is emitted only once.
+// Everything that recurs across the components: colors, fonts, hairlines, the breakpoints, the
+// tone colors and the small uppercase labels. Every partial loads it with @use – from a
+// component folder as '../../styles/shared'; its CSS (the custom properties) is emitted only
+// once. The start page (src/overview/) uses it as well.
 @use 'sass:map';
 
-// Colors stay custom properties – React sets the app color --c at runtime
+// Colors stay custom properties – React sets the app color --c at runtime. Dark is the
+// default; data-theme="light" on <html> switches to light, and without a choice of its own
+// (ThemeSwitch) the page follows the system.
 :root {
   color-scheme: dark;
   --bg: #0d0f13;
@@ -17,15 +20,70 @@
   --warn: #f5a524;
   --danger: #ff6b6b;
   --primary: #2f7bf5;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  // How much of the app color text in that color keeps – the rest is black, so that light
+  // brand colors stay readable on a light background
+  --app-ink: 100%;
   --mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+@mixin light-colors {
+  color-scheme: light;
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --surface-2: #eceef2;
+  --line: #dcdfe5;
+  --line-strong: #c2c7d0;
+  --text: #16191f;
+  --muted: #5c6370;
+  --ok: #0e8f5b;
+  --warn: #a86400;
+  --danger: #cf3030;
+  --primary: #2563eb;
+  --shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  --app-ink: 70%;
+}
+
+// Rules for the light design: with data-theme="light" on <html> or, without a choice of its
+// own, when the system is light – e.g. @include shared.light { --hover: …; }
+@mixin light {
+  :root[data-theme="light"] {
+    @content;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      @content;
+    }
+  }
+}
+
+@include light {
+  @include light-colors;
+}
+
+// Text of the pages; the monospace font is the custom property --mono
+$sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+// Text in the app color (the name's "Craft", …) – darker in the light design
+@mixin app-ink {
+  color: color-mix(in srgb, var(--c) var(--app-ink), #000);
 }
 
 // Phones: narrower margins, the side part of the toolbars below their heading
 $narrow: 720px;
 
 // Below this width the tabs fold into the burger menu, name and logout into the user menu –
-// in German the bar needs about 950px in one row
-$menu: 1000px;
+// in German the bar needs about 1040px in one row with a short user name; a longer one gets
+// shorter in the bar instead of the tabs
+$menu: 1050px;
+
+// Longest user name in the top bar; a longer one, or one without room, ends in "…" (the full
+// name is the tooltip)
+$user-name: 6em;
+
+// Below this width two columns side by side (the details of an app) become one
+$two-columns: 1000px;
 
 // Width of the pages with forms (notifications, settings, users) – a column in the middle
 $column: 760px;
@@ -67,6 +125,37 @@ $chevron-space: 34px;
   border-bottom: 1.5px solid currentColor;
   transform: translateY(-70%) rotate(45deg);
   pointer-events: none;
+}
+
+// A row of small buttons in a frame, the chosen one highlighted: DE | EN, light | dark | system
+@mixin segmented {
+  display: inline-flex;
+  border: $hairline;
+  border-radius: 6px;
+  overflow: hidden;
+
+  button {
+    padding: 3px 8px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: 700 11px var(--mono);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+
+    & + button {
+      border-left: $hairline;
+    }
+
+    &:hover {
+      color: var(--text);
+    }
+
+    &[aria-pressed="true"] {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+  }
 }
 
 // Small uppercase monospace labels: buttons, chips, table headings, links in the cards
