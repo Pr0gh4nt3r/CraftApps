@@ -67,7 +67,7 @@ function card(dataDir: string, app: OverviewApp): string {
           <span class="desc">${desc}</span>
           <span class="meta">Version ${esc(app.version)}${date}</span></span>
       </a>
-      <button type="button" class="app-info" data-details="${esc(app.id)}" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6v.01"/></svg></button>
+      <button type="button" class="app-info" data-details="${esc(app.id)}" hidden><span class="ui-icon ui-icon-info" aria-hidden="true"></span></button>
     </div>`;
 }
 
@@ -150,9 +150,9 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], assetD
     <h1>Craft Apps</h1>
     <div class="switches">
       <div class="switch theme-switch" role="group" hidden>
-        <button type="button" data-theme="light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
-        <button type="button" data-theme="dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
-        <button type="button" data-theme="system"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></button>
+        <button type="button" data-theme="light"><span class="ui-icon ui-icon-sun" aria-hidden="true"></span></button>
+        <button type="button" data-theme="dark"><span class="ui-icon ui-icon-moon" aria-hidden="true"></span></button>
+        <button type="button" data-theme="system"><span class="ui-icon ui-icon-monitor" aria-hidden="true"></span></button>
       </div>
       <div class="switch lang-switch" role="group" hidden>
         <button type="button" lang="de" title="Deutsch">DE</button>
@@ -171,8 +171,8 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], assetD
     </label>
     <input type="search">
     <div class="layout" role="group">
-      <button type="button" data-layout="grid"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/></svg></button>
-      <button type="button" data-layout="list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <button type="button" data-layout="grid"><span class="ui-icon ui-icon-grid" aria-hidden="true"></span></button>
+      <button type="button" data-layout="list"><span class="ui-icon ui-icon-list" aria-hidden="true"></span></button>
     </div>
   </div>
   <p class="no-match" hidden></p>
@@ -369,7 +369,6 @@ ${cards}
             published: "Published", download: "Download", platforms: "Platforms",
             changelog: "Full changelog", shotPrev: "Previous picture", shotNext: "Next picture" },
     };
-    const ICONS = { prev: '<path d="M15 5l-7 7 7 7"/>', next: '<path d="M9 5l7 7-7 7"/>', close: '<path d="M6 6l12 12M18 6L6 18"/>' };
     let current = null;
     let shot = 0;
     let opener = null;
@@ -387,14 +386,8 @@ ${cards}
       e.append(...children.filter((c) => c !== null && c !== undefined && c !== false));
       return e;
     };
-    // The icons are fixed markup from above, never data
-    const icon = (name) => {
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.setAttribute("viewBox", "0 0 24 24");
-      svg.setAttribute("aria-hidden", "true");
-      svg.innerHTML = ICONS[name];
-      return svg;
-    };
+    // An icon from admin/src/assets/icons/ – overview.css draws it (as in the admin UI)
+    const icon = (name) => el("span", { class: "ui-icon ui-icon-" + name, "aria-hidden": "true" });
     const shown = () => [...document.querySelectorAll(".grid .app:not([hidden])")].map((tile) => tile.dataset.app);
 
     function render() {
@@ -410,8 +403,8 @@ ${cards}
         : "–";
       const size = app.size ? Math.max(1, Math.round(app.size / 1e6)).toLocaleString(locale) + " MB" : "–";
       const [head, craft] = app.name.endsWith("Craft") ? [app.name.slice(0, -5), "Craft"] : [app.name, ""];
-      const navButton = (name, onclick, enabled) =>
-        el("button", { type: "button", title: t[name], "aria-label": t[name], disabled: !enabled, onclick }, icon(name));
+      const navButton = (name, symbol, onclick, enabled) =>
+        el("button", { type: "button", title: t[name], "aria-label": t[name], disabled: !enabled, onclick }, icon(symbol));
 
       const shots = d ? d.shots.filter((s) => s.url) : [];
       shot = Math.min(shot, Math.max(0, shots.length - 1));
@@ -423,8 +416,8 @@ ${cards}
         ? el("figure", { class: "shots" },
             el("div", { class: "shot-frame" },
               el("img", { src: shots[shot].url, alt: shots[shot].caption }),
-              shots.length > 1 && el("button", { type: "button", class: "prev", "aria-label": t.shotPrev, onclick: () => showShot(shot - 1) }, icon("prev")),
-              shots.length > 1 && el("button", { type: "button", class: "next", "aria-label": t.shotNext, onclick: () => showShot(shot + 1) }, icon("next"))),
+              shots.length > 1 && el("button", { type: "button", class: "prev", "aria-label": t.shotPrev, onclick: () => showShot(shot - 1) }, icon("chevron-left")),
+              shots.length > 1 && el("button", { type: "button", class: "next", "aria-label": t.shotNext, onclick: () => showShot(shot + 1) }, icon("chevron-right"))),
             el("figcaption", { text: shots[shot].caption + " · " + (shot + 1) + "/" + shots.length }),
             shots.length > 1 && el("div", { class: "shot-thumbs" },
               ...shots.map((s, i) =>
@@ -438,9 +431,9 @@ ${cards}
           el("div", { class: "details-bar" },
             el("span", { class: "details-label", text: t.label }),
             el("div", { class: "details-nav" },
-              navButton("prev", () => go(-1), at > 0),
-              navButton("next", () => go(1), at >= 0 && at < ids.length - 1),
-              navButton("close", close, true))),
+              navButton("prev", "chevron-left", () => go(-1), at > 0),
+              navButton("next", "chevron-right", () => go(1), at >= 0 && at < ids.length - 1),
+              navButton("close", "close", close, true))),
           el("div", { class: "details-title" },
             app.icon ? el("img", { class: "details-icon", src: app.icon, alt: "" })
                      : el("span", { class: "details-icon", text: app.name.charAt(0) }),

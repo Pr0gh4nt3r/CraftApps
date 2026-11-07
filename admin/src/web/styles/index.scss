@@ -3,6 +3,7 @@
 // cascade order: on equal specificity a later partial wins over an earlier one.
 @use 'shared';
 @use 'base';
+@use '../components/Icon/icon';
 @use '../App/topbar';
 @use '../components/LangSwitch/lang-switch';
 @use '../components/ThemeSwitch/theme-switch';

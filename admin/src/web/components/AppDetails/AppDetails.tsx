@@ -4,7 +4,7 @@ import { api } from '../../lib/api';
 import { STATUS, metaLine, splitName } from '../../lib/apps';
 import { formatDate, formatSize } from '../../lib/format';
 import { getLang, t, tm } from '../../i18n/i18n';
-import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from '../../App/Icons';
+import { Icon } from '../Icon/Icon';
 import { AppActions, type Action } from '../AppActions/AppActions';
 import { Toggle } from '../Toggle/Toggle';
 
@@ -22,10 +22,10 @@ function Screenshots({ shots }: { shots: Shot[] }) {
         {shots.length > 1 && (
           <>
             <button type="button" className="shot-prev" aria-label={t('details.shotPrev')} onClick={() => go(-1)}>
-              <ChevronLeftIcon />
+              <Icon name="chevron-left" />
             </button>
             <button type="button" className="shot-next" aria-label={t('details.shotNext')} onClick={() => go(1)}>
-              <ChevronRightIcon />
+              <Icon name="chevron-right" />
             </button>
           </>
         )}
@@ -115,13 +115,13 @@ export function AppDetails({
             <span className="details-label">{t('details.label')}</span>
             <div className="details-nav">
               <button type="button" className="btn square" disabled={!onPrev} onClick={onPrev ?? undefined} aria-label={t('details.prev')} title={t('details.prev')}>
-                <ChevronLeftIcon />
+                <Icon name="chevron-left" />
               </button>
               <button type="button" className="btn square" disabled={!onNext} onClick={onNext ?? undefined} aria-label={t('details.next')} title={t('details.next')}>
-                <ChevronRightIcon />
+                <Icon name="chevron-right" />
               </button>
               <button ref={closeRef} type="button" className="btn square" onClick={onClose} aria-label={t('details.close')} title={t('details.close')}>
-                <CloseIcon />
+                <Icon name="close" />
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { SORTS, type Layout, type Sort } from '../../lib/appsView';
 import { t } from '../../i18n/i18n';
-import { GridIcon, ListIcon } from '../../App/Icons';
+import { Icon } from '../Icon/Icon';
 import { Select } from '../Select/Select';
 
 interface Props {
@@ -45,7 +45,7 @@ export function AppsControls({ sort, onSort, query, onQuery, layout, onLayout }:
             className={layout === entry ? 'active' : undefined}
             onClick={() => onLayout(entry)}
           >
-            {entry === 'grid' ? <GridIcon /> : <ListIcon />}
+            <Icon name={entry} />
           </button>
         ))}
       </div>
