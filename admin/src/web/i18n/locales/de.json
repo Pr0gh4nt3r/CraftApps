@@ -52,6 +52,7 @@
   "apps.layout.grid": "Kacheln",
   "apps.layout.list": "Liste",
   "apps.noMatch": "Keine App passt zu „{query}“.",
+  "apps.notInstalled": "Nicht installiert",
 
   "app.status.installed": "Installiert · Aktuell",
   "app.status.updateAvailable": "Update verfügbar",

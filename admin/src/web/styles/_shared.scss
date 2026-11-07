@@ -85,6 +85,9 @@ $user-name: 6em;
 // Below this width two columns side by side (the details of an app) become one
 $two-columns: 1000px;
 
+// Width of the switch (Toggle) – the list of apps keeps a column that wide, with or without one
+$switch-width: 34px;
+
 // Width of the pages with forms (notifications, settings, users) – a column in the middle
 $column: 760px;
 

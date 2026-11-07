@@ -20,6 +20,26 @@
   }
 }
 
+// Not installed: greyed out like in the launcher – the icon without its colors, and grey instead
+// of the app color for number, name and placeholder (light enough for the dark number)
+:root {
+  --app-off: var(--muted);
+}
+
+@include shared.light {
+  --app-off: var(--line-strong);
+}
+
+.card.not-installed {
+  > * {
+    --c: var(--app-off);
+  }
+
+  .icon {
+    filter: grayscale(1);
+  }
+}
+
 // The name: a button for the keyboard that looks like the heading
 .card-name {
   padding: 0;
@@ -147,7 +167,8 @@
 // and the actions side by side; the links are in the "…" menu
 .list .card {
   display: grid;
-  grid-template-columns: auto minmax(0, 2fr) minmax(0, 1.4fr) auto auto;
+  // The switch's column keeps its width without a switch, so all rows line up
+  grid-template-columns: auto minmax(0, 2fr) minmax(0, 1.4fr) shared.$switch-width auto;
   grid-template-areas: "num head state toggle actions";
   align-items: center;
   column-gap: 20px;

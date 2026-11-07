@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { StateView } from '../../../shared/types';
+import type { AppView, StateView } from '../../../shared/types';
 import { api } from '../../lib/api';
 import { arrange, saveLayout, saveSort, storedLayout, storedSort, type Layout, type Sort } from '../../lib/appsView';
 import type { Action } from '../../components/AppActions/AppActions';
@@ -51,7 +51,12 @@ export function AppsPage() {
   if (!state) return <p className="muted">{t('common.loading')}</p>;
 
   const installed = state.apps.filter((a) => a.status !== 'not-installed').length;
-  const shown = arrange(state.apps, sort, query, getLocale());
+  // In the chosen order and within the search: the installed apps first, then – in a section of
+  // their own, like in the launcher – the others
+  const arranged = arrange(state.apps, sort, query, getLocale());
+  const ready = arranged.filter((a) => a.status !== 'not-installed');
+  const notInstalled = arranged.filter((a) => a.status === 'not-installed');
+  const shown = [...ready, ...notInstalled];
   // Paging goes through the apps as shown – in their order, within the search
   const openIndex = shown.findIndex((a) => a.id === openId);
   const openApp = state.apps.find((a) => a.id === openId);
@@ -63,6 +68,23 @@ export function AppsPage() {
     setOpenId(null);
     opener.current?.focus();
   };
+  // One grid of cards; their numbers go on across both sections
+  const grid = (apps: AppView[], first: number) =>
+    apps.length > 0 && (
+      <div className={layout === 'list' ? 'grid list' : 'grid'}>
+        {apps.map((app, index) => (
+          <AppCard
+            key={app.id}
+            app={app}
+            index={first + index}
+            layout={layout}
+            onOpen={() => openDetails(app.id)}
+            onAction={(action: Action) => run('POST', `/api/apps/${app.id}/${action}`)}
+            onAutoUpdate={(enabled) => run('PATCH', `/api/apps/${app.id}`, { autoUpdate: enabled })}
+          />
+        ))}
+      </div>
+    );
   const updates = state.apps.filter((a) => a.status === 'update-available').length;
   const github =
     state.github.remaining !== null
@@ -129,19 +151,15 @@ export function AppsPage() {
       ) : shown.length === 0 ? (
         <p className="banner">{t('apps.noMatch', { query: query.trim() })}</p>
       ) : (
-        <div className={layout === 'list' ? 'grid list' : 'grid'}>
-          {shown.map((app, index) => (
-            <AppCard
-              key={app.id}
-              app={app}
-              index={index}
-              layout={layout}
-              onOpen={() => openDetails(app.id)}
-              onAction={(action: Action) => run('POST', `/api/apps/${app.id}/${action}`)}
-              onAutoUpdate={(enabled) => run('PATCH', `/api/apps/${app.id}`, { autoUpdate: enabled })}
-            />
-          ))}
-        </div>
+        <>
+          {grid(ready, 0)}
+          {notInstalled.length > 0 && (
+            <>
+              <h2 className="apps-section">{t('apps.notInstalled')}</h2>
+              {grid(notInstalled, ready.length)}
+            </>
+          )}
+        </>
       )}
       {openApp && (
         <AppDetails

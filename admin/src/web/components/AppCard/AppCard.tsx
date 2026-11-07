@@ -33,7 +33,11 @@ export function AppCard({
   }
 
   return (
-    <article className="card" style={{ '--c': app.color } as CSSProperties} onClick={click}>
+    <article
+      className={app.status === 'not-installed' ? 'card not-installed' : 'card'}
+      style={{ '--c': app.color } as CSSProperties}
+      onClick={click}
+    >
       <header className="card-top">
         <span className="num">{String(index + 1).padStart(2, '0')}</span>
         <nav className="card-links">
