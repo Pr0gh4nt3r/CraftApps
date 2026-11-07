@@ -128,7 +128,9 @@ export function App() {
           </button>
           {/* In the bar; on narrow screens in the user menu */}
           <div id="topbar-user" className={open === 'user' ? 'user open' : 'user'}>
-            {me.username}
+            <span className="user-name" title={me.username}>
+              {me.username}
+            </span>
             <button type="button" className="logout" aria-label={t('app.logout')} title={t('app.logout')} onClick={logout}>
               <LogoutIcon />
             </button>

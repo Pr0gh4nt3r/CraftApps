@@ -231,8 +231,10 @@ löschen:
 
 ![Verwaltung: eigenes Passwort ändern, die Liste der Benutzer und das Formular für einen neuen](docs/images/admin-users-de.png)
 
-**Auf dem Handy:** Bis 1000 px Breite wandern die Tabs ins Burgermenü, Name und Abmelden ins
-Benutzermenü daneben; die Umschalter für Design und Sprache bleiben in der Leiste:
+**Auf schmalen Bildschirmen und dem Handy:** Bis 1050 px Breite – also auch in den Bildern von
+Benachrichtigungen, Einstellungen und Benutzern oben – wandern die Tabs ins Burgermenü, Name
+und Abmelden ins Benutzermenü daneben; die Umschalter für Design und Sprache bleiben in der
+Leiste. Breiter wird ein langer Benutzername in der Leiste mit „…“ gekürzt:
 
 ![Verwaltung auf dem Handy: Apps, das offene Burgermenü und die Benachrichtigungskanäle mit offenem Benutzermenü](docs/images/admin-mobile-de.png)
 

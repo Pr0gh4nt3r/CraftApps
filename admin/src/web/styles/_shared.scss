@@ -62,8 +62,16 @@
 $narrow: 720px;
 
 // Below this width the tabs fold into the burger menu, name and logout into the user menu –
-// in German the bar needs about 950px in one row
-$menu: 1000px;
+// in German the bar needs about 1040px in one row with a short user name; a longer one gets
+// shorter in the bar instead of the tabs
+$menu: 1050px;
+
+// Longest user name in the top bar; a longer one, or one without room, ends in "…" (the full
+// name is the tooltip)
+$user-name: 6em;
+
+// Below this width two columns side by side (the details of an app) become one
+$two-columns: 1000px;
 
 // Width of the pages with forms (notifications, settings, users) – a column in the middle
 $column: 760px;

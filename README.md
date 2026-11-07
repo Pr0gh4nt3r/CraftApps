@@ -226,8 +226,10 @@ accounts:
 
 ![Admin UI: change your own password, the list of users and the form for a new one](docs/images/admin-users-en.png)
 
-**On the phone:** up to 1000 px wide, the tabs fold into the burger menu, name and logout into
-the user menu next to it; the design and language switches stay in the bar:
+**On narrow screens and the phone:** up to 1050 px wide – so also in the pictures of
+notifications, settings and users above – the tabs fold into the burger menu, name and logout
+into the user menu next to it; the design and language switches stay in the bar. Wider, a long
+user name ends in "…" in the bar:
 
 ![Admin UI on the phone: apps, the open burger menu and the notification channels with the open user menu](docs/images/admin-mobile-en.png)
 

@@ -52,10 +52,9 @@
 
 .tabs {
   display: flex;
-  flex: 1;
+  // Never narrower than the tabs themselves – the user name gives way instead (.user-name)
+  flex: 1 0 auto;
   gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
 
   a {
     padding: 6px 12px;
@@ -76,7 +75,6 @@
     order: 3;
     flex-basis: 100%;
     flex-direction: column;
-    overflow-x: visible;
     padding-bottom: 8px;
 
     &.open {
@@ -94,6 +92,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+
+  // Only the user name gives way (.user), the switches and buttons keep their size
+  > * {
+    flex-shrink: 0;
+  }
 
   @media (max-width: shared.$menu) {
     gap: 8px;
@@ -108,6 +112,8 @@
   align-items: center;
   gap: 8px;
   color: var(--muted);
+  flex-shrink: 1;
+  min-width: 0;
   font-size: 13px;
   white-space: nowrap;
 
@@ -131,6 +137,19 @@
 
   @media (max-width: shared.$narrow) {
     right: 16px;
+  }
+}
+
+// In the bar at most shared.$user-name wide and shorter still when the tabs need the room; in
+// the user menu in full
+.user-name {
+  min-width: 0;
+  max-width: shared.$user-name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: shared.$menu) {
+    max-width: none;
   }
 }
 
