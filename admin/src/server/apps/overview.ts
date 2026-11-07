@@ -29,16 +29,17 @@ async function writeAtomic(file: string, content: string | Buffer): Promise<void
   await fs.rename(tmp, file);
 }
 
-const ICONS = ['icon.svg', 'favicon.ico', 'apple-touch-icon.png'];
+// The start page's styles (src/overview/) and browser icons (public/overview), from the build
+const ASSETS = ['overview.css', 'icon.svg', 'favicon.ico', 'apple-touch-icon.png'];
 
-/** Copies the browser icons of the start page from the build (public/overview) next to index.html. */
-async function copyIcons(iconDir: string, dataDir: string): Promise<void> {
-  for (const name of ICONS) {
-    // Missing with "npm run dev:server": the icons only exist in the build
-    const icon = await fs.readFile(path.join(iconDir, name)).catch(() => null);
-    if (!icon) continue;
+/** Copies the built files of the start page (dist/web/overview) next to index.html. */
+async function copyAssets(assetDir: string, dataDir: string): Promise<void> {
+  for (const name of ASSETS) {
+    // Missing until "npm run build" ran (dev.sh does that first)
+    const file = await fs.readFile(path.join(assetDir, name)).catch(() => null);
+    if (!file) continue;
     const current = await fs.readFile(path.join(dataDir, name)).catch(() => null);
-    if (!current?.equals(icon)) await writeAtomic(path.join(dataDir, name), icon);
+    if (!current?.equals(file)) await writeAtomic(path.join(dataDir, name), file);
   }
 }
 
@@ -72,10 +73,10 @@ function card(dataDir: string, app: OverviewApp): string {
 
 /**
  * Public start page of nginx (/index.html) in German and English – the switch or else the
- * browser's language picks one, without JavaScript it's English. Plus its icons and
+ * browser's language picks one, without JavaScript it's English. Plus its styles, its icons and
  * /status.json with the installed apps.
  */
-export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDir: string): Promise<void> {
+export async function writeOverview(dataDir: string, apps: OverviewApp[], assetDir: string): Promise<void> {
   const cards = apps.length
     ? apps.map((app) => card(dataDir, app)).join('\n')
     : '    <p class="empty"><span data-lang="de">Noch keine Apps installiert.</span><span data-lang="en">No apps installed yet.</span></p>';
@@ -141,158 +142,7 @@ export async function writeOverview(dataDir: string, apps: OverviewApp[], iconDi
     if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
   }
 </script>
-<style>
-  /* Dark by default, light with data-theme="light" or, without a choice, as the system – the
-     same colors as the admin UI. --app-ink darkens text in the app color on a light page. */
-  :root { color-scheme: dark; --bg: #0d0f13; --card: #14171d; --hover: #191d24; --raised: #1b1f27; --line: #262b34;
-          --text: #e7e9ee; --muted: #8f96a3; --app-ink: 100%; --mono: ui-monospace, SFMono-Regular, Consolas, monospace; }
-  :root[data-theme="light"] { color-scheme: light; --bg: #f3f4f6; --card: #ffffff; --hover: #f6f7f9; --raised: #eceef2;
-          --line: #dcdfe5; --text: #16191f; --muted: #5c6370; --app-ink: 70%; }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) { color-scheme: light; --bg: #f3f4f6; --card: #ffffff; --hover: #f6f7f9; --raised: #eceef2;
-          --line: #dcdfe5; --text: #16191f; --muted: #5c6370; --app-ink: 70%; }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 1240px; margin: 0 auto; padding: 32px 16px 48px; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
-  h1 { margin: 0; font-size: 24px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1px;
-          background: var(--line); border: 1px solid var(--line); }
-  .app { position: relative; display: flex; background: var(--card); }
-  .app-main { flex: 1; display: flex; gap: 14px; align-items: flex-start; padding: 18px; color: inherit; text-decoration: none; }
-  /* Room for the info button in the corner – only the name reaches up there */
-  .grid:not(.list) .name { padding-right: 36px; }
-  /* Info in the corner of the tile: opens the details. Just the symbol, a frame only for the keyboard */
-  .app-info { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
-              border: 0; background: none; color: var(--muted); cursor: pointer; }
-  .app-info:hover, .app-info:focus-visible { color: var(--text); }
-  .app-info:focus-visible { outline: 1px solid var(--text); outline-offset: -2px; }
-  .app-info[hidden] { display: none; }
-  .app-info svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
-  .grid.list .app-info { position: static; align-self: center; margin-right: 18px; }
-  .app:hover { background: var(--hover); }
-  .app img, .app .icon { flex: none; width: 56px; height: 56px; border-radius: 12px; }
-  .app .icon { display: grid; place-items: center; background: var(--c); color: #0b0d10; font-size: 24px; font-weight: 700; }
-  .name { display: block; font-size: 20px; font-weight: 700; }
-  .name span { color: color-mix(in srgb, var(--c) var(--app-ink), #000); }
-  .desc, .meta { display: block; color: var(--muted); font-size: 13px; }
-  .meta { margin-top: 6px; font: 12px var(--mono); }
-  .meta time { white-space: nowrap; }
-  .empty { margin: 0; padding: 32px; background: var(--card); color: var(--muted); }
-  /* Order, search and tiles | list as in the admin UI – only with JavaScript */
-  .controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 16px; }
-  .controls[hidden], .grid[hidden], .app[hidden], .no-match[hidden] { display: none; }
-  .controls label { display: flex; align-items: center; gap: 10px; color: var(--muted);
-                    font: 700 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
-  .select { position: relative; display: inline-flex; }
-  .select::after { content: ""; position: absolute; top: 50%; right: 13px; width: 6px; height: 6px; pointer-events: none;
-                   border-right: 1.5px solid var(--text); border-bottom: 1.5px solid var(--text); transform: translateY(-70%) rotate(45deg); }
-  .controls select, .controls input { height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 0;
-                                      background: var(--bg); color: var(--text); font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
-  .controls select { min-width: 210px; padding-right: 34px; appearance: none; text-transform: none; letter-spacing: 0; cursor: pointer; }
-  .controls input { width: 240px; }
-  .controls select:focus, .controls input:focus { outline: none; border-color: #2f7bf5; }
-  .layout { display: flex; border: 1px solid var(--line); }
-  .layout button { display: grid; place-items: center; width: 36px; height: 34px; border: 0; background: none;
-                   color: var(--muted); cursor: pointer; }
-  .layout button + button { border-left: 1px solid var(--line); }
-  .layout button:hover { color: var(--text); }
-  .layout [aria-pressed="true"] { background: var(--text); color: var(--bg); }
-  .layout svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
-  .no-match { margin: 0 0 16px; padding: 16px; background: var(--card); color: var(--muted); }
-  /* The list: one row per app, name and description on the left, version on the right */
-  .grid.list { grid-template-columns: 1fr; }
-  .grid.list .app-main { align-items: center; padding: 12px 18px; }
-  .grid.list .app img, .grid.list .app .icon { width: 40px; height: 40px; border-radius: 9px; }
-  .grid.list .app-main > span:last-child { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px;
-                                      align-items: center; width: 100%; }
-  .grid.list .name { font-size: 17px; }
-  .grid.list .meta { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
-  @media (max-width: 720px) {
-    .controls input { flex: 1 1 100%; order: -1; width: auto; }
-    .grid.list .app-main > span:last-child { display: block; }
-    .grid.list .meta { margin-top: 4px; }
-  }
-  html:not([lang="de"]) [data-lang="de"], html[lang="de"] [data-lang="en"] { display: none; }
-  /* Light | dark | system and DE | EN as in the admin UI – only with JavaScript, without it the
-     switches couldn't work */
-  .switches { display: flex; gap: 8px; }
-  .switch { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-  .switch[hidden] { display: none; }
-  .switch button { display: inline-flex; align-items: center; padding: 3px 8px; border: 0; background: none;
-                   color: var(--muted); font: 700 11px var(--mono); letter-spacing: 0.08em; cursor: pointer; }
-  .switch button + button { border-left: 1px solid var(--line); }
-  .switch button:hover, .switch [aria-pressed="true"] { color: var(--text); }
-  .switch [aria-pressed="true"] { background: var(--raised); }
-  .theme-switch button { padding: 3px 6px; }
-  .theme-switch svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8;
-                      stroke-linecap: round; stroke-linejoin: round; }
-  /* Details of an app like in the launcher and the admin UI – only with JavaScript */
-  body.details-open { overflow: hidden; }
-  .details-backdrop { position: fixed; inset: 0; z-index: 20; overflow-y: auto; padding: 32px 16px;
-                      background: color-mix(in srgb, var(--bg) 75%, transparent); backdrop-filter: blur(2px); }
-  .details { max-width: 1240px; margin: 0 auto; background: var(--bg); border: 1px solid var(--line); border-top: 2px solid var(--c);
-             box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3); }
-  .details-head { padding: 20px 24px; background: color-mix(in srgb, var(--c) 8%, var(--card)); border-bottom: 1px solid var(--line); }
-  .details-bar { display: flex; align-items: center; justify-content: space-between; }
-  .details-label, .details h3, .details dt, .details figcaption { color: var(--muted); font: 700 11px var(--mono);
-                                                                 letter-spacing: 0.12em; text-transform: uppercase; }
-  .details-nav { display: flex; gap: 8px; }
-  .details-nav button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line);
-                        background: none; color: var(--text); cursor: pointer; }
-  .details-nav button:disabled { opacity: 0.45; cursor: default; }
-  .details-nav button:hover:not(:disabled) { border-color: var(--text); }
-  .details svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .details-title { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 20px; margin: 12px 0 18px; }
-  .details-icon { width: 96px; height: 96px; border-radius: 18px; }
-  span.details-icon { display: grid; place-items: center; background: var(--c); color: #0b0d10; font-size: 40px; font-weight: 800; }
-  .details h2 { margin: 0; font-size: 34px; line-height: 1.15; }
-  .details h2 span { color: color-mix(in srgb, var(--c) var(--app-ink), #000); }
-  .details-headline { margin: 4px 0 0; font-size: 16px; }
-  .details-meta { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
-  .details-open-app { display: grid; place-items: center; min-width: 240px; min-height: 36px; padding: 0 14px; border: 1px solid var(--muted);
-                      color: var(--text); font: 700 12px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; }
-  .details-open-app:hover { border-color: var(--text); }
-  .details-links { display: flex; flex-wrap: wrap; gap: 10px; }
-  .details-links a { padding: 9px 14px; border: 1px solid var(--line); color: var(--text); font: 700 11px var(--mono);
-                     letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; }
-  .details-links a:hover { border-color: var(--text); }
-  .details-body { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 24px 32px; padding: 24px; }
-  .details h3 { margin: 0 0 14px; }
-  .details-about > p { margin: 0 0 10px; font-size: 16px; }
-  .shots { margin: 0 0 18px; }
-  .shots figcaption { margin-top: 10px; }
-  .shot-frame { position: relative; aspect-ratio: 8 / 5; border: 1px solid var(--line); background: var(--card); }
-  .shot-frame img, .shot-thumbs img { display: block; width: 100%; height: 100%; object-fit: cover; }
-  /* On the picture itself – dark in both designs */
-  .shot-frame button { position: absolute; top: 50%; display: grid; place-items: center; width: 36px; height: 36px;
-                       border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(13, 15, 19, 0.75); color: #e7e9ee;
-                       transform: translateY(-50%); cursor: pointer; }
-  .shot-frame .prev { left: 10px; }
-  .shot-frame .next { right: 10px; }
-  .shot-thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
-  .shot-thumbs button { padding: 0; aspect-ratio: 8 / 5; border: 1px solid var(--line); background: none; overflow: hidden; cursor: pointer; }
-  .shot-thumbs [aria-pressed="true"] { outline: 2px solid #2f7bf5; outline-offset: -2px; }
-  .details-features ol { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
-  .details-features li { padding: 14px 16px; border: 1px solid var(--line); background: var(--card); }
-  .details-features strong { display: flex; gap: 14px; align-items: baseline; font-size: 15px; }
-  .details-features strong span { color: #2f7bf5; font: 700 11px var(--mono); }
-  .details-features p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
-  .details-release { grid-column: 1 / -1; padding-top: 20px; border-top: 1px solid var(--line); }
-  .details dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin: 0 0 14px; }
-  .details dl > div { padding: 12px 14px; border: 1px solid var(--line); background: var(--card); }
-  .details dd { margin: 4px 0 0; font-size: 15px; }
-  .details-release > a { color: #2f7bf5; font-size: 14px; }
-  @media (max-width: 1000px) { .details-body { grid-template-columns: minmax(0, 1fr); } }
-  @media (max-width: 720px) {
-    .details-backdrop { padding: 0; }
-    .details-head, .details-body { padding: 16px; }
-    .details-title { grid-template-columns: auto minmax(0, 1fr); }
-    .details-title > a { grid-column: 1 / -1; }
-    .details-icon { width: 64px; height: 64px; border-radius: 14px; }
-  }
-</style>
+<link rel="stylesheet" href="overview.css">
 </head>
 <body>
 <main>
@@ -685,7 +535,7 @@ ${cards}
     generatedAt: new Date().toISOString(),
     apps: apps.map((a) => ({ app: a.id, name: a.name, version: a.version, publishedAt: a.publishedAt?.toISOString() ?? null })),
   };
-  await copyIcons(iconDir, dataDir);
+  await copyAssets(assetDir, dataDir);
   await writeAtomic(path.join(dataDir, 'index.html'), page);
   await writeAtomic(path.join(dataDir, 'status.json'), JSON.stringify(status, null, 2));
 }

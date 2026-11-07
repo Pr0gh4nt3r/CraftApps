@@ -21,7 +21,6 @@ export function ThemeSwitch() {
           title={t(entry.label)}
           aria-label={t(entry.label)}
           aria-pressed={entry.id === theme}
-          className={entry.id === theme ? 'active' : undefined}
           onClick={() => setTheme(entry.id)}
         >
           {entry.icon}

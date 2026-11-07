@@ -1,0 +1,48 @@
+// Colors, page frame and title bar of the start page
+@use '../web/styles/shared';
+
+// Its own colors next to the palette from shared: a tile under the mouse
+:root {
+  --hover: #191d24;
+}
+
+@include shared.light {
+  --hover: #f6f7f9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 shared.$sans;
+}
+
+main {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+}
+
+// Title and the switches
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+// The page holds both languages; <html lang> picks one
+html:not([lang="de"]) [data-lang="de"],
+html[lang="de"] [data-lang="en"] {
+  display: none;
+}

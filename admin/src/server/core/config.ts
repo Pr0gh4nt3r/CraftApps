@@ -12,6 +12,8 @@ export interface Config {
   port: number;
   dataDir: string;
   webDir: string;
+  /** Built styles and browser icons of the start page, copied next to its index.html */
+  overviewDir: string;
   owner: string;
   /** GITHUB_TOKEN – applies while no token is saved in the settings */
   githubToken: string | undefined;
@@ -33,6 +35,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: Number(env.PORT ?? 3000),
     dataDir: path.resolve(env.DATA_DIR ?? '/data'),
     webDir: path.resolve(import.meta.dirname, '../../web'),
+    // dist/web/overview in the build and with "npm run dev:server" alike (admin/ is three levels up)
+    overviewDir: path.resolve(import.meta.dirname, '../../../dist/web/overview'),
     owner: env.GITHUB_OWNER?.trim() || 'storytold',
     githubToken: env.GITHUB_TOKEN?.trim() || undefined,
     // Reverse proxies in the Docker or home network (e.g. Zoraxy) may set X-Forwarded-*

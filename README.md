@@ -38,6 +38,7 @@ CraftApps\
 │   ├── Dockerfile
 │   ├── public\                         Tab icons: admin UI, overview\ for the start page
 │   └── src\
+│       ├── overview\                   Styles of the start page (SCSS), built into dist\web\overview\
 │       ├── server\                     Fastify server, main.ts starts it
 │       │   ├── api\                    Routes for the admin UI
 │       │   ├── apps\                   Find, install and update apps; start page
@@ -649,7 +650,9 @@ again:
 - **Admin UI** at `http://localhost:5173`: Vite shows changes to the frontend right away,
   the server restarts on changes.
 - **Start page** at `http://localhost:8080`: nginx with `nginx.conf` as on the Pi, serving
-  `admin/data`. Another port: `START_PAGE_PORT=8090 ./dev.sh`.
+  `admin/data`. Another port: `START_PAGE_PORT=8090 ./dev.sh`. Its styles and icons come
+  from the build: the server runs `vite build` before it starts – after changes in
+  `admin/src/overview/` restart it.
 - Beforehand the script starts MySQL from `docker-compose.dev.yml` – and at the end stops it
   only if it started it. It runs `npm ci` if the dependencies are missing or
   `package-lock.json` changed, and creates `admin/.env` from `.env.example` if it's missing.
@@ -665,7 +668,7 @@ docker compose -f docker-compose.dev.yml up -d   # MySQL for development
 cd admin
 npm ci
 cp .env.example .env                       # once; matches docker-compose.dev.yml
-npm run dev:server                         # server, restarts on changes
+npm run dev:server                         # builds the start page's styles, then the server; restarts on changes
 npm run dev:web                            # second terminal: UI at http://localhost:5173
 # third terminal, in the main folder: start page at http://localhost:8080
 docker run --rm -p 127.0.0.1:8080:80 \

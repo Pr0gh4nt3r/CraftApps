@@ -40,7 +40,7 @@ export function AppActions({
   if (job !== null && (job.state === 'queued' || job.state === 'running')) {
     return (
       <div className="progress">
-        <span className="progress-bar" style={{ width: `${Math.round((job.progress ?? 0) * 100)}%` }} />
+        <progress className="progress-bar" value={job.progress ?? 0} max={1} aria-hidden="true" />
         <span className="progress-label">
           {tm({ key: `phase.${job.phase}` })}
           {job.progress !== null && job.progress < 1 ? ` ${Math.round(job.progress * 100)} %` : ' …'}

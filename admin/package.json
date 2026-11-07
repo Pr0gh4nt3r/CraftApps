@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.web.json && vite build && tsc -p tsconfig.server.json",
     "start": "node dist/server/main.js",
-    "dev:server": "tsx watch --env-file=.env src/server/main.ts",
+    "dev:server": "vite build --logLevel warn && tsx watch --env-file=.env src/server/main.ts",
     "dev:web": "vite",
     "lint": "eslint . --max-warnings 0"
   },
