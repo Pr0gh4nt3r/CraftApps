@@ -1,9 +1,12 @@
 // The installed apps: tiles in a grid or, with the switch, a list with one row per app
 @use '../web/styles/shared';
 
+// Tiles at least as wide as their version line needs ("Version 0.20.0 · 27. Okt. 2026"), so
+// at most three side by side; all rows as high as the highest tile
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(325px, 100%), 1fr));
+  grid-auto-rows: 1fr;
   gap: 1px;
   background: var(--line);
   border: shared.$hairline;
@@ -55,6 +58,15 @@
   padding: 18px;
   color: inherit;
   text-decoration: none;
+
+  // Name, description and version one below the other, over the tile's whole height
+  > span:last-child {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-self: stretch;
+    min-width: 0;
+  }
 }
 
 // Info in the corner of the tile: opens the details. Just the symbol, a frame only for the keyboard
@@ -109,14 +121,15 @@
   font-size: 13px;
 }
 
+// Always one line, at the bottom of the tile – in a row with a longer description it stays in
+// line with the others ("…" only if a version were very long)
 .meta {
-  margin-top: 6px;
+  margin-top: auto;
+  padding-top: 6px;
+  overflow: hidden;
   font: 12px var(--mono);
-
-  // On narrow tiles the whole date moves to the next line
-  time {
-    white-space: nowrap;
-  }
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .empty {
@@ -158,6 +171,7 @@
     grid-column: 2;
     grid-row: 1 / span 2;
     margin: 0;
+    padding: 0;
   }
 
   .app-info {
@@ -173,7 +187,7 @@
     }
 
     .meta {
-      margin-top: 4px;
+      padding-top: 4px;
     }
   }
 }
