@@ -38,6 +38,7 @@ CraftApps\
 │   ├── Dockerfile
 │   ├── public\                         Tab icons: admin UI, overview\ for the start page
 │   └── src\
+│       ├── assets\icons\               Icons of both pages, one SVG file each
 │       ├── overview\                   Styles of the start page (SCSS), built into dist\web\overview\
 │       ├── server\                     Fastify server, main.ts starts it
 │       │   ├── api\                    Routes for the admin UI
@@ -49,7 +50,7 @@ CraftApps\
 │       ├── shared\                     Types, messages (German/English), check schedule and activity view for server and frontend
 │       └── web\                        React frontend, main.tsx starts it
 │           ├── App\                    Top bar; on narrow screens with a burger and a user menu
-│           ├── components\             ActivityFilters, AppActions, AppCard, AppDetails, AppsControls, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – each with its styles
+│           ├── components\             ActivityFilters, AppActions, AppCard, AppDetails, AppsControls, ChannelForm, Icon, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – each with its styles
 │           ├── i18n\                   Language and texts, German and English in locales\
 │           ├── lib\                    API calls and formatting
 │           ├── pages\                  Apps, activity, notifications, settings, users, login – each with its styles

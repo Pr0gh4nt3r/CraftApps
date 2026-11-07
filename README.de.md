@@ -38,6 +38,7 @@ CraftApps\
 │   ├── Dockerfile
 │   ├── public\                         Tab-Icons: Verwaltung, overview\ für die Startseite
 │   └── src\
+│       ├── assets\icons\               Icons beider Seiten, je eine SVG-Datei
 │       ├── overview\                   Styles der Startseite (SCSS), gebaut nach dist\web\overview\
 │       ├── server\                     Fastify-Server, main.ts startet ihn
 │       │   ├── api\                    Routen für die Verwaltung
@@ -49,7 +50,7 @@ CraftApps\
 │       ├── shared\                     Typen, Meldungen (Deutsch/Englisch), Zeitplan und Aktivitätsansicht für Server und Oberfläche
 │       └── web\                        React-Oberfläche, main.tsx startet sie
 │           ├── App\                    Kopfzeile; auf schmalen Bildschirmen mit Burger- und Benutzermenü
-│           ├── components\             ActivityFilters, AppActions, AppCard, AppDetails, AppsControls, ChannelForm, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – jeweils mit ihren Styles
+│           ├── components\             ActivityFilters, AppActions, AppCard, AppDetails, AppsControls, ChannelForm, Icon, LangSwitch, MultiSelect, ScheduleField, Select, ThemeSwitch, Toggle – jeweils mit ihren Styles
 │           ├── i18n\                   Sprache und Texte, Deutsch und Englisch in locales\
 │           ├── lib\                    API-Aufrufe und Formatierung
 │           ├── pages\                  Apps, Aktivität, Benachrichtigungen, Einstellungen, Benutzer, Anmeldung – jeweils mit Styles

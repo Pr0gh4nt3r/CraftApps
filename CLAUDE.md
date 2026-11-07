@@ -75,6 +75,13 @@ admin copies this set into the data volume) are the sources. `favicon.ico` (16, 
 them are rendered from the SVGs, e.g. with `rsvg-convert` – always update all three
 together.
 
+The icons inside both pages (design switch, tiles | list, info, paging, closing, user, logout)
+are SVG files in `admin/src/assets/icons/`: 24×24, stroke 1.8, round caps and joins, black –
+only their shape counts. The component `Icon` (`admin/src/web/components/Icon/`) draws them
+as a CSS mask over the text color, so they follow the button and the design; the start page
+uses the same classes (`<span class="ui-icon ui-icon-sun" aria-hidden="true">`). A new icon
+needs its file, a rule in `_icon.scss` and its name in `IconName` – no SVG markup in TS/TSX.
+
 ## Language
 
 Comments in code and configuration – including the code examples in the READMEs – always in

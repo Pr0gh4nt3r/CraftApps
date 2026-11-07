@@ -3,6 +3,7 @@
 // admin copies the file next to index.html. Same palettes, fonts and mixins as the admin UI
 // (../web/styles/_shared.scss). The order below is the cascade order.
 @use 'base';
+@use '../web/components/Icon/icon';
 @use 'switches';
 @use 'controls';
 @use 'tiles';
