@@ -52,6 +52,7 @@
   "apps.layout.grid": "Tiles",
   "apps.layout.list": "List",
   "apps.noMatch": "No app matches \"{query}\".",
+  "apps.notInstalled": "Not installed",
 
   "app.status.installed": "Installed · Up to date",
   "app.status.updateAvailable": "Update available",

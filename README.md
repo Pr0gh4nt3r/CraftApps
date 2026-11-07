@@ -149,7 +149,7 @@ Public images such as `nginx:alpine` or the ready-made admin image need no regis
 - **Apps** in a grid like the Craft Launcher – with its icons, brand colors and short
   descriptions: install, update, reinstall, uninstall, toggle automatic updates per app.
   Sorted by name, by use or by the newest release, searchable, as tiles or as a list – on the
-  start page as well.
+  start page as well. Apps that aren't installed follow in a section of their own, greyed out.
 - **Details of every app** as in the launcher: what it is, its screenshots and features and
   the latest version – in the admin UI a click on an app opens them, with all its actions; on
   the start page the info button on a tile, with **Open**.
@@ -179,12 +179,13 @@ volume `craftapps_data`, which nginx mounts read-only.
 
 ### Screenshots
 
-**Apps:** one card per app – here installed, with an update waiting (automatic updates
-turned off) and not installed yet. Above them the order, a search and the switch between tiles
+**Apps:** one card per app – here installed and with an update waiting (automatic updates
+turned off); below them, in a section of their own, the apps not installed yet, greyed out like
+in the launcher, in the same order. Above them the order, a search and the switch between tiles
 and a list; this browser remembers order and layout. **Most used** counts how often an app was
 opened from the page in this browser, like the desktop launcher does on its computer:
 
-![Admin UI: apps with their state, version and automatic updates](docs/images/admin-apps-en.png)
+![Admin UI: the installed apps with their state, version and automatic updates, below them the greyed-out apps not installed yet](docs/images/admin-apps-en.png)
 
 As a list, one row per app – the links to the website and GitHub are in the **…** menu there:
 

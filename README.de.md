@@ -149,7 +149,8 @@ Registry-Eintrag.
 - **Apps** im Raster wie der Craft Launcher – mit dessen Icons, Markenfarben und
   Kurzbeschreibungen: installieren, aktualisieren, neu installieren, deinstallieren,
   automatische Updates je App an- oder ausschalten. Sortiert nach Name, Nutzung oder neuestem
-  Release, durchsuchbar, als Kacheln oder Liste – auch auf der Startseite.
+  Release, durchsuchbar, als Kacheln oder Liste – auch auf der Startseite. Nicht installierte
+  Apps folgen ausgegraut in einem eigenen Bereich.
 - **Details jeder App** wie im Launcher: was sie ist, ihre Screenshots und Funktionen und die
   neueste Version – in der Verwaltung per Klick auf eine App, mit allen Aktionen; auf der
   Startseite über das Info-Symbol einer Kachel, mit **Öffnen**.
@@ -180,13 +181,14 @@ Apps im Volume `craftapps_data`, das nginx nur lesend einbindet.
 
 ### Screenshots
 
-**Apps:** eine Karte je App – hier installiert, mit wartendem Update (automatische Updates
-aus) und noch nicht installiert. Darüber Sortierung, Suche und der Wechsel zwischen Kacheln und
-Liste; Sortierung und Ansicht merkt sich der Browser. **Am häufigsten genutzt** zählt, wie oft
+**Apps:** eine Karte je App – hier installiert und mit wartendem Update (automatische Updates
+aus); darunter in einem eigenen Bereich die noch nicht installierten, ausgegraut wie im
+Launcher und in derselben Reihenfolge. Darüber Sortierung, Suche und der Wechsel zwischen
+Kacheln und Liste; Sortierung und Ansicht merkt sich der Browser. **Am häufigsten genutzt** zählt, wie oft
 eine App in diesem Browser von der Seite aus geöffnet wurde – so wie der Desktop-Launcher auf
 seinem Rechner:
 
-![Verwaltung: Apps mit Status, Version und automatischen Updates](docs/images/admin-apps-de.png)
+![Verwaltung: die installierten Apps mit Status, Version und automatischen Updates, darunter die ausgegrauten noch nicht installierten](docs/images/admin-apps-de.png)
 
 Als Liste, eine Zeile je App – die Links zu Website und GitHub stehen dort im Menü **…**:
 
