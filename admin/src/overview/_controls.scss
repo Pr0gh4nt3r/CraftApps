@@ -1,0 +1,121 @@
+// Order, search and tiles | list as in the admin UI – only with JavaScript (the script shows them)
+@use '../web/styles/shared';
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 16px;
+
+  &[hidden] {
+    display: none;
+  }
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    @include shared.label(11px, 0.12em);
+  }
+
+  select,
+  input {
+    height: 36px;
+    padding: 0 10px;
+    border: shared.$hairline;
+    border-radius: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 13px shared.$sans;
+
+    &:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+  }
+
+  select {
+    min-width: 210px;
+    padding-right: shared.$chevron-space;
+    appearance: none;
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
+  }
+
+  input {
+    width: 240px;
+  }
+
+  // Phones: the search first, across the whole width
+  @media (max-width: shared.$narrow) {
+    input {
+      flex: 1 1 100%;
+      order: -1;
+      width: auto;
+    }
+  }
+}
+
+// The drop-down's arrow sits on this wrapper
+.select {
+  position: relative;
+  display: inline-flex;
+  color: var(--text);
+
+  &::after {
+    @include shared.chevron;
+  }
+}
+
+.layout {
+  display: flex;
+  border: shared.$hairline;
+
+  button {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 34px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+
+    & + button {
+      border-left: shared.$hairline;
+    }
+
+    &:hover {
+      color: var(--text);
+    }
+
+    &[aria-pressed="true"] {
+      background: var(--text);
+      color: var(--bg);
+    }
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+  }
+}
+
+// Notice when the search finds nothing
+.no-match {
+  margin: 0 0 16px;
+  padding: 16px;
+  background: var(--surface);
+  color: var(--muted);
+
+  &[hidden] {
+    display: none;
+  }
+}

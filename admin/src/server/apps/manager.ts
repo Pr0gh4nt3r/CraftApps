@@ -611,7 +611,7 @@ export class Manager {
           details: await detailsView(this.cfg.dataDir, details, a.id, (key) => `screenshots/${details?.rev}/${a.id}/${key}.jpg`),
         });
       }
-      await writeOverview(this.cfg.dataDir, apps, path.join(this.cfg.webDir, 'overview'));
+      await writeOverview(this.cfg.dataDir, apps, this.cfg.overviewDir);
     } catch (err) {
       this.log.warn(`Übersichtsseite nicht geschrieben: ${errorText(err)}`);
     }

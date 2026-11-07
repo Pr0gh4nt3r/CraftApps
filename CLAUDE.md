@@ -57,8 +57,15 @@ the arrow with the mixin `chevron` from `_shared.scss`, so there is no bare `<se
 are two designs: dark is the default in `:root`, light comes from the mixin `light-colors`
 (with `data-theme="light"` or, without a choice, `prefers-color-scheme`) – every new color
 needs a value in both, never a fixed color in a component; text in an app's color uses the
-mixin `app-ink`. The start page's CSS sits inline in the HTML that
-`admin/src/server/apps/overview.ts` generates, with the same two palettes.
+mixin `app-ink`; a color of a component's own sets its light value with the mixin `light`.
+
+The start page's styles are SCSS as well, in `admin/src/overview/` (entry `overview.scss`,
+its partials in cascade order). Vite builds them as a second entry into
+`dist/web/overview/overview.css`, and the admin copies the file next to the `index.html` that
+`admin/src/server/apps/overview.ts` writes. They use `_shared.scss` too – the same palettes,
+fonts and mixins. No style code in TypeScript: the only inline styles are the app color `--c`
+set at runtime (it comes from the launcher) and the HTML of the emails in
+`notify/drivers.ts`, which mail clients only read inline.
 
 ## Icons
 
